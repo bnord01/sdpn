@@ -16,10 +16,10 @@ import com.ibm.wala.util.strings.StringStuff
 import scala.collection.JavaConversions._
 import de.wwu.sdpn.analysis.MyPreAnalysis
 import java.io.File
-import de.wwu.sdpn.analysis.SSRProps
+import de.wwu.sdpn.analysis.SDPNProps
 
 /**
- * This generates a call graph for main class specified by SSRProps.get 
+ * This generates a call graph for main class specified by SDPNProps.get 
  * and prints it using /usr/bin/dot to CallGraph.pdf which is opened by /usr/bin/xdg-open.
  * 
  * @author Benedikt Nordhoff
@@ -27,7 +27,7 @@ import de.wwu.sdpn.analysis.SSRProps
 object PDFCallGraph {
 
     def main(args: Array[String]): Unit = {
-        val tDir = (new File(SSRProps.get.tempDir)).getAbsolutePath
+        val tDir = (new File(SDPNProps.get.tempDir)).getAbsolutePath
         val pdfFile = tDir + File.separator + "CallGraph.pdf"
         val dotFile = tDir + File.separator + "CallGraph.dot"
         val dotExe = "/usr/bin/dot"

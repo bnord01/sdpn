@@ -10,10 +10,10 @@ import scala.collection.JavaConversions._
 import com.ibm.wala.ipa.callgraph.CGNode
 import de.wwu.sdpn.gui.MonitorDPNView
 import de.wwu.sdpn.analysis.MyPreAnalysis
-import de.wwu.sdpn.analysis.SSRProps
+import de.wwu.sdpn.analysis.SDPNProps
 
 /**
- * Runs the DPNExplorer for the MonitorDPN obtained by the properties specified by [[de.wwu.sdpn.analysis.SSRProps]].
+ * Runs the DPNExplorer for the MonitorDPN obtained by the properties specified by [[de.wwu.sdpn.analysis.SDPNProps]].
  *
  * @author Benedikt Nordhoff
  */
@@ -24,17 +24,17 @@ object DPNExplorerRunner {
         import analysis._
 
         //        val entryNode = cg.getEntrypointNodes().iterator().next()
-        val methodSig = SSRProps.get.exclusiveMethod
+        val methodSig = SDPNProps.get.exclusiveMethod
 
         val mr = StringStuff.makeMethodReference(methodSig)
         val confSet: scala.collection.Set[CGNode] = asScalaSet(cg.getNodes(mr))
 
-        val analysis2 = if (SSRProps.get.slicing) new MyPreAnalysis(analysis) with BackwardSliceFilter {
+        val analysis2 = if (SDPNProps.get.slicing) new MyPreAnalysis(analysis) with BackwardSliceFilter {
             val initialSet = confSet
         }
         else analysis
 
-        val issliced = if(SSRProps.get.slicing) "sliced" else "full"
+        val issliced = if(SDPNProps.get.slicing) "sliced" else "full"
         
         println("Generating " + issliced + " DPN")        
         val dpnfac = new MonitorDPNFactory(analysis2)

@@ -22,7 +22,7 @@ import java.io.File
  * @author Benedikt Nordhoff
  * 
  */
-case class SSRProps(
+case class SDPNProps(
     xsbExe: String,
     tempDir: String,
     classPath: String,
@@ -34,11 +34,11 @@ case class SSRProps(
     slicing: Boolean,
     var debug: Boolean)
 
-object SSRProps{
+object SDPNProps{
     /**
      * Read the default properties from the {{sdpn.properties}} file found on the class path
      */
-    lazy val get: SSRProps = {
+    lazy val get: SDPNProps = {
         val f = FileProvider.getFile("sdpn.properties")
         val fin = new BufferedInputStream(new FileInputStream(f))
         val p = new Properties()
@@ -62,7 +62,7 @@ object SSRProps{
         val slicing: Boolean = p.getProperty("std_noslice") == null
         val debug: Boolean = p.getProperty("debug") != null
 
-        SSRProps(
+        SDPNProps(
             xsbExe,
             tempDir,
             cp,

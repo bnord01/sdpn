@@ -14,14 +14,14 @@ import de.wwu.sdpn.ta.FullWitnessIntersectionEmptinessCheck
 /**
  * This Object contains helper functions to run an XSB process and interpret the result. 
  * These methos rely on an well formed check and the xsbExe and tempDir specified 
- * in [[de.wwu.sdpn.analysis.SSRProps]].
+ * in [[de.wwu.sdpn.analysis.SDPNProps]].
  *  
  * @author Benedikt Nordhoff
  */
 object XSBRunner {
-    import SSRProps.get.debug
-    private var xsbExe = SSRProps.get.xsbExe
-    private var tempDir = new File(SSRProps.get.tempDir)
+    import SDPNProps.get.debug
+    private var xsbExe = SDPNProps.get.xsbExe
+    private var tempDir = new File(SDPNProps.get.tempDir)
     assert(tempDir isDirectory)
     private var tempFile = {
         new File(tempDir.getAbsolutePath() + File.separator + "check.P")
@@ -51,7 +51,7 @@ object XSBRunner {
     }
 
     /**
-     * Run the default witness check with parameters declared by [[de.wwu.sdpn.analysis.SSRProps]]
+     * Run the default witness check with parameters declared by [[de.wwu.sdpn.analysis.SDPNProps]]
      * 
      * @return None iff the check yield that the ta is empty, eg there is no conflict
      * 	Some[witness] iff the ta isn't empty and witness is the generated witness.
@@ -103,7 +103,7 @@ object XSBRunner {
     }
 
     /**
-     * Run the default check with parameters declared by [[de.wwu.sdpn.analysis.SSRProps]]
+     * Run the default check with parameters declared by [[de.wwu.sdpn.analysis.SDPNProps]]
      * @return true iff the check yield that the ta is empty, eg there is no conflict
      */
     def runCheck: Boolean =
@@ -112,7 +112,7 @@ object XSBRunner {
         }
 
     /**
-     * Runs runs the given check command using xsbExe and tempDir declared in [[de.wwu.sdpn.analysis.SSRProps]] and interprets the result
+     * Runs runs the given check command using xsbExe and tempDir declared in [[de.wwu.sdpn.analysis.SDPNProps]] and interprets the result
      *
      * @param command the xsb command to evaluate which is assumed do originate from an IntersectionEmptinessCheck
      * @param name the name of the check to look for "name is empty!"
@@ -156,7 +156,7 @@ object XSBRunner {
     }
     
     /**
-     * Runs runs the given check command using xsbExe and tempDir declared in [[de.wwu.sdpn.analysis.SSRProps]] and interprets the result
+     * Runs runs the given check command using xsbExe and tempDir declared in [[de.wwu.sdpn.analysis.SDPNProps]] and interprets the result
      *
      * @param command the xsb command to evaluate which is assumed do originate from an WitnessIntersectionEmptinessCheck
      * @param name the name of the check to look for "name is empty!"

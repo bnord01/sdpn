@@ -3,7 +3,7 @@ import com.ibm.wala.ipa.callgraph.CallGraph
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import org.junit.BeforeClass
 import de.wwu.sdpn.analysis.SimpleAnalyses
-import de.wwu.sdpn.analysis.SSRProps
+import de.wwu.sdpn.analysis.SDPNProps
 import org.junit.AfterClass
 import org.junit.Test
 import de.wwu.sdpn.dpn.explicit.StackSymbol
@@ -20,7 +20,7 @@ object SimpleAnalysesTest {
 	@BeforeClass
 	def setUp(){
 	  	for (i <- 1 to 3) {
-	  	  val (cg,pa) = SimpleAnalyses.getCGandPAfromCP(SSRProps.get.classPath,"Lbnord/unittests/simpleAnalyses/BSP0"+i)
+	  	  val (cg,pa) = SimpleAnalyses.getCGandPAfromCP(SDPNProps.get.classPath,"Lbnord/unittests/simpleAnalyses/BSP0"+i)
 	  	  val mr = StringStuff.makeMethodReference("bnord.unittests.simpleAnalyses.BSP0" + i + ".excludeMe()V")
 	  	  stuff += i -> (cg,pa,mr)
 	  	}

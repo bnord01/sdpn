@@ -1,4 +1,4 @@
-package de.wwu.sdpn.tests.walacg
+package de.wwu.sdpn.tests.util
 
 import com.ibm.wala.ipa.callgraph.CGNode
 import de.wwu.sdpn.util.WaitMap
@@ -13,7 +13,7 @@ import com.ibm.wala.ipa.callgraph.CallGraph
 import org.junit.Assert._
 import de.wwu.sdpn.util.PreAnalysis
 import de.wwu.sdpn.analysis.MyPreAnalysis
-import de.wwu.sdpn.analysis.SSRProps
+import de.wwu.sdpn.analysis.SDPNProps
 import com.ibm.wala.ipa.callgraph.AnalysisCache
 import scala.collection.JavaConversions._
 import com.ibm.wala.ssa.SSACFG
@@ -23,12 +23,12 @@ import de.wwu.sdpn.util.LockWithOriginLocator
 import de.wwu.sdpn.analysis.DPN4IFCAnalysis
 import de.wwu.sdpn.dpn.explicit.StackSymbol
 
-object CGTest {
+object UtilTest {
   var analysis: PreAnalysis = null
 
   @BeforeClass
   def setUp() {
-    analysis = MyPreAnalysis.getStd(SSRProps.get.classPath, "Lbnord/unittests/Main")
+    analysis = MyPreAnalysis.getStd(SDPNProps.get.classPath, "Lbnord/unittests/Main")
   }
 
   @AfterClass
@@ -37,8 +37,8 @@ object CGTest {
   }
 }
 
-class CGTest {
-  val analysis = CGTest.analysis
+class UtilTest {
+  val analysis = UtilTest.analysis
   import analysis._
   import StringStuff.makeMethodReference
 
@@ -189,18 +189,6 @@ class CGTest {
     } 	
   }
   
-  @Test
-  def testIndexMappingWithDPN4IFC {
-    val dia = new DPN4IFCAnalysis(analysis.cg,analysis.pa)
-    val im = mrr("bnord.unittests.Main.p2()V")
-    val nodes = analysis.cg.getNodes(im.getReference())
-    assert(nodes.size == 1)
-    val node = nodes.first
-    val expResult = StackSymbol(node,1,1)
-    val realResult = dia.getSS4NodeAndIndex(node,3)
-    println(realResult)
-    assertTrue("Got wrong StackSymbol got " + realResult + "\t expected" + expResult,expResult == realResult)
-    
-  }
+ 
 
 }

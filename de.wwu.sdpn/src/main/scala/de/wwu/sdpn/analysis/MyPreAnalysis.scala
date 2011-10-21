@@ -66,10 +66,10 @@ case class MyPreAnalysis(
 object MyPreAnalysis {
 
     /**
-     * Generates a PreAnalysis based on the class path and main class from [[de.wwu.sdpn.analysis.SSRProps]]
+     * Generates a PreAnalysis based on the class path and main class from [[de.wwu.sdpn.analysis.SDPNProps]]
      */
     def getStd: PreAnalysis = {
-        val props = SSRProps.get
+        val props = SDPNProps.get
         val cp = props.classPath
         val mc = props.mainClass
         getStd(cp, mc)

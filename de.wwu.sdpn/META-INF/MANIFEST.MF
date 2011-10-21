@@ -13,8 +13,6 @@ Export-Package: de.wwu.sdpn.analysis,
  de.wwu.sdpn.ta,
  de.wwu.sdpn.ta.prolog.cuts,
  de.wwu.sdpn.ta.prolog.reachability,
- de.wwu.sdpn.tests.analyses,
- de.wwu.sdpn.tests.walacg,
  de.wwu.sdpn.util,
  de.wwu.sdpn.util.proxies.dataflow,
  de.wwu.sdpn.util.wala

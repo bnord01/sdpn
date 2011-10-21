@@ -1,5 +1,5 @@
 package de.wwu.sdpn.runner
-import de.wwu.sdpn.analysis.SSRProps
+import de.wwu.sdpn.analysis.SDPNProps
 import de.wwu.sdpn.analysis.SingleSetReachability._
 import de.wwu.sdpn.analysis.XSBRunner._
 import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
@@ -20,12 +20,12 @@ object SSRBenchmarkRunner {
     //run Wala once for clearer results.
     MyPreAnalysis.getStd
     
-    import de.wwu.sdpn.analysis.SSRProps.get.{ xsbExe }
-    val tempDir = new File(SSRProps.get.tempDir)
+    import de.wwu.sdpn.analysis.SDPNProps.get.{ xsbExe }
+    val tempDir = new File(SDPNProps.get.tempDir)
     val tempFile = new File(tempDir.getPath() + File.separator + "benchmark.P")
 
     def main(args: Array[String]): Unit = {
-        SSRProps.get.debug = false
+        SDPNProps.get.debug = false
         for (lockSens <- List(false, true)) {
             println("##### Running lock " + (if (lockSens) "" else "in") + "sensetive Analysis #####")
             println("--- Running sliced analyses without witness ---")
@@ -60,7 +60,7 @@ object SSRBenchmarkRunner {
 
     }
 
-    def runSSRAnalysis(props: SSRProps) {
+    def runSSRAnalysis(props: SDPNProps) {
         import props._
         val lockFilter = if (lockSens) lockTypeFilter("Lbnord/examples/Lock") else { _: InstanceKey => false }
         println(mainClass)
@@ -83,8 +83,8 @@ object SSRBenchmarkRunner {
 
     }
 
-    def getSSRProp(mcname: String, slicing: Boolean, witness: Boolean): SSRProps = {
-        val p0 = SSRProps.get
+    def getSSRProp(mcname: String, slicing: Boolean, witness: Boolean): SDPNProps = {
+        val p0 = SDPNProps.get
         val mc = "Lbnord/benchmark/ssr/" + mcname
         val exm = "bnord.benchmark.ssr." + mcname + ".excludeMe()V"
 
@@ -134,7 +134,7 @@ object SSRBenchmarkRunner {
     }
 
     /**
-     * Runs runs the given check command using xsbExe and tempDir declared in [[de.wwu.sdpn.analysis.SSRProps]] and interprets the result
+     * Runs runs the given check command using xsbExe and tempDir declared in [[de.wwu.sdpn.analysis.SDPNProps]] and interprets the result
      *
      * @param command the xsb command to evaluate which is assumed do originate from an IntersectionEmptinessCheck
      * @param name the name of the check to look for "name is empty!"
@@ -177,7 +177,7 @@ object SSRBenchmarkRunner {
     }
 
     /**
-     * Runs runs the given check command using xsbExe and tempDir declared in [[de.wwu.sdpn.analysis.SSRProps]] and interprets the result
+     * Runs runs the given check command using xsbExe and tempDir declared in [[de.wwu.sdpn.analysis.SDPNProps]] and interprets the result
      *
      * @param command the xsb command to evaluate which is assumed do originate from an WitnessIntersectionEmptinessCheck
      * @param name the name of the check to look for "name is empty!"

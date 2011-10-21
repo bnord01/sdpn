@@ -42,7 +42,7 @@ import de.wwu.sdpn.util.BackwardSliceFilter
 import de.wwu.sdpn.util.LockLocator
 import de.wwu.sdpn.util.MonitorMatcher
 import de.wwu.sdpn.util.UniqueInstanceLocator
-import de.wwu.sdpn.analysis.SSRProps
+import de.wwu.sdpn.analysis.SDPNProps
 import de.wwu.sdpn.analysis.XSBRunner
 
 /**
@@ -104,7 +104,7 @@ object CutBenchmarkRunner {
         println("Time Wala:\t\t" + twala + "ms")
     }
 
-    val props = SSRProps.get
+    val props = SDPNProps.get
 
     val xsbExe = props.xsbExe
 

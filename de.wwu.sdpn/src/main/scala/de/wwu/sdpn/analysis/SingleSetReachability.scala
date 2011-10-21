@@ -35,7 +35,7 @@ import scala.collection.Set
  * @author Benedikt Nordhoff
  */
 object SingleSetReachability {
-    import SSRProps.get.debug
+    import SDPNProps.get.debug
     import System.{ currentTimeMillis => now }
     type MDPN = MonitorDPN[GlobalState, StackSymbol, DPNAction, InstanceKey]
 
@@ -187,18 +187,18 @@ object SingleSetReachability {
     }
 
     /**
-     * Generate a MonitorDPN and conflict set using the settings from [[de.wwu.sdpn.analysis.SSRProps]].
+     * Generate a MonitorDPN and conflict set using the settings from [[de.wwu.sdpn.analysis.SDPNProps]].
      * @return the MonitorDPN and the conflict Set
      */
     def genDPNandCset: (MDPN, Set[StackSymbol]) = {
-        val props = SSRProps.get
+        val props = SDPNProps.get
         import props._
         val lockFilter = if (lockSens) lockTypeFilter(lockType) else { x: InstanceKey => false }
         genDPNandCset(classPath, mainClass, exclusiveMethod, lockFilter, lockSens, slicing)
     }
 
     /**
-     * Generate an EmptinessCheck using the settings from [[de.wwu.sdpn.analysis.SSRProps]].
+     * Generate an EmptinessCheck using the settings from [[de.wwu.sdpn.analysis.SDPNProps]].
      * @return the corresponding IntersectionEmptinessCheck
      */
     def genCheck: IntersectionEmptinessCheck = {
@@ -208,7 +208,7 @@ object SingleSetReachability {
     }
 
     /**
-     * Generate an WitnessEmptinessCheck using the settings from [[de.wwu.sdpn.analysis.SSRProps]].
+     * Generate an WitnessEmptinessCheck using the settings from [[de.wwu.sdpn.analysis.SDPNProps]].
      * @return the corresponding WitnessIntersectionEmptinessCheck
      */
     def genWitnessCheck: WitnessIntersectionEmptinessCheck = {

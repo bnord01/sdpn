@@ -9,12 +9,12 @@ import com.ibm.wala.ipa.callgraph.impl.Everywhere
 import com.ibm.wala.util.strings.StringStuff
 import scala.collection.JavaConversions._
 import de.wwu.sdpn.analysis.MyPreAnalysis
-import de.wwu.sdpn.analysis.SSRProps
+import de.wwu.sdpn.analysis.SDPNProps
 import java.io.File
 import com.ibm.wala.ipa.callgraph.AnalysisCache
 
 /**
- * This generates a control flow graph for the exclusiveMethod specified by SSRProps.get
+ * This generates a control flow graph for the exclusiveMethod specified by SDPNProps.get
  * and prints it using /usr/bin/dot to CFG.pdf which is opened by /usr/bin/xdg-open.
  *
  * @author Benedikt Nordhoff
@@ -43,13 +43,13 @@ object PDFCFG {
 
         //Thread creation Example
         //    methodSig = "bnord.examples.MyThread.createAndRun()V"
-        //methodSig = SSRProps.get.exclusiveMethod
+        //methodSig = SDPNProps.get.exclusiveMethod
         
         methodSig= "bnord.unittests.Main.p2()V"
 
         val sanitize = false;
 
-        val tDir = (new File(SSRProps.get.tempDir)).getAbsolutePath
+        val tDir = (new File(SDPNProps.get.tempDir)).getAbsolutePath
         val pdfFile = tDir + File.separator + "CFG.pdf"
         val dotFile = tDir + File.separator + "CFG.dot"
 
