@@ -2,15 +2,15 @@
 <launchConfiguration type="org.eclipse.jdt.junit.launchconfig">
 <stringAttribute key="bad_container_name" value="/sDPN/.launchers"/>
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
-<listEntry value="/sDPN"/>
+<listEntry value="/de.wwu.sdpn/src/test/scala/walacg/CGTest.scala"/>
 </listAttribute>
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
-<listEntry value="4"/>
+<listEntry value="1"/>
 </listAttribute>
 <stringAttribute key="org.eclipse.jdt.junit.CONTAINER" value=""/>
 <booleanAttribute key="org.eclipse.jdt.junit.KEEPRUNNING_ATTR" value="false"/>
 <stringAttribute key="org.eclipse.jdt.junit.TESTNAME" value=""/>
 <stringAttribute key="org.eclipse.jdt.junit.TEST_KIND" value="org.eclipse.jdt.junit.loader.junit4"/>
 <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="walacg.CGTest"/>
-<stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="sDPN"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="de.wwu.sdpn"/>
 </launchConfiguration>

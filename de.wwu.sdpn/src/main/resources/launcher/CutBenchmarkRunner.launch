@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <launchConfiguration type="scala.application">
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
-<listEntry value="/sDPN/src/main/scala/sdpn/runner/CutBenchmarkRunner.scala"/>
+<listEntry value="/de.wwu.sdpn"/>
 </listAttribute>
 <listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
-<listEntry value="1"/>
+<listEntry value="4"/>
 </listAttribute>
 <stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="sdpn.runner.CutBenchmarkRunner"/>
-<stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="sDPN"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="de.wwu.sdpn"/>
 </launchConfiguration>
