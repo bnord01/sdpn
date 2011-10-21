@@ -26,6 +26,10 @@ class CutAcqStructPrecutTA(override val name: String,numLocks:Int) extends CutLo
         out("\n")
 
         out("""
+%Check for 64 bit if more than 5 Locks!
+:- (((numLocks > 5, not(xsb_configuration(word_size, '64')));numLocks>8)
+	-> throw('ERROR TO MANY LOCKS!'); true).
+            
 %Helper functions for bitvector operations
 name_isElemUnion(Elem,X,EX) :- EX is X '\/' (1 '<<' Elem).
 name_disjoint(X,Y) :- 0 is X '/\' Y.

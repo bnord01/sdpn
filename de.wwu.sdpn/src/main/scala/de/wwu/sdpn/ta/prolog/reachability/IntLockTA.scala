@@ -72,6 +72,12 @@ class IntLockTA(val name: String, numLocks: Int) extends LockTreeAutomataAlphabe
         for (n <- 0 until numLocks)
             out(lock(n.toString) + ".\n")
             
+       out("""
+%Check for 64 bit if more than 5 Locks!
+:- (((numLocks > 5, not(xsb_configuration(word_size, '64')));numLocks>8)
+	-> throw('ERROR TO MANY LOCKS!'); true).
+       """.replace("numLocks",numLocks.toString))
+            
         out("\n%%% Defining transitions\n")
         nil("_", "l(0,0,0)")!
 
