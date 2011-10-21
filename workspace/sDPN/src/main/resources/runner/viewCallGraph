@@ -1,0 +1,1 @@
+java -cp $(dirname $0)/resources:$(dirname $0)/sdpn-0.1.jar sdpn.runner.PDFCallGraph
