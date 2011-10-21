@@ -10,7 +10,7 @@ public class App
     public static void main( String[] args ) throws InterruptedException
     {
     	App a = new App();
-    	a.x = "3";
+    	App.x = "3";
     	App.x = "4";
     }
 }

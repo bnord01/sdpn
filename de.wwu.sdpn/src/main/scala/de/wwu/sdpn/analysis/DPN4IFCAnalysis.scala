@@ -18,6 +18,12 @@ import de.wwu.sdpn.dpn.explicit.GlobalState
 import de.wwu.sdpn.util.BackwardSliceFilter
 import de.wwu.sdpn.dpn.explicit.monitor.MonitorDPNFactory
 
+
+/**
+ * Interface class to use for integration of sDPN with Joana.  
+ * 
+ * @author Benedikt Nordhoff
+ */
 class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
   type MDPN = MonitorDPN[GlobalState, StackSymbol, DPNAction, InstanceKey]
   var possibleLocks: Set[InstanceKey] = null
@@ -61,8 +67,9 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
   }
 
   /**
-   * @param pruneSet
-   * @return
+   * Generate a Monitor DPN which models all nodes from which a node of pruneSet can be reached.  
+   * @param pruneSet A set of interesting nodes
+   * @return a Monitor DPN 
    */
   def genMDPN(pruneSet: Set[CGNode]): MDPN = {
     var ss0 = pruneSet
