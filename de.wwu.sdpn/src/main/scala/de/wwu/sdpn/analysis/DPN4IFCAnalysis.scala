@@ -27,6 +27,7 @@ import de.wwu.sdpn.ta.prolog.cuts.CutReleaseStructTA
 import de.wwu.sdpn.ta.prolog.cuts.CutAcqStructComplTA
 import de.wwu.sdpn.ta.prolog.cuts.CutAcqStructPrecutTA
 import de.wwu.sdpn.ta.ScriptTreeAutomata
+import de.wwu.sdpn.ta.IntersectionEmptinessCheck
 
 /**
  * Interface class to use for integration of sDPN with Joana.
@@ -96,6 +97,18 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
     }
     val dpnFac = new MonitorDPNFactory(prea)
     return dpnFac.getDPN
+  }
+
+  /**
+   * @param writePos
+   * @param readPos
+   * @param pm0
+   * @return
+   */
+  def runWeakCheck(writePos: StackSymbol, readPos: StackSymbol, pm0: IProgressMonitor = null): Boolean = {
+    val (td, bu) = genWeakAutomata(writePos, readPos, pm0)
+    val icheck = new IntersectionEmptinessCheck(td, bu) { override val name = "ifccheck" }
+    return XSBRunner.runCheck(icheck,pm0)
   }
 
   /**

@@ -45,7 +45,7 @@ object PDFCFG {
         //    methodSig = "bnord.examples.MyThread.createAndRun()V"
         //methodSig = SDPNProps.get.exclusiveMethod
         
-        methodSig= "bnord.unittests.Main.p2()V"
+        methodSig= "bnord.unittests.dpn4ifc.BSP02.p1()V"
 
         val sanitize = false;
 
