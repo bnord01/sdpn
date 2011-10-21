@@ -17,11 +17,20 @@ import de.wwu.sdpn.dpn.explicit.DPNAction
 import de.wwu.sdpn.dpn.explicit.GlobalState
 import de.wwu.sdpn.util.BackwardSliceFilter
 import de.wwu.sdpn.dpn.explicit.monitor.MonitorDPNFactory
-
+import de.wwu.sdpn.ta.prolog.cuts.FwdCutLockSet
+import de.wwu.sdpn.ta.IntersectionTA
+import de.wwu.sdpn.ta.prolog.cuts.MDPN2CutTA
+import de.wwu.sdpn.ta.prolog.cuts.IFlowReading
+import de.wwu.sdpn.ta.prolog.cuts.IFlowWriting
+import de.wwu.sdpn.ta.prolog.cuts.CutWellFormed
+import de.wwu.sdpn.ta.prolog.cuts.CutReleaseStructTA
+import de.wwu.sdpn.ta.prolog.cuts.CutAcqStructComplTA
+import de.wwu.sdpn.ta.prolog.cuts.CutAcqStructPrecutTA
+import de.wwu.sdpn.ta.ScriptTreeAutomata
 
 /**
- * Interface class to use for integration of sDPN with Joana.  
- * 
+ * Interface class to use for integration of sDPN with Joana.
+ *
  * @author Benedikt Nordhoff
  */
 class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
@@ -30,6 +39,8 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
   var lockOrigins: Map[InstanceKey, Set[CGNode]] = null
   var waitMap: Map[CGNode, scala.collection.Set[InstanceKey]] = null
   var includeLockLocations = true
+  var uniqueInstances: Set[InstanceKey] = null
+
   var lockFilter: InstanceKey => Boolean = {
     x: InstanceKey =>
       ClassLoaderReference.Application.equals(x.getConcreteType().getClassLoader().getReference())
@@ -49,6 +60,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
       check(pm)
       pm.subTask("Identifying unique instances")
       val ui = UniqueInstanceLocator.instances(cg, pa)
+      uniqueInstances = ui
       pm.worked(1)
 
       check(pm)
@@ -67,9 +79,9 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
   }
 
   /**
-   * Generate a Monitor DPN which models all nodes from which a node of pruneSet can be reached.  
+   * Generate a Monitor DPN which models all nodes from which a node of pruneSet can be reached.
    * @param pruneSet A set of interesting nodes
-   * @return a Monitor DPN 
+   * @return a Monitor DPN
    */
   def genMDPN(pruneSet: Set[CGNode]): MDPN = {
     var ss0 = pruneSet
@@ -84,6 +96,80 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
     }
     val dpnFac = new MonitorDPNFactory(prea)
     return dpnFac.getDPN
+  }
+
+  /**
+   * @param writePos
+   * @param readPos
+   * @param pm0
+   * @return
+   */
+  def genWeakAutomata(writePos: StackSymbol, readPos: StackSymbol, pm0: IProgressMonitor = null): (ScriptTreeAutomata, ScriptTreeAutomata) = {
+    var pm = pm0
+    if (pm == null)
+      pm = new NullProgressMonitor()
+    try {
+      pm beginTask ("Generating tree automata for emptiness check", 2)
+
+      check(pm)
+      pm subTask "Generating Monitor DPN"
+      val dpn = genMDPN(Set(readPos.node, writePos.node))
+      pm worked 1
+
+      check(pm)
+      pm subTask "Setting up tree automata"
+
+      //The automata representing the lock insensitive  control flow of the DPN 
+      val cflow = new MDPN2CutTA(dpn)
+
+      //An top down automata calculating lock sets to identify reentrant operations
+      val fwdLS = new FwdCutLockSet("fwdLS", dpn.locks.size)
+
+      //The control flow and the lock sets are evaluated top down
+      val topDown = new IntersectionTA(cflow, fwdLS) {
+        override val name = "flowls"
+      }
+
+      //Now we build an bottom up tree automata which checks for conflicts and
+      //assures that the execution tree can be scheduled lock sensitive
+
+      //the stack symbols where a variable is read/written
+      var writeStack = Set(writePos)
+      var readStack = Set(readPos)
+
+      //Automatons which check for a conflict      
+      val ifwrite = new IFlowWriting("ifwrite", writeStack)
+      val ifread = new IFlowReading("ifread", readStack)
+
+      val conflict = new IntersectionTA(ifwrite, ifread) { override val name = "ifconf" }
+
+      //A automata which ensures that the tree is cut well formed
+      val cwf = new CutWellFormed("cwf")
+      val cwfc = new IntersectionTA(conflict, cwf) {
+        override val name = "cwfc"
+      }
+
+      //Automatons which ensure lock sensitive schedulability      
+
+      val relstr = new CutReleaseStructTA("crs", dpn.locks.size)
+      val inter1 = new IntersectionTA(cwfc, relstr) {
+        override val name = "crf"
+      }
+
+      val lockTA = new CutAcqStructComplTA("compacq", dpn.locks.size)
+      val inter2 = new IntersectionTA(inter1, lockTA) {
+        override val name = "craf"
+      }
+
+      val lockPreTA = new CutAcqStructPrecutTA("precutacq", dpn.locks.size)
+      val bottomUp = new IntersectionTA(inter2, lockPreTA)
+
+      pm worked 1
+
+      return (topDown, bottomUp)
+
+    } finally { pm done }
+
   }
 
   /**
