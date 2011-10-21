@@ -174,6 +174,10 @@ object XSBRunner {
       var fname = tempFile.getName
       assert(fname.endsWith(".P") || fname.endsWith(".p"))
       fname = fname.substring(0, fname.length - 2)
+      
+      val xwamfile = new File(tempFile.getParent() + File.separator + fname + ".xwam")
+      if(xwamfile.exists())
+        assert(xwamfile.delete,"Old xwam file present expect wrong result!")
 
       //val xsbcommand = "[" + fname + "]," + check.name + "_runCheck,halt."
       
