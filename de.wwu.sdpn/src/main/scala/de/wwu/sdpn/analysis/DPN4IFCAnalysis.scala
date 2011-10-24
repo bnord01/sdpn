@@ -41,6 +41,7 @@ import de.wwu.sdpn.util.WaitMap
  * 
  * An interference analysis can than be performed by using the `runWeakCheck` method.
  * 
+ * 
  * Some facts:
  * 
  *  - The generated DPN uses `getSS4Node(cg.getFakeRootNode)` as starting configuration.
