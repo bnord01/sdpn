@@ -39,7 +39,7 @@ import de.wwu.sdpn.util.WaitMap
  * perform preanalyses which will compute information used in subsequent interference
  * analyses.   
  * 
- * An interference analysis can than be performed by using the `runWeakAnalysis` method.
+ * An interference analysis can than be performed by using the `runWeakCheck` method.
  * 
  * Some facts:
  * 
