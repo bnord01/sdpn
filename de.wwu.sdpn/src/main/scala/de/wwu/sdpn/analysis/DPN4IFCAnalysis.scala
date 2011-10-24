@@ -39,7 +39,7 @@ import de.wwu.sdpn.util.WaitMap
  * perform preanalyses which will compute information used in subsequent interference
  * analyses.   
  * 
- * An inference analysis can than be performed by using the `runWeakAnalysis` method.
+ * An interference analysis can than be performed by using the `runWeakAnalysis` method.
  * 
  * Some facts:
  * 
@@ -185,13 +185,19 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
   /**
    * Run an interference check between '''writePos''' and '''readPos''' assuming weak updates or the absence of killing definitions.
    * This means we check if it is possible to reach '''readPos''' after reaching '''writePos'''.
+   * 
+   * Throws an '''IOException''' if an error occurs while interacting with the XSB process  
+   * (e.g. more than five locks on a 32bit system)
+   * 
+   * Throws an  '''IllegalArgumentException''' if more than eight locks are used.
+   * 
+   * Throws an '''OperationCanceledException''' if `pm0.isCanceled` is true.
    *   
    * @param writePos A stack symbol representing a point where a variable is written.
    * @param readPos A stack symbol representing a point where the written variable is read.
    * @param pm0 A progress monitor used to report progress with default value null.
    * @return True if '''readPos''' can be reached after reaching '''writePos''' in the DPN-model
-   * @throws IOException if an error occurs while interacting with the XSB process.
-   * @throws IllegalArgumentException if more than eight locks are used.
+   * 
    */
   def runWeakCheck(writePos: StackSymbol, readPos: StackSymbol, pm0: IProgressMonitor = null): Boolean = {
     var pm = pm0
