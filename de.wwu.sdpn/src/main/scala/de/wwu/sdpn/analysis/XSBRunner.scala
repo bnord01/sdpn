@@ -15,6 +15,7 @@ import java.io.OutputStream
 import java.io.InputStream
 import scala.sys.process.ProcessIO
 import org.eclipse.core.runtime.NullProgressMonitor
+import org.eclipse.core.runtime.OperationCanceledException
 
 /**
  * This Object contains helper functions to run an XSB process and interpret the result.
@@ -256,11 +257,13 @@ object XSBRunner {
         proc = pb.run(pio)
 
         pm worked 1
-        check(pm)
         pm subTask "Waiting for XSB."
 
         while (!ready) {
-          check(pm)
+          if(pm.isCanceled) {
+            proc.destroy()
+            throw new OperationCanceledException();
+          }
           try {
             Thread.sleep(100)
           } catch {
@@ -340,6 +343,6 @@ object XSBRunner {
 
   private def check(pm: IProgressMonitor) {
     if (pm.isCanceled())
-      throw new org.eclipse.core.runtime.OperationCanceledException();
+      throw new OperationCanceledException();
   }
 }

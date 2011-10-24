@@ -68,9 +68,9 @@ class DPN4IFCTest {
     assert(nodes.size == 1)
     node = nodes.first
     val readPos = StackSymbol(node, 5, 0)
-    dia.init(null)
-    val res = dia.runWeakCheck(writePos,readPos,null)
-    assertTrue("there should be no flow", res)
+    dia.init(new PrintingPM())
+    val res = dia.runWeakCheck(writePos,readPos,new PrintingPM())
+    assertFalse("there should be no flow", res)
     
     
   }
@@ -90,9 +90,9 @@ class DPN4IFCTest {
     assert(nodes.size == 1)
     node = nodes.first
     val readPos = StackSymbol(node, 9, 0)
-    dia.init(null)
-    val res = dia.runWeakCheck(writePos,readPos,null)
-    assertFalse("there should be no flow", res)
+    dia.init(new PrintingPM())
+    val res = dia.runWeakCheck(writePos,readPos,new PrintingPM())
+    assertTrue("there should be flow", res)
     
     
   }

@@ -1,62 +1,145 @@
 package de.wwu.sdpn.analysis
-import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
-import com.ibm.wala.ipa.callgraph.CallGraph
+import scala.collection.JavaConversions.asScalaIterator
+
+import org.eclipse.core.runtime.IProgressMonitor
+import org.eclipse.core.runtime.NullProgressMonitor
+import org.eclipse.core.runtime.SubProgressMonitor
+
 import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
+import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import com.ibm.wala.ipa.callgraph.CGNode
+import com.ibm.wala.ipa.callgraph.CallGraph
+import com.ibm.wala.types.ClassLoaderReference
+
+import de.wwu.sdpn.dpn.explicit.monitor.MonitorDPN
+import de.wwu.sdpn.dpn.explicit.monitor.MonitorDPNFactory
+import de.wwu.sdpn.dpn.explicit.DPNAction
+import de.wwu.sdpn.dpn.explicit.GlobalState
 import de.wwu.sdpn.dpn.explicit.StackSymbol
-import scala.collection.JavaConversions._
-import com.ibm.wala.ssa.SSACFG
+import de.wwu.sdpn.ta.prolog.cuts.CutAcqStructComplTA
+import de.wwu.sdpn.ta.prolog.cuts.CutAcqStructPrecutTA
+import de.wwu.sdpn.ta.prolog.cuts.CutReleaseStructTA
+import de.wwu.sdpn.ta.prolog.cuts.CutWellFormed
+import de.wwu.sdpn.ta.prolog.cuts.FwdCutLockSet
+import de.wwu.sdpn.ta.prolog.cuts.IFlowReading
+import de.wwu.sdpn.ta.prolog.cuts.IFlowWriting
+import de.wwu.sdpn.ta.prolog.cuts.MDPN2CutTA
+import de.wwu.sdpn.ta.IntersectionEmptinessCheck
+import de.wwu.sdpn.ta.IntersectionTA
+import de.wwu.sdpn.ta.ScriptTreeAutomata
+import de.wwu.sdpn.util.BackwardSliceFilter
 import de.wwu.sdpn.util.LockWithOriginLocator
 import de.wwu.sdpn.util.UniqueInstanceLocator
 import de.wwu.sdpn.util.WaitMap
-import org.eclipse.core.runtime.IProgressMonitor
-import org.eclipse.core.runtime.NullProgressMonitor
-import com.ibm.wala.types.ClassLoaderReference
-import de.wwu.sdpn.dpn.explicit.monitor.MonitorDPN
-import de.wwu.sdpn.dpn.explicit.DPNAction
-import de.wwu.sdpn.dpn.explicit.GlobalState
-import de.wwu.sdpn.util.BackwardSliceFilter
-import de.wwu.sdpn.dpn.explicit.monitor.MonitorDPNFactory
-import de.wwu.sdpn.ta.prolog.cuts.FwdCutLockSet
-import de.wwu.sdpn.ta.IntersectionTA
-import de.wwu.sdpn.ta.prolog.cuts.MDPN2CutTA
-import de.wwu.sdpn.ta.prolog.cuts.IFlowReading
-import de.wwu.sdpn.ta.prolog.cuts.IFlowWriting
-import de.wwu.sdpn.ta.prolog.cuts.CutWellFormed
-import de.wwu.sdpn.ta.prolog.cuts.CutReleaseStructTA
-import de.wwu.sdpn.ta.prolog.cuts.CutAcqStructComplTA
-import de.wwu.sdpn.ta.prolog.cuts.CutAcqStructPrecutTA
-import de.wwu.sdpn.ta.ScriptTreeAutomata
-import de.wwu.sdpn.ta.IntersectionEmptinessCheck
 
 /**
  * Interface class to use for integration of sDPN with Joana.
+ * 
+ * After creating an instance of this class the `init` method should be called to
+ * perform preanalyses which will compute information used in subsequent interference
+ * analyses.   
+ * 
+ * An inference analysis can than be performed by using the `runWeakAnalysis` method.
+ * 
+ * Some facts:
+ * 
+ *  - The generated DPN uses `getSS4Node(cg.getFakeRootNode)` as starting configuration.
+ *  - Calls to `java.lang.Thread.start()` are modeled as new processes in the DPN.
+ *  - The call graph is pruned for every new analysis by only considering interesting nodes. 
+ *   - The nodes containing read and write positions are ''interesting''.
+ *   - If `includeLockLocations` is true than all nodes containing possible lock usages are ''interesting'' too.
+ *   - All nodes calling ''interesting'' nodes are ''interesting''.  
+ *  - The set of used locks can be configured by setting the variable `lockFilter`.  
+ *  The default accepts only locks corresponding to the class loader ''Application''.
+ *   - Currently at most eight locks may be used on a 64bit System as the acquisition graph is modeled as 
+ *   a bit string. 
+ *  - The XSB-executable (obtainable from [[http://xsb.sf.net XSB web site]]) and a directory with write permission 
+ *  where temporary files will be stored need to be specified in the file `sdpn.properties` 
+ *  which needs to be on class path during execution.
+ *    
+ * 
+ * @param cg A call graph representing the control flow of a program
+ * @param pa The associated pointer analysis. 
  *
  * @author Benedikt Nordhoff
  */
 class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
   type MDPN = MonitorDPN[GlobalState, StackSymbol, DPNAction, InstanceKey]
-  var possibleLocks: Set[InstanceKey] = null
-  var lockOrigins: Map[InstanceKey, Set[CGNode]] = null
-  var waitMap: Map[CGNode, scala.collection.Set[InstanceKey]] = null
-  var includeLockLocations = true
-  var uniqueInstances: Set[InstanceKey] = null
 
-  var lockFilter: InstanceKey => Boolean = {
+  protected var possibleLocks: Set[InstanceKey] = null
+  protected var lockUsages: Map[InstanceKey, Set[CGNode]] = null
+  protected var waitMap: Map[CGNode, scala.collection.Set[InstanceKey]] = null
+  protected var includeLockLocations = true
+  protected var uniqueInstances: Set[InstanceKey] = null
+  protected var lockFilter: InstanceKey => Boolean = {
     x: InstanceKey =>
       ClassLoaderReference.Application.equals(x.getConcreteType().getClassLoader().getReference())
   }
 
   /**
+   * Should locations of used locks be factored in when pruning the call graph for DPN generation.
+   * This increases precision and cost of the analysis.
+   * @param value The new value for includeLockLocations.
+   */
+  def setIncludeLockLocations(value: Boolean) { includeLockLocations = value }
+
+  /**
+   * Set a filter which decides for abstractable locks whether they should
+   * be considered for DPN generation. The default value is
+   * {{{
+   * x: InstanceKey =>
+   *   ClassLoaderReference.Application.equals(x.getConcreteType().getClassLoader().getReference())
+   *}}}
+   * This can be implemented in Java by extending `scala.Function1<InstanceKey,Boolean>` and
+   * implementing the `Boolean apply(InstanceKey ik)` method.
+   *
+   * @param value A new filter used to select locks.
+   */
+  def setLockFilter(value: InstanceKey => Boolean) { lockFilter = value }
+
+  /**
+   * @return The set of instance keys which have been identified to be unique
+   * in the sense that there exists at most one concrete instance
+   */
+  def getUniqueInstances = uniqueInstances
+
+  /**
+   * @return The set of possible locks.
+   */
+  def getPossibleLocks = possibleLocks
+
+  /**
+   * @return The wait map, mapping a `CGNode` to a set of instance keys on which a `wait()` call may occur within.
+   */
+  def getWaitMap = waitMap
+
+  /**
+   * @return A map which maps `InstanceKeys` to a set of `CGNodes` where they are used as locks.
+   * If includeLockLocations is set to true these will be included for pruning.
+   */
+  def getLockUsages = lockUsages
+
+  /**
+   * @return the value of includeLockLocations
+   */
+  def getIncludeLockLocations = includeLockLocations
+
+  /**
+   * @return the currently used lock filter
+   */
+  def getLockFilter = lockFilter
+
+  /**
    * Initialize this analysis by calculating possible locks and the wait map.
-   * @throws OperationCanceledException if pm.isCanceled.
+   * @param pm0 The progress monitor used to report progress, with default value null. 
    */
   def init(pm0: IProgressMonitor = null) {
+
     var pm = pm0
     if (pm == null)
       pm = new NullProgressMonitor()
     try {
-      pm.beginTask("Initialyizing DPN analysis", 5)
+      pm.beginTask("Initialyizing DPN-based analyses", 3)
 
       check(pm)
       pm.subTask("Identifying unique instances")
@@ -67,8 +150,8 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
       check(pm)
       pm.subTask("Identifying lock usages")
       val loi = LockWithOriginLocator.instances(cg, pa)
-      lockOrigins = loi.filterKeys(ui)
-      possibleLocks = lockOrigins.keySet
+      lockUsages = loi.filterKeys(ui)
+      possibleLocks = lockUsages.keySet
       pm.worked(1)
 
       check(pm)
@@ -87,7 +170,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
   def genMDPN(pruneSet: Set[CGNode]): MDPN = {
     var ss0 = pruneSet
     if (includeLockLocations) {
-      for ((ik, nodes) <- lockOrigins; node <- nodes)
+      for ((ik, nodes) <- lockUsages; node <- nodes)
         if (lockFilter(ik) && !waitMap(node)(ik))
           ss0 += node
     }
@@ -100,29 +183,48 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
   }
 
   /**
-   * @param writePos
-   * @param readPos
-   * @param pm0
-   * @return
+   * Run an interference check between '''writePos''' and '''readPos''' assuming weak updates or the absence of killing definitions.
+   * This means we check if it is possible to reach '''readPos''' after reaching '''writePos'''.
+   *   
+   * @param writePos A stack symbol representing a point where a variable is written.
+   * @param readPos A stack symbol representing a point where the written variable is read.
+   * @param pm0 A progress monitor used to report progress with default value null.
+   * @return True if '''readPos''' can be reached after reaching '''writePos''' in the DPN-model
+   * @throws IOException if an error occurs while interacting with the XSB process.
+   * @throws IllegalArgumentException if more than eight locks are used.
    */
   def runWeakCheck(writePos: StackSymbol, readPos: StackSymbol, pm0: IProgressMonitor = null): Boolean = {
-    val (td, bu) = genWeakAutomata(writePos, readPos, pm0)
-    val icheck = new IntersectionEmptinessCheck(td, bu) { override val name = "ifccheck" }
-    return XSBRunner.runCheck(icheck,pm0)
+    var pm = pm0
+    if (pm == null)
+      pm = new NullProgressMonitor()
+    pm.beginTask("Running DPN-based interference check", 3)
+    try {
+      val pm1 = new SubProgressMonitor(pm, 1)
+      val (td, bu) = genWeakAutomata(writePos, readPos, pm1)
+      val icheck = new IntersectionEmptinessCheck(td, bu) { override val name = "ifccheck" }
+      val pm2 = new SubProgressMonitor(pm, 2)
+      return !XSBRunner.runCheck(icheck, pm2)
+    } finally {
+      pm.done
+    }
+
   }
 
   /**
-   * @param writePos
-   * @param readPos
-   * @param pm0
-   * @return
+   * Helper method used by runWeakCheck.
+   * 
+   * @param writePos A stack symbol representing a point where a variable is written.
+   * @param readPos A stack symbol representing a point where the written variable is read.
+   * @param pm0 A progress monitor used to report progress.
+   * @return Two [[de.wwu.sdpn.ta.ScriptTreeAutomata]] the first one to be evaluated top down the second one to be evaluated bottom up 
+   * by an intersection emptiness test.
    */
-  def genWeakAutomata(writePos: StackSymbol, readPos: StackSymbol, pm0: IProgressMonitor = null): (ScriptTreeAutomata, ScriptTreeAutomata) = {
+  protected def genWeakAutomata(writePos: StackSymbol, readPos: StackSymbol, pm0: IProgressMonitor = null): (ScriptTreeAutomata, ScriptTreeAutomata) = {
     var pm = pm0
     if (pm == null)
       pm = new NullProgressMonitor()
     try {
-      pm beginTask ("Generating tree automata for emptiness check", 2)
+      pm beginTask ("Generating automata for interference check", 2)
 
       check(pm)
       pm subTask "Generating Monitor DPN"
@@ -130,7 +232,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
       pm worked 1
 
       check(pm)
-      pm subTask "Setting up tree automata"
+      pm subTask "Generating tree automata"
 
       //The automata representing the lock insensitive  control flow of the DPN 
       val cflow = new MDPN2CutTA(dpn)
@@ -187,7 +289,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
 
   /**
    * Convert a CGNode plus BasicBlock index into the StackSymbol(node,bbNr,0) representing
-   * the entry point of the basic block within the node.
+   * the entry point of the basic block within the control flow graph corresponding to the node.
    *
    * @param node A node from the call graph
    * @param bbNr A basic block number from the control flow graph corresponding to node
@@ -204,8 +306,8 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
   def getSS4Node(node: CGNode) = StackSymbol(node, 0, 0)
 
   /**
-   * Obtains the StackSymbol representing the point just *before* the given
-   * instruction in the corresponding basic block
+   * Obtains the StackSymbol representing the point just ''before'' the 
+   * instruction corresponding to the given instructionIndex.
    *
    * @param node A CGNode
    * @param instructionIndex An index of an instruction within the array node.getIR.getInstructions
