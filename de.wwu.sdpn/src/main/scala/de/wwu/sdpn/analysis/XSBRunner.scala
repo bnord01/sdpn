@@ -255,13 +255,13 @@ object XSBRunner {
           worked(pm, 1)
           subTask(pm, "Waiting for XSB.")
         } catch {
-          case e: CancelException => 
+          case e: CancelException =>
             proc.destroy()
             throw e
         }
 
         while (!ready) {
-          if (pm != null && pm.isCanceled()) {
+          if (isCanceled(pm)) {
             proc.destroy()
             throw CancelException.make("operation canceled");
           }
@@ -339,15 +339,6 @@ object XSBRunner {
       assert(retVal || witness.isDefined)
       return witness
 
-    }
-  }
-
-  def subTask(monitor: IProgressMonitor, task: String) {
-    if (monitor != null) {
-      monitor.subTask(task);
-      if (monitor.isCanceled()) {
-        throw CancelException.make("cancelled in " + task);
-      }
     }
   }
 }

@@ -6,10 +6,7 @@ import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import com.ibm.wala.ipa.callgraph.CGNode
 import com.ibm.wala.ipa.callgraph.CallGraph
 import com.ibm.wala.types.ClassLoaderReference
-import com.ibm.wala.util.MonitorUtil.IProgressMonitor
-import com.ibm.wala.util.MonitorUtil.beginTask
-import com.ibm.wala.util.MonitorUtil.done
-import com.ibm.wala.util.MonitorUtil.worked
+import com.ibm.wala.util.MonitorUtil._
 import com.ibm.wala.util.CancelException
 
 import de.wwu.sdpn.dpn.explicit.monitor.MonitorDPN
@@ -141,7 +138,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
     try {
       beginTask(pm, "Initialyizing DPN-based analyses", 3)
 
-      subTask(pm, "Identifying unique instances")
+      subTask(pm, "Identifying unique instances") 
       val ui = UniqueInstanceLocator.instances(cg, pa)
       uniqueInstances = ui
       worked(pm, 1)
@@ -331,15 +328,6 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
       }
     }
     return StackSymbol(node, bb.getNumber, index)
-  }
-
-  def subTask(monitor: IProgressMonitor, task: String) {
-    if (monitor != null) {
-      monitor.subTask(task);
-      if (monitor.isCanceled()) {
-        throw CancelException.make("cancelled in " + task);
-      }
-    }
   }
 
 }
