@@ -16,6 +16,7 @@ import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import com.ibm.wala.types.MethodReference
 import de.wwu.sdpn.analysis.SimpleAnalyses
 import com.ibm.wala.ipa.cha.IClassHierarchy
+import com.ibm.wala.util.ProgressMonitorDelegate
 
 object DPN4IFCTest {
 
@@ -68,8 +69,8 @@ class DPN4IFCTest {
     assert(nodes.size == 1)
     node = nodes.first
     val readPos = StackSymbol(node, 5, 0)
-    dia.init(new PrintingPM())
-    val res = dia.runWeakCheck(writePos,readPos,new PrintingPM())
+    dia.init(ProgressMonitorDelegate.createProgressMonitorDelegate((new PrintingPM())))
+    val res = dia.runWeakCheck(writePos,readPos,ProgressMonitorDelegate.createProgressMonitorDelegate(new PrintingPM()))
     assertFalse("there should be no flow", res)
     
     
@@ -90,8 +91,8 @@ class DPN4IFCTest {
     assert(nodes.size == 1)
     node = nodes.first
     val readPos = StackSymbol(node, 9, 0)
-    dia.init(new PrintingPM())
-    val res = dia.runWeakCheck(writePos,readPos,new PrintingPM())
+    dia.init(ProgressMonitorDelegate.createProgressMonitorDelegate((new PrintingPM())))
+    val res = dia.runWeakCheck(writePos,readPos,ProgressMonitorDelegate.createProgressMonitorDelegate(new PrintingPM()))
     assertTrue("there should be flow", res)
     
     

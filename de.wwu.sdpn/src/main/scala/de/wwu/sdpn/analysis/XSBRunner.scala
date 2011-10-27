@@ -1,21 +1,21 @@
 package de.wwu.sdpn.analysis
 
-import de.wwu.sdpn.ta.WitnessIntersectionEmptinessCheck
-import de.wwu.sdpn.ta.IntersectionEmptinessCheck
-import java.io.File
 import java.io.BufferedReader
-import java.io.InputStreamReader
-import java.io.IOException
-import java.io.PrintWriter
 import java.io.BufferedWriter
+import java.io.File
 import java.io.FileWriter
-import de.wwu.sdpn.ta.FullWitnessIntersectionEmptinessCheck
-import org.eclipse.core.runtime.IProgressMonitor
-import java.io.OutputStream
+import java.io.IOException
 import java.io.InputStream
+import java.io.InputStreamReader
+import java.io.OutputStream
+import java.io.PrintWriter
 import scala.sys.process.ProcessIO
-import org.eclipse.core.runtime.NullProgressMonitor
-import org.eclipse.core.runtime.OperationCanceledException
+import com.ibm.wala.util.MonitorUtil._
+import SDPNProps.get.debug
+import de.wwu.sdpn.ta.FullWitnessIntersectionEmptinessCheck
+import de.wwu.sdpn.ta.IntersectionEmptinessCheck
+import de.wwu.sdpn.ta.WitnessIntersectionEmptinessCheck
+import com.ibm.wala.util.CancelException
 
 /**
  * This Object contains helper functions to run an XSB process and interpret the result.
@@ -175,14 +175,14 @@ object XSBRunner {
       var fname = tempFile.getName
       assert(fname.endsWith(".P") || fname.endsWith(".p"))
       fname = fname.substring(0, fname.length - 2)
-      
+
       val xwamfile = new File(tempFile.getParent() + File.separator + fname + ".xwam")
-      if(xwamfile.exists())
-        assert(xwamfile.delete,"Old xwam file present expect wrong result!")
+      if (xwamfile.exists())
+        assert(xwamfile.delete, "Old xwam file present expect wrong result!")
 
       //val xsbcommand = "[" + fname + "]," + check.name + "_runCheck,halt."
-      
-      runXSBCheck(check.name,pm0)
+
+      runXSBCheck(check.name, pm0)
     }
   }
 
@@ -193,25 +193,21 @@ object XSBRunner {
    * @param name the name of the check to look for "name is empty!"
    * @return true iff the execution command yields "name is empty!".
    */
-  def runXSBCheck(name: String, pm0: IProgressMonitor): Boolean = {
-    XSBRunner synchronized {      
+  def runXSBCheck(name: String, pm: IProgressMonitor): Boolean = {
+    XSBRunner synchronized {
       var proc: scala.sys.process.Process = null
-      var pm = pm0
-      if (pm == null)
-        pm = new NullProgressMonitor()
       try {
-        pm.beginTask("Running emptiness check with XSB", 2)
-        check(pm)
-        pm subTask "Spawning XSB"
+        beginTask(pm, "Running emptiness check with XSB", 2)
+        subTask(pm, "Spawning XSB")
 
         var retVal = false
         var hadErr = false
         var ready = false
         val mainThread = Thread.currentThread()
-        
+
         var fname = tempFile.getName
-      assert(fname.endsWith(".P") || fname.endsWith(".p"))
-      fname = fname.substring(0, fname.length - 2)
+        assert(fname.endsWith(".P") || fname.endsWith(".p"))
+        fname = fname.substring(0, fname.length - 2)
 
         val runcommand = xsbExe + " " + fname + " --nobanner --quietload"
         if (debug) println("Running:\t\t" + runcommand)
@@ -255,14 +251,19 @@ object XSBRunner {
         val pio = new ProcessIO(input _, output _, erroutput _)
 
         proc = pb.run(pio)
-
-        pm worked 1
-        pm subTask "Waiting for XSB."
+        try {
+          worked(pm, 1)
+          subTask(pm, "Waiting for XSB.")
+        } catch {
+          case e: CancelException => 
+            proc.destroy()
+            throw e
+        }
 
         while (!ready) {
-          if(pm.isCanceled) {
+          if (pm != null && pm.isCanceled()) {
             proc.destroy()
-            throw new OperationCanceledException();
+            throw CancelException.make("operation canceled");
           }
           try {
             Thread.sleep(100)
@@ -270,7 +271,7 @@ object XSBRunner {
             case e: InterruptedException =>
           }
         }
-        pm worked 1
+        worked(pm, 1)
         if (ready && !hadErr) {
           return retVal
         } else if (hadErr) {
@@ -279,7 +280,7 @@ object XSBRunner {
           throw new IOException("Error running XSB")
         }
       } finally {
-        pm.done
+        done(pm)
       }
     }
   }
@@ -341,8 +342,12 @@ object XSBRunner {
     }
   }
 
-  private def check(pm: IProgressMonitor) {
-    if (pm.isCanceled())
-      throw new OperationCanceledException();
+  def subTask(monitor: IProgressMonitor, task: String) {
+    if (monitor != null) {
+      monitor.subTask(task);
+      if (monitor.isCanceled()) {
+        throw CancelException.make("cancelled in " + task);
+      }
+    }
   }
 }

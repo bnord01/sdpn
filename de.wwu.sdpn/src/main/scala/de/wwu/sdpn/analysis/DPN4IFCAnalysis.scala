@@ -1,15 +1,16 @@
 package de.wwu.sdpn.analysis
 import scala.collection.JavaConversions.asScalaIterator
 
-import org.eclipse.core.runtime.IProgressMonitor
-import org.eclipse.core.runtime.NullProgressMonitor
-import org.eclipse.core.runtime.SubProgressMonitor
-
 import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import com.ibm.wala.ipa.callgraph.CGNode
 import com.ibm.wala.ipa.callgraph.CallGraph
 import com.ibm.wala.types.ClassLoaderReference
+import com.ibm.wala.util.MonitorUtil.IProgressMonitor
+import com.ibm.wala.util.MonitorUtil.beginTask
+import com.ibm.wala.util.MonitorUtil.done
+import com.ibm.wala.util.MonitorUtil.worked
+import com.ibm.wala.util.CancelException
 
 import de.wwu.sdpn.dpn.explicit.monitor.MonitorDPN
 import de.wwu.sdpn.dpn.explicit.monitor.MonitorDPNFactory
@@ -27,6 +28,7 @@ import de.wwu.sdpn.ta.prolog.cuts.MDPN2CutTA
 import de.wwu.sdpn.ta.IntersectionEmptinessCheck
 import de.wwu.sdpn.ta.IntersectionTA
 import de.wwu.sdpn.ta.ScriptTreeAutomata
+import de.wwu.sdpn.util.wala.SubProgressMonitor
 import de.wwu.sdpn.util.BackwardSliceFilter
 import de.wwu.sdpn.util.LockWithOriginLocator
 import de.wwu.sdpn.util.UniqueInstanceLocator
@@ -34,33 +36,33 @@ import de.wwu.sdpn.util.WaitMap
 
 /**
  * Interface class to use for integration of sDPN with Joana.
- * 
+ *
  * After creating an instance of this class the `init` method should be called to
  * perform preanalyses which will compute information used in subsequent interference
- * analyses.   
- * 
+ * analyses.
+ *
  * An interference analysis can than be performed by using the `runWeakCheck` method.
- * 
- * 
+ *
+ *
  * Some facts:
- * 
+ *
  *  - The generated DPN uses `getSS4Node(cg.getFakeRootNode)` as starting configuration.
  *  - Calls to `java.lang.Thread.start()` are modeled as new processes in the DPN.
- *  - The call graph is pruned for every new analysis by only considering interesting nodes. 
+ *  - The call graph is pruned for every new analysis by only considering interesting nodes.
  *   - The nodes containing read and write positions are ''interesting''.
  *   - If `includeLockLocations` is true than all nodes containing possible lock usages are ''interesting'' too.
- *   - All nodes calling ''interesting'' nodes are ''interesting''.  
- *  - The set of used locks can be configured by setting the variable `lockFilter`.  
+ *   - All nodes calling ''interesting'' nodes are ''interesting''.
+ *  - The set of used locks can be configured by setting the variable `lockFilter`.
  *  The default accepts only locks corresponding to the class loader ''Application''.
- *   - Currently at most eight locks may be used on a 64bit System as the acquisition graph is modeled as 
- *   a bit string. 
- *  - The XSB-executable (obtainable from [[http://xsb.sf.net XSB web site]]) and a directory with write permission 
- *  where temporary files will be stored need to be specified in the file `sdpn.properties` 
+ *   - Currently at most eight locks may be used on a 64bit System as the acquisition graph is modeled as
+ *   a bit string.
+ *  - The XSB-executable (obtainable from [[http://xsb.sf.net XSB web site]]) and a directory with write permission
+ *  where temporary files will be stored need to be specified in the file `sdpn.properties`
  *  which needs to be on class path during execution.
- *    
- * 
+ *
+ *
  * @param cg A call graph representing the control flow of a program
- * @param pa The associated pointer analysis. 
+ * @param pa The associated pointer analysis.
  *
  * @author Benedikt Nordhoff
  */
@@ -90,7 +92,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
    * {{{
    * x: InstanceKey =>
    *   ClassLoaderReference.Application.equals(x.getConcreteType().getClassLoader().getReference())
-   *}}}
+   * }}}
    * This can be implemented in Java by extending `scala.Function1<InstanceKey,Boolean>` and
    * implementing the `Boolean apply(InstanceKey ik)` method.
    *
@@ -132,35 +134,29 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
 
   /**
    * Initialize this analysis by calculating possible locks and the wait map.
-   * @param pm0 The progress monitor used to report progress, with default value null. 
+   * @param pm0 The progress monitor used to report progress, with default value null.
    */
-  def init(pm0: IProgressMonitor = null) {
+  def init(pm: IProgressMonitor = null) {
 
-    var pm = pm0
-    if (pm == null)
-      pm = new NullProgressMonitor()
     try {
-      pm.beginTask("Initialyizing DPN-based analyses", 3)
+      beginTask(pm, "Initialyizing DPN-based analyses", 3)
 
-      check(pm)
-      pm.subTask("Identifying unique instances")
+      subTask(pm, "Identifying unique instances")
       val ui = UniqueInstanceLocator.instances(cg, pa)
       uniqueInstances = ui
-      pm.worked(1)
+      worked(pm, 1)
 
-      check(pm)
-      pm.subTask("Identifying lock usages")
+      subTask(pm, "Identifying lock usages")
       val loi = LockWithOriginLocator.instances(cg, pa)
       lockUsages = loi.filterKeys(ui)
       possibleLocks = lockUsages.keySet
-      pm.worked(1)
+      worked(pm, 1)
 
-      check(pm)
-      pm.subTask("Locating wait() calls")
+      subTask(pm, "Locating wait() calls")
       val wmc = new WaitMap(new MyPreAnalysis(cg, pa), possibleLocks)
       waitMap = wmc.waitMap
-      pm.worked(1)
-    } finally { pm.done }
+      worked(pm, 1)
+    } finally { done(pm) }
   }
 
   /**
@@ -186,25 +182,22 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
   /**
    * Run an interference check between '''writePos''' and '''readPos''' assuming weak updates or the absence of killing definitions.
    * This means we check if it is possible to reach '''readPos''' after reaching '''writePos'''.
-   * 
-   * Throws an '''IOException''' if an error occurs while interacting with the XSB process  
+   *
+   * Throws an '''IOException''' if an error occurs while interacting with the XSB process
    * (e.g. more than five locks on a 32bit system)
-   * 
+   *
    * Throws an  '''IllegalArgumentException''' if more than eight locks are used.
-   * 
+   *
    * Throws an '''OperationCanceledException''' if `pm0.isCanceled` is true.
-   *   
+   *
    * @param writePos A stack symbol representing a point where a variable is written.
    * @param readPos A stack symbol representing a point where the written variable is read.
    * @param pm0 A progress monitor used to report progress with default value null.
    * @return True if '''readPos''' can be reached after reaching '''writePos''' in the DPN-model
-   * 
+   *
    */
-  def runWeakCheck(writePos: StackSymbol, readPos: StackSymbol, pm0: IProgressMonitor = null): Boolean = {
-    var pm = pm0
-    if (pm == null)
-      pm = new NullProgressMonitor()
-    pm.beginTask("Running DPN-based interference check", 3)
+  def runWeakCheck(writePos: StackSymbol, readPos: StackSymbol, pm: IProgressMonitor = null): Boolean = {
+    beginTask(pm, "Running DPN-based interference check", 3)
     try {
       val pm1 = new SubProgressMonitor(pm, 1)
       val (td, bu) = genWeakAutomata(writePos, readPos, pm1)
@@ -212,34 +205,30 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
       val pm2 = new SubProgressMonitor(pm, 2)
       return !XSBRunner.runCheck(icheck, pm2)
     } finally {
-      pm.done
+      done(pm)
     }
 
   }
 
   /**
    * Helper method used by runWeakCheck.
-   * 
+   *
    * @param writePos A stack symbol representing a point where a variable is written.
    * @param readPos A stack symbol representing a point where the written variable is read.
    * @param pm0 A progress monitor used to report progress.
-   * @return Two [[de.wwu.sdpn.ta.ScriptTreeAutomata]] the first one to be evaluated top down the second one to be evaluated bottom up 
+   * @return Two [[de.wwu.sdpn.ta.ScriptTreeAutomata]] the first one to be evaluated top down the second one to be evaluated bottom up
    * by an intersection emptiness test.
    */
-  protected def genWeakAutomata(writePos: StackSymbol, readPos: StackSymbol, pm0: IProgressMonitor = null): (ScriptTreeAutomata, ScriptTreeAutomata) = {
-    var pm = pm0
-    if (pm == null)
-      pm = new NullProgressMonitor()
+  protected def genWeakAutomata(writePos: StackSymbol, readPos: StackSymbol, pm: IProgressMonitor = null): (ScriptTreeAutomata, ScriptTreeAutomata) = {
+
     try {
-      pm beginTask ("Generating automata for interference check", 2)
+      beginTask(pm, "Generating automata for interference check", 2)
 
-      check(pm)
-      pm subTask "Generating Monitor DPN"
+      subTask(pm, "Generating Monitor DPN")
       val dpn = genMDPN(Set(readPos.node, writePos.node))
-      pm worked 1
+      worked(pm, 1)
 
-      check(pm)
-      pm subTask "Generating tree automata"
+      subTask(pm, "Generating tree automata")
 
       //The automata representing the lock insensitive  control flow of the DPN 
       val cflow = new MDPN2CutTA(dpn)
@@ -286,11 +275,11 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
       val lockPreTA = new CutAcqStructPrecutTA("precutacq", dpn.locks.size)
       val bottomUp = new IntersectionTA(inter2, lockPreTA)
 
-      pm worked 1
+      worked(pm, 1)
 
       return (topDown, bottomUp)
 
-    } finally { pm done }
+    } finally { done(pm) }
 
   }
 
@@ -313,7 +302,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
   def getSS4Node(node: CGNode) = StackSymbol(node, 0, 0)
 
   /**
-   * Obtains the StackSymbol representing the point just ''before'' the 
+   * Obtains the StackSymbol representing the point just ''before'' the
    * instruction corresponding to the given instructionIndex.
    *
    * @param node A CGNode
@@ -344,9 +333,13 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
     return StackSymbol(node, bb.getNumber, index)
   }
 
-  private def check(pm: IProgressMonitor) {
-    if (pm.isCanceled())
-      throw new org.eclipse.core.runtime.OperationCanceledException();
+  def subTask(monitor: IProgressMonitor, task: String) {
+    if (monitor != null) {
+      monitor.subTask(task);
+      if (monitor.isCanceled()) {
+        throw CancelException.make("cancelled in " + task);
+      }
+    }
   }
 
 }
