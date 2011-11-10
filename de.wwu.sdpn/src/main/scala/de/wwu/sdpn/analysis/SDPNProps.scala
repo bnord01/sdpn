@@ -50,8 +50,8 @@ object SDPNProps{
         assert (file.canExecute(),"Declared XSB executable isn't executable.")        
         val tempDir: String = p.getProperty("temp_dir")
         file = new File(tempDir)
-        assert (file.exists(),"Declared tempDir doesn't exist.")
-        assert (file.isDirectory(),"Declared tempDir isn't a directory.")        
+        assert (file.exists(),"Declared tempDir: " + file.getAbsolutePath + " doesn't exist.")
+        assert (file.isDirectory(),"Declared tempDir: " + file.getAbsolutePath + " isn't a directory.")        
         
         val cp: String = p.getProperty("std_cp")
         val mc: String = p.getProperty("std_mc")

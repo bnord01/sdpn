@@ -24,7 +24,7 @@ object DPN4IFCTest {
 
   @BeforeClass
   def setUp() {
-    for (i <- 1 to 2) {
+    for (i <- 1 to 3) {
       val (cg, pa) = SimpleAnalyses.getCGandPAfromCP(SDPNProps.get.classPath, "Lbnord/unittests/dpn4ifc/BSP0" + i)
       stuff += i -> (cg, pa,cg.getClassHierarchy)
     }
@@ -94,6 +94,31 @@ class DPN4IFCTest {
     dia.init(ProgressMonitorDelegate.createProgressMonitorDelegate((new PrintingPM())))
     val res = dia.runWeakCheck(writePos,readPos,ProgressMonitorDelegate.createProgressMonitorDelegate(new PrintingPM()))
     assertTrue("there should be flow", res)
+    
+    
+  }
+  
+  @Test
+  def testBSP03 {
+    val (cg,pa,cha) = stuff(3)
+    val dia = new DPN4IFCAnalysis(cg, pa)
+    var im = mrr("bnord.unittests.dpn4ifc.BSP03.p2()V",cha)
+    var nodes = cg.getNodes(im.getReference())
+    assert(nodes.size == 1,"Expected 1 node but got: " + nodes.size)
+    var node = nodes.first
+    println(node.getIR)
+    val writePos = StackSymbol(node, 1, 0)
+    
+    im = mrr("bnord.unittests.dpn4ifc.BSP03.p1()V",cha)
+    nodes = cg.getNodes(im.getReference())
+    assert(nodes.size == 1)
+    node = nodes.first
+    println(node.getIR)
+    val readPos = StackSymbol(node, 2, 0)
+    dia.init(ProgressMonitorDelegate.createProgressMonitorDelegate((new PrintingPM())))
+    println(dia.getPossibleLocks)
+    val res = dia.runWeakCheck(writePos,readPos,ProgressMonitorDelegate.createProgressMonitorDelegate(new PrintingPM()))
+    assertFalse("there should be no flow", res)
     
     
   }
