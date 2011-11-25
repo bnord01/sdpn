@@ -26,8 +26,9 @@ trait UniqueInstanceLocator {
         for (node <- ucnodes if node.getIR != null) {
             val cfg = node.getIR.getControlFlowGraph
             val start = cfg.entry
-            val infBB = CGCycleCounter.findInftyNodes(cfg, start)
-            for (bb <- cfg if (!infBB.contains(bb))) {
+            val infBB = new GraphCycleFinder(cfg) // CGCycleCounter.findInftyNodes(cfg, start)
+            infBB.solve(null)
+            for (bb <- cfg if (!infBB.inCycle(bb))) {
                 for (instr <- bb) {
                     instr match {
                         case ssanew: SSANewInstruction =>

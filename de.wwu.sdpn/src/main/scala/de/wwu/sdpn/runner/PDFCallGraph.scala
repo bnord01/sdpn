@@ -32,7 +32,7 @@ object PDFCallGraph {
         val dotFile = tDir + File.separator + "CallGraph.dot"
         val dotExe = "/usr/bin/dot"
         val pdfViewExe = "/usr/bin/xdg-open"
-        val analysis = MyPreAnalysis.getStd
+        val analysis = MyPreAnalysis.getStd("../de.wwu.sdpn.testapps/target/classes","Lbnord/testapps/DoubleMethodInvocation")
 
         val slice = GraphSlicer.slice(analysis.cg, new ApplicationLoaderFilter());
         val g = GraphSlicer.prune(analysis.cg, new CollectionFilter(slice));

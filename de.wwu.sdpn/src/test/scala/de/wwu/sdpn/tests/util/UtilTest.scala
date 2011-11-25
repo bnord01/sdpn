@@ -22,6 +22,10 @@ import com.ibm.wala.ssa.SSAInvokeInstruction
 import de.wwu.sdpn.util.LockWithOriginLocator
 import de.wwu.sdpn.analysis.DPN4IFCAnalysis
 import de.wwu.sdpn.dpn.explicit.StackSymbol
+import com.ibm.wala.util.graph.Graph
+import com.ibm.wala.util.graph.impl.BasicOrderedMultiGraph
+import com.ibm.wala.util.graph.GraphPrint
+import de.wwu.sdpn.util.GraphCycleFinder
 
 object UtilTest {
   var analysis: PreAnalysis = null
@@ -187,6 +191,53 @@ class UtilTest {
         
       }
     } 	
+  }
+  
+  @Test 
+  def testGraphCycleFinder() {
+    val graph = new BasicOrderedMultiGraph[String]()
+    graph addNode "Start"
+    graph addNode "A"
+    graph addNode "B"
+    graph addNode "C"
+    graph addNode "D"
+    graph addNode "E"
+    graph addNode "F"
+    graph addNode "G"
+    graph addNode "H"
+    graph addNode "End" 
+    
+    graph addEdge ("Start", "A")
+    graph addEdge ("A","B")
+    graph addEdge ("B","C")
+    graph addEdge ("C","A")
+    graph addEdge ("C","H")
+    graph addEdge ("H","End")
+    graph addEdge ("Start","D")    
+    graph addEdge ("D","G")
+    graph addEdge ("Start","E")
+    graph addEdge ("E","F")
+    graph addEdge ("F","G")
+    graph addEdge ("G","End")
+    
+    println("Printing graph")
+    println(GraphPrint.genericToString(graph))
+    
+    val gcf = new GraphCycleFinder(graph)
+    assert(gcf.solve(null),"Couldnt Solve problem")
+    
+    assert(gcf.inCycle("A"),"A should be in cycle but is not!")
+    assert(gcf.inCycle("B"),"B should be in cycle but is not!")
+    assert(gcf.inCycle("C"),"C should be in cycle but is not!")
+    assert(!gcf.inCycle("H"),"H shouldn't be in cycle but is!")
+    assert(!gcf.inCycle("Start"),"Start shouldn't be in cycle but is!")
+    assert(!gcf.inCycle("D"),"D shouldn't be in cycle but is!")
+    assert(!gcf.inCycle("E"),"E shouldn't be in cycle but is!")
+    assert(!gcf.inCycle("F"),"F shouldn't be in cycle but is!")
+    assert(!gcf.inCycle("G"),"G shouldn't be in cycle but is!")
+    assert(!gcf.inCycle("End"),"End shouldn't be in cycle but is!")
+    
+    
   }
   
  

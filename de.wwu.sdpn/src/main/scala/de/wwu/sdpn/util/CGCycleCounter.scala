@@ -40,6 +40,7 @@ class CGCycleCounter(val cg: CallGraph) {
     }
 
     private def calcInftyNodes() = {
+      	//TODO Check if two call sites call the same successor
         import CGCycleCounter.findInftyNodes
         //find cycles in call graph
         val cginfty = findInftyNodes(cg, cg.getFakeRootNode)
@@ -49,8 +50,10 @@ class CGCycleCounter(val cg: CallGraph) {
                 if (node.getIR != null) {
                     val cfg = node.getIR.getControlFlowGraph
                     val start = cfg.entry
-                    val bbinfty = findInftyNodes(cfg, start)
-                    for (bb <- bbinfty; instr <- bb) {
+                    //val bbinfty = findInftyNodes(cfg, start)
+                    val bbinfity = new GraphCycleFinder(cfg)
+                    bbinfity.solve(null)
+                    for (bb <- cfg if bbinfity.inCycle(bb); instr <- bb) {
                         instr match {
                             case call: SSAAbstractInvokeInstruction =>
                                 cginfty ++= cg.getPossibleTargets(node, call.getCallSite)
