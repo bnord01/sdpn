@@ -28,6 +28,11 @@ class SubProgressMonitor(parent: IProgressMonitor, ticksToSent: Int) extends IPr
     else
       parent.isCanceled()
   }
+  
+  def cancel() {
+    if (parent != null)
+      parent.cancel()
+  }
 
   def done() {
     if (parent == null)
