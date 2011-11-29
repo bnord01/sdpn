@@ -12,6 +12,7 @@ import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.layout.FillLayout
 import org.eclipse.zest.layouts.algorithms.TreeLayoutAlgorithm
 import org.eclipse.zest.layouts.algorithms.SpaceTreeLayoutAlgorithm
+import org.eclipse.draw2d.geometry.Dimension
 
 class FullWitnessParser extends JavaTokenParsers with Serializable {
 
@@ -67,7 +68,6 @@ class FullWitnessParser extends JavaTokenParsers with Serializable {
     def toGraph(shell: Shell): Graph = {
       val graph = new Graph(shell, SWT.NONE)
       val v = addToGraph(graph)
-      graph.setLayoutAlgorithm(new TreeLayoutAlgorithm(), true);
       return graph
     }
 
@@ -174,7 +174,10 @@ object TestFullWitnessParser {
     shell.setText("GraphSnippet1");
     shell.setLayout(new FillLayout());
     shell.setSize(400, 800);
-    val g = p2.get.toGraph(shell)
+    val graph = p2.get.toGraph(shell)
+    val layout = new TreeLayoutAlgorithm()
+    layout.setNodeSpace(new Dimension(140,40))
+    graph.setLayoutAlgorithm(layout, true);
     shell.open();
     while (!shell.isDisposed()) {
       while (!d.readAndDispatch()) {
