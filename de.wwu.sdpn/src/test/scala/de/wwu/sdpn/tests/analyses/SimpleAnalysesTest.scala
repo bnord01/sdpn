@@ -19,7 +19,7 @@ object SimpleAnalysesTest {
 	
 	@BeforeClass
 	def setUp(){
-	  	for (i <- 1 to 3) {
+	  	for (i <- 1 to 5) {
 	  	  val (cg,pa) = SimpleAnalyses.getCGandPAfromCP(SDPNProps.get.classPath,"Lbnord/unittests/simpleAnalyses/BSP0"+i)
 	  	  val mr = StringStuff.makeMethodReference("bnord.unittests.simpleAnalyses.BSP0" + i + ".excludeMe()V")
 	  	  stuff += i -> (cg,pa,mr)
@@ -110,6 +110,15 @@ class SimpleAnalysesTest {
     val res = SimpleAnalyses.runWitnessTSRCheck(cg,pa,getStackSymbols(cg,mr),getStackSymbols(cg,mr),nodes,true)
     
     assertTrue("There shouldn't be an Conflict",res == None)
+  }
+  
+  @Test
+  def testSlicedWitnessLockSensTSR3() {
+    val (cg,pa,mr) = stuff(5)
+    val nodes = cg.getNodes(mr)
+    val res = SimpleAnalyses.runWitnessTSRCheck(cg,pa,getStackSymbols(cg,mr),getStackSymbols(cg,mr),nodes,true)
+    
+    assertFalse("There should be an Conflict",res == None)
   }
   
   

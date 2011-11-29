@@ -2,7 +2,7 @@ package bnord.unittests.simpleAnalyses;
 
 import bnord.examples.Lock;
 
-public class BSP04 extends Thread {
+public class BSP05 extends Thread {
 	static void p1() {
 		thread.start();         
 	    synchronized(lock1){  
@@ -12,8 +12,7 @@ public class BSP04 extends Thread {
 	}
 
 	void p2() {
-		synchronized(lock2){  
-	        synchronized(lock1) { dummy(); }
+		synchronized(lock2){
 	        excludeMe();
 	    } 
 	}
@@ -21,10 +20,10 @@ public class BSP04 extends Thread {
 	static Lock lock1 = new Lock();
 	static Lock lock2 = new Lock();
 	static Lock lock3 = new Lock();
-	static BSP04 thread = new BSP04();
+	static BSP05 thread = new BSP05();
 
 
-	public static void main(String[] args) {
+	public static void main(String [] args) {
 		p1();
 	}
 
