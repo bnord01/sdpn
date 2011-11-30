@@ -1,11 +1,9 @@
-package de.wwu.sdpn.ta
+package de.wwu.sdpn.ta.witness
 
 import scala.util.parsing.combinator._
 import scala.swing.MainFrame
 import scala.swing.Component
-import org.eclipse.zest.core.widgets.Graph
 import org.eclipse.swt.widgets.Shell
-import org.eclipse.zest.core.widgets.GraphNode
 import org.eclipse.swt.SWT
 import org.eclipse.zest.core.widgets.GraphConnection
 import org.eclipse.swt.widgets.Display
@@ -35,23 +33,32 @@ class FullWitnessParser extends JavaTokenParsers {
 
   def state: Parser[State] = 
     (
-        "c(c("~inr~","~stackSym~","~inr~","~tf10~"),i("~inr~",i("~tb~","~tb~")))" ^^ {
-    		case "c(c("~g~","~ss~","~gf~","~t~"),i("~nr~",i("~r1~","~r2~")))" =>
-    			State(GlobalState(g), ss, GlobalState(gf), t, CState(nr, r1, r2))
+        "c("~cfState~","~conflictState~")" ^^ {
+    		case "c("~cfState~","~cState~")" =>
+    			new State(cfState, cState)
         }
     | 
-    	"c(i(c("~inr~","~stackSym~","~inr~","~tf10~"),"~lnr~"),i(l("~lnr~","~lnr~","~lnr~"),i("~inr~",i("~tb~","~tb~"))))" ^^ {
-    		case "c(i(c("~g~","~ss~","~gf~","~t~"),"~lnr~"),i(l("~a~","~u~","~gr~"),i("~nr~",i("~r1~","~r2~"))))" =>
-    			LSState(GlobalState(g), ss, GlobalState(gf), t,lnr,AcquisitionStructure(a,u,gr), CState(nr, r1, r2)) 
-       	}
+    
+    	"c(i("~cfState~","~lnr~"),i("~acqStruct~","~conflictState~"))" ^^ {
+    		case "c(i("~cfState~","~lnr~"),i("~acqStruct~","~conflictState~"))" =>
+    			new LSState(cfState, lnr, acqStruct, conflictState)
+        }
     )
+    
+  def acqStruct = "l("~lnr~","~lnr~","~lnr~")" ^^ {case "l("~a~","~u~","~gr~")" =>  AcquisitionStructure(a,u,gr)}
+  
+  def conflictState:Parser[CState] =  "i("~inr~",i("~tb~","~tb~"))" ^^ {
+    case "i("~nr~",i("~r1~","~r2~"))" => CState(nr, r1, r2)
+  }
+  
+  def cfState = "c("~inr~","~stackSym~","~inr~","~tf10~")" ^^ {case "c("~g~","~ss~","~gf~","~t~")" => CFState(GlobalState(g),ss,GlobalState(gf),t)}
   
 
   def stackSym: Parser[StackSymbol] = "s("~inr~","~inr~","~inr~")"^^ { 
     case "s("~cg~","~bb~","~nr~")" => StackSymbol(cg, bb, nr) 
   }
 
-  def fullTree: Parser[Tree] = "st("~state~","~ptree~")"^^{
+  def fullTree: Parser[WitnessTree] = "st("~state~","~ptree~")"^^{
     case "st("~state~","~ptree~")" => {
       ptree match {
         case PNilTree(gs, ss) => NilTree(state, gs, ss)
@@ -87,149 +94,16 @@ class FullWitnessParser extends JavaTokenParsers {
   def retTree = "ret" ^^ { _ => PRetTree }
   // format: ON
 
-  // Data structures for output
-  // Maybe move these out of this class
-  case class State(g: GlobalState, ss: StackSymbol, gf: GlobalState, term: Boolean, conflictState: CState)
   
-  case class LSState(g0: GlobalState, 
-      ss0: StackSymbol, 
-      gf0: GlobalState, 
-      term0: Boolean, 
-      lockSet: Long, as: AcquisitionStructure, conflictState0: CState
-      ) extends State(g0, ss0, gf0, term0, conflictState0)
-  case class AcquisitionStructure(acq: Long, use: Long, graph: Long)
-  case class GlobalState(num: Int)
-  case class StackSymbol(cg: Int, bb: Int, instr: Int)
-  case class CState(num: Int, reachedOne: Boolean, reachedTwo: Boolean)
-
-  trait Tree {
-    def state: State
-
-    def addToGraph(graph: Graph): GraphNode
-    def toGraph(shell: Shell): Graph = {
-      val graph = new Graph(shell, SWT.NONE)
-      graph.setConnectionStyle(ZestStyles.CONNECTIONS_DIRECTED);
-      val v = addToGraph(graph)
-      return graph
-    }
-
-    override def toString(): String = {
-      var cn = this.getClass().getName()
-      cn = cn.substring(0, cn.length() - 4)
-      cn = cn.split('$').last
-      return cn + "(" + state.ss.cg + ", " + state.ss.bb + ", " + state.ss.instr + ")"
-    }
-  }
-  case class BaseTree(state: State, child: Tree) extends Tree {
-    def addToGraph(graph: Graph): GraphNode = {
-      val v2 = child.addToGraph(graph)
-      val v1 = new GraphNode(graph, SWT.None, this)
-      v1.setText(toString)
-      val con = new GraphConnection(graph, SWT.None, v1, v2)
-      return v1
-    }
-  }
-  case class Call1Tree(state: State, child: Tree) extends Tree {
-    def addToGraph(graph: Graph): GraphNode = {
-      val v2 = child.addToGraph(graph)
-      val v1 = new GraphNode(graph, SWT.None, this)
-      v1.setText(toString)
-      val con = new GraphConnection(graph, SWT.None, v1, v2)
-      return v1
-    }
-  }
-  case class AcqTree(state: State, lock:Int,reentrant:Boolean, child: Tree) extends Tree {
-    def addToGraph(graph: Graph): GraphNode = {
-      val v2 = child.addToGraph(graph)
-      val v1 = new GraphNode(graph, SWT.None, this)
-      v1.setText(toString)
-      if(!reentrant){
-      	val color = new Color(graph.getDisplay(),255,80,80)
-      	v1.setBackgroundColor(color)
-      }
-      val con = new GraphConnection(graph, SWT.None, v1, v2)
-      return v1
-    }
-    override def toString = {
-      (if(reentrant) "Re" else "") +
-      "Acq(" + lock + ","+ state.ss.cg + "," + state.ss.bb + "," + state.ss.instr +")" 
-    }
-  }
-  case class Call2Tree(state: State, called: Tree, next: Tree) extends Tree {
-    def addToGraph(graph: Graph): GraphNode = {
-      val v2 = called.addToGraph(graph)
-      val v3 = next.addToGraph(graph)
-      val v1 = new GraphNode(graph, SWT.None, this)
-      v1.setText(toString)
-      val conCall = new GraphConnection(graph, SWT.None, v1, v2)
-      conCall.setText("call")
-      val conRet = new GraphConnection(graph, SWT.None, v1, v3)
-      conRet.setText("return")
-      return v1
-    }
-  }
-  case class UseTree(state: State,lock:Int,reentrant:Boolean, called: Tree, next: Tree) extends Tree {
-    def addToGraph(graph: Graph): GraphNode = {
-      val v2 = called.addToGraph(graph)
-      val v3 = next.addToGraph(graph)
-      val v1 = new GraphNode(graph, SWT.None, this)
-      v1.setText(toString)
-      if(!reentrant){
-      	val color = new Color(graph.getDisplay(),255,80,80)
-      	v1.setBackgroundColor(color)
-      }
-      val conCall = new GraphConnection(graph, SWT.None, v1, v2)
-      conCall.setText("use")
-      val conRet = new GraphConnection(graph, SWT.None, v1, v3)
-      conRet.setText("return")
-      return v1
-    }
-    override def toString = {
-      (if(reentrant) "Re" else "") +
-      "Use(" + lock + ",("+ state.ss.cg + "," + state.ss.bb + "," + state.ss.instr +"))" 
-    }
-  }
-  case class SpawnTree(state: State, spawned: Tree, next: Tree) extends Tree {
-    def addToGraph(graph: Graph): GraphNode = {
-      val v2 = spawned.addToGraph(graph)
-      val v3 = next.addToGraph(graph)
-      val v1 = new GraphNode(graph, SWT.None, this)
-      v1.setText(toString)
-      val color = graph.getDisplay().getSystemColor(SWT.COLOR_GREEN)
-      v1.setBackgroundColor(color)
-      val conSpawn = new GraphConnection(graph, SWT.None, v1, v2)
-      conSpawn.setText("spawn")
-      val conRet = new GraphConnection(graph, SWT.None, v1, v3)
-      conRet.setText("return")
-      return v1
-    }
-  }
-  case class NilTree(state: State, globalState: GlobalState, stackSymbol: StackSymbol) extends Tree {
-    def addToGraph(graph: Graph): GraphNode = {
-      val v1 = new GraphNode(graph, SWT.None, this)
-      v1.setText(toString)
-      val color = graph.getDisplay().getSystemColor(SWT.COLOR_CYAN)
-      v1.setBackgroundColor(color)
-      return v1
-    }
-  }
-
-  case class RetTree(state: State) extends Tree {
-    def addToGraph(graph: Graph): GraphNode = {
-      val v1 = new GraphNode(graph, SWT.None, this)
-      v1.setText(toString)
-      return v1
-    }
-  }
-
-  trait PTree
+  // Partial Trees without State
+  sealed trait PTree
   case class PNilTree(gs: GlobalState, ss: StackSymbol) extends PTree
-  case class PBaseTree(next: Tree) extends PTree
-  case class PCall1Tree(next: Tree) extends PTree
-  case class PAcqTree(lock:(Int,Boolean),next: Tree) extends PTree
-  case class PCall2Tree(called: Tree, next: Tree) extends PTree
-  case class PUseTree(lock:(Int,Boolean),called: Tree, next: Tree) extends PTree
-  case class PSpawnTree(spawned: Tree, next: Tree) extends PTree
+  case class PBaseTree(next: WitnessTree) extends PTree
+  case class PCall1Tree(next: WitnessTree) extends PTree
+  case class PAcqTree(lock:(Int,Boolean),next: WitnessTree) extends PTree
+  case class PCall2Tree(called: WitnessTree, next: WitnessTree) extends PTree
+  case class PUseTree(lock:(Int,Boolean),called: WitnessTree, next: WitnessTree) extends PTree
+  case class PSpawnTree(spawned: WitnessTree, next: WitnessTree) extends PTree
   case object PRetTree extends PTree
 
   def parseTree(str: String) = parseAll(fullTree, str)
@@ -256,10 +130,7 @@ object TestFullWitnessParser {
     shell.setText("GraphSnippet1");
     shell.setLayout(new FillLayout());
     shell.setSize(400, 800);
-    val graph = p2.get.toGraph(shell)
-    val layout = new TreeLayoutAlgorithm()
-    layout.setNodeSpace(new Dimension(140, 40))
-    graph.setLayoutAlgorithm(layout, true);
+    val graph = new WTGraph(p2.get,shell)    
     shell.open();
     while (!shell.isDisposed()) {
       while (!d.readAndDispatch()) {
