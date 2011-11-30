@@ -19,7 +19,7 @@ class WTGraph(tree: WitnessTree, parent: Composite, decorator: WitnessTree => St
   addTree(tree)
 
   private val tlayout = new TreeLayoutAlgorithm()
-  tlayout.setNodeSpace(new Dimension(140, 40))
+  tlayout.setNodeSpace(new Dimension(150, 40))
   setLayoutAlgorithm(tlayout, true);
 
   def addTree(t: WitnessTree): GraphNode = {
@@ -109,7 +109,7 @@ object WTGraph {
   def showTree(tree: WitnessTree,decorator:WitnessTree => String = _.toString) {
     val d = new Display();
     val shell = new Shell(d);
-    shell.setText("GraphSnippet1");
+    shell.setText("Witness View");
     shell.setLayout(new FillLayout());
     shell.setSize(400, 800);
     val graph = new WTGraph(tree, shell , decorator = decorator)
@@ -137,6 +137,19 @@ object WTGraph {
     
   }
   
+  def showTree(stree:String, cg:CallGraph) {
+    val pr = FullWitnessParser.parseTree(stree)
+    assert(pr.successful,"Parsing was not successfull!")
+    val tree = pr.get
+    showTree(tree,cg)
+  }
+  
+  def showTree(stree:String) {
+    val pr = FullWitnessParser.parseTree(stree)
+    assert(pr.successful,"Parsing was not successfull!")
+    val tree = pr.get
+    showTree(tree)
+  }
   
   
 }

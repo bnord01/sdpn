@@ -26,6 +26,7 @@ import com.ibm.wala.util.graph.Graph
 import com.ibm.wala.util.graph.impl.BasicOrderedMultiGraph
 import com.ibm.wala.util.graph.GraphPrint
 import de.wwu.sdpn.util.GraphCycleFinder
+import de.wwu.sdpn.ta.witness.FullWitnessParser
 
 object UtilTest {
   var analysis: PreAnalysis = null
@@ -75,14 +76,14 @@ class UtilTest {
       println("Unique Lock:\t " + l)
 
   }
-  
+
   @Test
   def testLockWithOriginLocator {
     val lol = new MyPreAnalysis(analysis) with LockWithOriginLocator
     val ll = new MyPreAnalysis(analysis) with LockLocator
     val loli = lol.locks
     val lli = ll.locks
-    
+
     for (l <- loli)
       println("LockMapping:\t " + l)
     assert(lli.equals(loli.keySet))
@@ -164,36 +165,36 @@ class UtilTest {
     for (bb0 <- cfg) {
       val bb = bb0.asInstanceOf[SSACFG#BasicBlock]
       var index = 0
-      for(instr <- bb.iteratePhis()){
+      for (instr <- bb.iteratePhis()) {
         index += 1
       }
-      if(bb.isCatchBlock())
+      if (bb.isCatchBlock())
         index += 1
-      for(instr <- bb.iterateNormalInstructions()){
+      for (instr <- bb.iterateNormalInstructions()) {
         val start = bb.getFirstInstructionIndex()
         val stop = bb.getLastInstructionIndex()
         var arrIndex = -1
-        for(i <- start to stop) {
-          if(instr.equals(instrArr(i))){
+        for (i <- start to stop) {
+          if (instr.equals(instrArr(i))) {
             arrIndex = i
-          }         
+          }
         }
         val bIndex = bcM.getBytecodeIndex(arrIndex)
         val ln = im.getLineNumber(bIndex)
-        
-        if(ln == 18){
+
+        if (ln == 18) {
           found = true
-          println ("Found Match for: " + instr)
-          println ("bbnr: " + bb.getNumber + "\t index: " + index + "\t arrIndex: " + arrIndex)
+          println("Found Match for: " + instr)
+          println("bbnr: " + bb.getNumber + "\t index: " + index + "\t arrIndex: " + arrIndex)
           println("bIndex: " + bIndex + "\t LineNumber: " + ln)
           assert(instr.isInstanceOf[SSAInvokeInstruction])
         }
-        
+
       }
-    } 	
+    }
   }
-  
-  @Test 
+
+  @Test
   def testGraphCycleFinder() {
     val graph = new BasicOrderedMultiGraph[String]()
     graph addNode "Start"
@@ -205,41 +206,54 @@ class UtilTest {
     graph addNode "F"
     graph addNode "G"
     graph addNode "H"
-    graph addNode "End" 
-    
+    graph addNode "End"
+
     graph addEdge ("Start", "A")
-    graph addEdge ("A","B")
-    graph addEdge ("B","C")
-    graph addEdge ("C","A")
-    graph addEdge ("C","H")
-    graph addEdge ("H","End")
-    graph addEdge ("Start","D")    
-    graph addEdge ("D","G")
-    graph addEdge ("Start","E")
-    graph addEdge ("E","F")
-    graph addEdge ("F","G")
-    graph addEdge ("G","End")
-    
+    graph addEdge ("A", "B")
+    graph addEdge ("B", "C")
+    graph addEdge ("C", "A")
+    graph addEdge ("C", "H")
+    graph addEdge ("H", "End")
+    graph addEdge ("Start", "D")
+    graph addEdge ("D", "G")
+    graph addEdge ("Start", "E")
+    graph addEdge ("E", "F")
+    graph addEdge ("F", "G")
+    graph addEdge ("G", "End")
+
     println("Printing graph")
     println(GraphPrint.genericToString(graph))
-    
+
     val gcf = new GraphCycleFinder(graph)
-    assert(gcf.solve(null),"Couldnt Solve problem")
-    
-    assert(gcf.inCycle("A"),"A should be in cycle but is not!")
-    assert(gcf.inCycle("B"),"B should be in cycle but is not!")
-    assert(gcf.inCycle("C"),"C should be in cycle but is not!")
-    assert(!gcf.inCycle("H"),"H shouldn't be in cycle but is!")
-    assert(!gcf.inCycle("Start"),"Start shouldn't be in cycle but is!")
-    assert(!gcf.inCycle("D"),"D shouldn't be in cycle but is!")
-    assert(!gcf.inCycle("E"),"E shouldn't be in cycle but is!")
-    assert(!gcf.inCycle("F"),"F shouldn't be in cycle but is!")
-    assert(!gcf.inCycle("G"),"G shouldn't be in cycle but is!")
-    assert(!gcf.inCycle("End"),"End shouldn't be in cycle but is!")
-    
-    
+    assert(gcf.solve(null), "Couldnt Solve problem")
+
+    assert(gcf.inCycle("A"), "A should be in cycle but is not!")
+    assert(gcf.inCycle("B"), "B should be in cycle but is not!")
+    assert(gcf.inCycle("C"), "C should be in cycle but is not!")
+    assert(!gcf.inCycle("H"), "H shouldn't be in cycle but is!")
+    assert(!gcf.inCycle("Start"), "Start shouldn't be in cycle but is!")
+    assert(!gcf.inCycle("D"), "D shouldn't be in cycle but is!")
+    assert(!gcf.inCycle("E"), "E shouldn't be in cycle but is!")
+    assert(!gcf.inCycle("F"), "F shouldn't be in cycle but is!")
+    assert(!gcf.inCycle("G"), "G shouldn't be in cycle but is!")
+    assert(!gcf.inCycle("End"), "End shouldn't be in cycle but is!")
+
   }
-  
- 
+
+  @Test
+  def testFullWitnessParserLockInsens() {
+	  val pr = FullWitnessParser.parseTree(lisTestTree)
+	  println(pr)
+	  assert(pr.successful,"Couldn't parse lock insensitive test tree with two set reachability.")
+  }
+  @Test
+  def testFullWitnessParserLockSens() {
+	  val pr = FullWitnessParser.parseTree(lsTestTree)
+	  println(pr)
+	  assert(pr.successful,"Couldn't parse lock sensitive test tree with two set reachability.")
+  }
+
+  val lisTestTree = "st(c(c(0,s(0,0,0),0,0),i(2,i(top,top))),base(st(c(c(0,s(0,0,1),0,0),i(2,i(top,top))),base(st(c(c(0,s(0,1,0),0,0),i(2,i(top,top))),base(st(c(c(0,s(0,1,1),0,0),i(2,i(top,top))),base(st(c(c(0,s(0,2,0),0,0),i(2,i(top,top))),base(st(c(c(0,s(0,2,1),0,0),i(2,i(top,top))),base(st(c(c(0,s(0,3,0),0,0),i(2,i(top,top))),base(st(c(c(0,s(0,3,1),0,0),i(2,i(top,top))),base(st(c(c(0,s(0,4,0),0,0),i(2,i(top,top))),base(st(c(c(0,s(0,4,1),0,0),i(2,i(top,top))),base(st(c(c(0,s(0,5,0),0,0),i(2,i(top,top))),call1(st(c(c(0,s(5,0,0),0,0),i(2,i(top,top))),base(st(c(c(0,s(5,1,0),0,0),i(2,i(top,top))),call1(st(c(c(0,s(10,0,0),0,0),i(2,i(top,top))),base(st(c(c(0,s(10,1,0),0,0),i(2,i(top,top))),base(st(c(c(0,s(10,1,1),0,0),i(2,i(top,top))),call2(st(c(c(0,s(16,0,0),0,1),i(1,i(top,top))),spawn(st(c(c(0,s(20,0,0),0,0),i(1,i(top,top))),base(st(c(c(0,s(20,1,0),0,0),i(1,i(top,top))),call1(st(c(c(0,s(23,0,0),0,0),i(1,i(top,top))),base(st(c(c(0,s(23,1,0),0,0),i(1,i(top,top))),call1(st(c(c(0,s(17,0,0),0,0),i(1,i(top,top))),nil(t(0,s(17,0,0)))))))))))),st(c(c(0,s(16,1,0),0,1),i(0,i(bot,bot))),ret))),st(c(c(0,s(10,1,2),0,0),i(1,i(top,top))),base(st(c(c(0,s(10,2,0),0,0),i(1,i(top,top))),call1(st(c(c(0,s(17,0,0),0,0),i(1,i(top,top))),nil(t(0,s(17,0,0))))))))))))))))))))))))))))))))))))))))"
+  val lsTestTree = "st(c(i(c(0,s(0,0,0),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(0,0,1),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(0,1,0),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(0,1,1),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(0,2,0),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(0,2,1),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(0,3,0),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(0,3,1),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(0,4,0),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(0,4,1),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(0,5,0),0,0),0),i(l(3,3,2),i(2,i(top,top)))),call1(st(c(i(c(0,s(5,0,0),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(5,1,0),0,0),0),i(l(3,3,2),i(2,i(top,top)))),call1(st(c(i(c(0,s(10,0,0),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(10,1,0),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(10,1,1),0,0),0),i(l(3,3,2),i(2,i(top,top)))),call2(st(c(i(c(0,s(16,0,0),0,1),0),i(l(2,2,0),i(1,i(top,top)))),spawn(st(c(i(c(0,s(21,0,0),0,0),0),i(l(2,2,0),i(1,i(top,top)))),base(st(c(i(c(0,s(21,1,0),0,0),0),i(l(2,2,0),i(1,i(top,top)))),call1(st(c(i(c(0,s(24,0,0),0,0),0),i(l(2,2,0),i(1,i(top,top)))),base(st(c(i(c(0,s(24,1,0),0,0),0),i(l(2,2,0),i(1,i(top,top)))),base(st(c(i(c(0,s(24,1,1),0,0),0),i(l(2,2,0),i(1,i(top,top)))),acq(la(1,0),st(c(i(c(0,s(24,1,2),0,0),2),i(l(0,0,0),i(1,i(top,top)))),base(st(c(i(c(0,s(24,2,0),0,0),2),i(l(0,0,0),i(1,i(top,top)))),call1(st(c(i(c(0,s(18,0,0),0,0),2),i(l(0,0,0),i(1,i(top,top)))),nil(t(0,s(18,0,0)))))))))))))))))),st(c(i(c(0,s(16,1,0),0,1),0),i(l(0,0,0),i(0,i(bot,bot)))),ret))),st(c(i(c(0,s(10,1,2),0,0),0),i(l(1,3,2),i(1,i(top,top)))),base(st(c(i(c(0,s(10,2,0),0,0),0),i(l(1,3,2),i(1,i(top,top)))),base(st(c(i(c(0,s(10,2,1),0,0),0),i(l(1,3,2),i(1,i(top,top)))),acq(la(0,0),st(c(i(c(0,s(10,2,2),0,0),1),i(l(0,2,0),i(1,i(top,top)))),base(st(c(i(c(0,s(10,3,0),0,0),1),i(l(0,2,0),i(1,i(top,top)))),base(st(c(i(c(0,s(10,3,1),0,0),1),i(l(0,2,0),i(1,i(top,top)))),use(la(1,0),st(c(i(c(0,s(10,3,2),0,1),3),i(l(0,0,0),i(0,i(bot,bot)))),base(st(c(i(c(0,s(10,4,0),0,1),3),i(l(0,0,0),i(0,i(bot,bot)))),base(st(c(i(c(0,s(10,4,1),0,1),3),i(l(0,0,0),i(0,i(bot,bot)))),base(st(c(i(c(0,s(10,5,0),0,1),3),i(l(0,0,0),i(0,i(bot,bot)))),ret))))))),st(c(i(c(0,s(10,6,0),0,0),1),i(l(0,0,0),i(1,i(top,top)))),base(st(c(i(c(0,s(10,6,1),0,0),1),i(l(0,0,0),i(1,i(top,top)))),base(st(c(i(c(0,s(10,9,0),0,0),1),i(l(0,0,0),i(1,i(top,top)))),call1(st(c(i(c(0,s(18,0,0),0,0),1),i(l(0,0,0),i(1,i(top,top)))),nil(t(0,s(18,0,0))))))))))))))))))))))))))))))))))))))))))))))))))))))"
 
 }
