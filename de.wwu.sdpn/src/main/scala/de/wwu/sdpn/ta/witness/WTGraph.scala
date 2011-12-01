@@ -1,18 +1,25 @@
 package de.wwu.sdpn.ta.witness
 
-import org.eclipse.swt.widgets.Composite
-import org.eclipse.zest.core.widgets.Graph
-import org.eclipse.zest.core.widgets.ZestStyles
-import org.eclipse.zest.core.widgets.GraphNode
-import org.eclipse.zest.core.widgets.GraphConnection
-import org.eclipse.swt.SWT
-import org.eclipse.swt.graphics.Color
-import org.eclipse.zest.layouts.algorithms.TreeLayoutAlgorithm
+import scala.annotation.elidable
+import scala.annotation.implicitNotFound
+
 import org.eclipse.draw2d.geometry.Dimension
+import org.eclipse.swt.graphics.Color
+import org.eclipse.swt.layout.FillLayout
+import org.eclipse.swt.widgets.Composite
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
-import org.eclipse.swt.layout.FillLayout
+import org.eclipse.swt.SWT
+import org.eclipse.zest.core.widgets.Graph
+import org.eclipse.zest.core.widgets.GraphConnection
+import org.eclipse.zest.core.widgets.GraphNode
+import org.eclipse.zest.core.widgets.ZestStyles
+import org.eclipse.zest.layouts.algorithms.TreeLayoutAlgorithm
+
 import com.ibm.wala.ipa.callgraph.CallGraph
+
+import annotation.elidable.ASSERTION
+
 
 class WTGraph(tree: WitnessTree, parent: Composite, decorator: WitnessTree => String = _.toString, style: Int = 0) extends Graph(parent, style) {
   setConnectionStyle(ZestStyles.CONNECTIONS_DIRECTED)

@@ -1,18 +1,7 @@
 package de.wwu.sdpn.ta.witness
 
-import scala.util.parsing.combinator._
-import scala.swing.MainFrame
-import scala.swing.Component
-import org.eclipse.swt.widgets.Shell
-import org.eclipse.swt.SWT
-import org.eclipse.zest.core.widgets.GraphConnection
-import org.eclipse.swt.widgets.Display
-import org.eclipse.swt.layout.FillLayout
-import org.eclipse.zest.layouts.algorithms.TreeLayoutAlgorithm
-import org.eclipse.zest.layouts.algorithms.SpaceTreeLayoutAlgorithm
-import org.eclipse.draw2d.geometry.Dimension
-import org.eclipse.swt.graphics.Color
-import org.eclipse.zest.core.widgets.ZestStyles
+import scala.util.parsing.combinator.JavaTokenParsers
+
 
 /**
  * Parser for full witnesses of two set reachability analyses with or without locks
@@ -47,9 +36,14 @@ object FullWitnessParser extends JavaTokenParsers {
     
   def acqStruct = "l("~lnr~","~lnr~","~lnr~")" ^^ {case "l("~a~","~u~","~gr~")" =>  AcquisitionStructure(a,u,gr)}
   
-  def conflictState:Parser[CState] =  "i("~inr~",i("~tb~","~tb~"))" ^^ {
-    case "i("~nr~",i("~r1~","~r2~"))" => CState(nr, r1, r2)
+  def conflictState:Parser[CState] =  tsrState | ssrState
+  
+  def tsrState:Parser[TSRCState] =  "i("~inr~",i("~tb~","~tb~"))" ^^ {
+    case "i("~nr~",i("~r1~","~r2~"))" => TSRCState(nr, r1, r2)
   }
+  
+  def ssrState:Parser[SSRCState] =  inr ^^ (SSRCState(_))
+  
   
   def cfState = "c("~inr~","~stackSym~","~inr~","~tf10~")" ^^ {case "c("~g~","~ss~","~gf~","~t~")" => CFState(GlobalState(g),ss,GlobalState(gf),t)}
   
@@ -94,20 +88,17 @@ object FullWitnessParser extends JavaTokenParsers {
   def retTree = "ret" ^^ { _ => PRetTree }
   // format: ON
 
-  
   // Partial Trees without State
   sealed trait PTree
   case class PNilTree(gs: GlobalState, ss: StackSymbol) extends PTree
   case class PBaseTree(next: WitnessTree) extends PTree
   case class PCall1Tree(next: WitnessTree) extends PTree
-  case class PAcqTree(lock:(Int,Boolean),next: WitnessTree) extends PTree
+  case class PAcqTree(lock: (Int, Boolean), next: WitnessTree) extends PTree
   case class PCall2Tree(called: WitnessTree, next: WitnessTree) extends PTree
-  case class PUseTree(lock:(Int,Boolean),called: WitnessTree, next: WitnessTree) extends PTree
+  case class PUseTree(lock: (Int, Boolean), called: WitnessTree, next: WitnessTree) extends PTree
   case class PSpawnTree(spawned: WitnessTree, next: WitnessTree) extends PTree
   case object PRetTree extends PTree
 
   def parseTree(str: String) = parseAll(fullTree, str)
-
-  
 
 }
