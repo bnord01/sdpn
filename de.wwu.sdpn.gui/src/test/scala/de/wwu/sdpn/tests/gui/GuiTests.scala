@@ -1,4 +1,4 @@
-package de.wwu.sdpn.tests.analyses
+package de.wwu.sdpn.tests.gui
 
 import com.ibm.wala.ipa.callgraph.CallGraph
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
@@ -14,7 +14,7 @@ import scala.collection.Set
 import org.junit.Assert._
 import com.ibm.wala.types.MethodReference
 import de.wwu.sdpn.ta.witness.FullWitnessParser
-import de.wwu.sdpn.ta.witness.WTGraph
+import de.wwu.sdpn.ta.witness.zest.WTGraph
 
 object GuiTests {
 

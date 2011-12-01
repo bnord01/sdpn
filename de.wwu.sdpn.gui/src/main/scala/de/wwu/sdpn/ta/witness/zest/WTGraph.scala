@@ -1,4 +1,4 @@
-package de.wwu.sdpn.ta.witness
+package de.wwu.sdpn.ta.witness.zest
 
 import scala.annotation.elidable
 import scala.annotation.implicitNotFound
@@ -19,6 +19,8 @@ import org.eclipse.zest.layouts.algorithms.TreeLayoutAlgorithm
 import com.ibm.wala.ipa.callgraph.CallGraph
 
 import annotation.elidable.ASSERTION
+
+import de.wwu.sdpn.ta.witness._
 
 
 class WTGraph(tree: WitnessTree, parent: Composite, decorator: WitnessTree => String = _.toString, style: Int = 0) extends Graph(parent, style) {
