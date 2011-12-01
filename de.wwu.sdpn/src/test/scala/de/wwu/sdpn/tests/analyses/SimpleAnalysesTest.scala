@@ -13,7 +13,6 @@ import scala.collection.Set
 import org.junit.Assert._
 import com.ibm.wala.types.MethodReference
 import de.wwu.sdpn.ta.witness.FullWitnessParser
-import de.wwu.sdpn.ta.witness.WTGraph
 
 object SimpleAnalysesTest {
 	
