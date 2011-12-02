@@ -2,9 +2,7 @@ package de.wwu.sdpn.gui
 
 import scala.swing.event.ButtonClicked
 import scala.swing._
-import de.wwu.sdpn.dpn.explicit._
-import de.wwu.sdpn.dpn.explicit.monitor.MonitorDPN
-
+import de.wwu.sdpn.core.dpn.monitor._
 /**
  * Explore a MonitorDPN by simulation, locks are ignored.
  * @param dpn the MonitorDPN to explore

@@ -1,0 +1,22 @@
+###############################################################################
+# sDPN property file
+###############################################################################
+
+################## Mandatory settings for the core engine #####################
+
+##### XSB executable
+# Full path to xsb executable.
+# Info: Path must be absolute.
+#####
+xsb_exe = /u/b_nord01/local/XSB332/bin/xsb
+
+##### Default directory for xsb scripts and stuff.
+# Note that this directory must exist.
+# Info: Can be absolute or relative.
+#####
+temp_dir = /tmp
+
+#####
+# Display debug messages.
+#####
+debug
