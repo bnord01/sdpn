@@ -113,6 +113,18 @@
 			</properties>
 		</profile>
 		<profile>
+			<id>linux_gtk_x86</id>
+			<activation>
+				<os>
+					<name>linux</name>
+				</os>
+			</activation>
+			<properties>
+				<swt.groupId>org.eclipse.swt.gtk.linux</swt.groupId>
+				<swt.artifactId>x86</swt.artifactId>				
+			</properties>
+		</profile>
+		<profile>
 			<id>mac</id>
 			<activation>
 				<os>
