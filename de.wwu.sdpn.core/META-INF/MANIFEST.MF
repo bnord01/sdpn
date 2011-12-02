@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: sDPN
-Bundle-SymbolicName: de.wwu.sdpn
+Bundle-SymbolicName: de.wwu.sdpn.core
 Bundle-Version: 1.0.0.qualifier
 Export-Package: de.wwu.sdpn.analysis,
  de.wwu.sdpn.dpn.explicit,
