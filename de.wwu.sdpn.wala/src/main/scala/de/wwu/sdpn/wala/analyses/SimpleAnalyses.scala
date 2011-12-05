@@ -23,7 +23,7 @@ import de.wwu.sdpn.wala.dpngen.symbols.DPNAction
 import de.wwu.sdpn.wala.dpngen.symbols.GlobalState
 import de.wwu.sdpn.core.analyses.SingleSetReachability
 import de.wwu.sdpn.core.analyses.TwoSetReachability
-import de.wwu.sdpn.core.analyses.XSBRunner
+import de.wwu.sdpn.core.ta.xsb.XSBRunner
 import de.wwu.sdpn.core.ta.xsb.{FullWitnessIntersectionEmptinessCheck,WitnessIntersectionEmptinessCheck,IntersectionEmptinessCheck}
 import de.wwu.sdpn.wala.dpngen.MonitorDPNFactory
 

@@ -1,6 +1,5 @@
 package de.wwu.sdpn.wala.analyses
 import scala.collection.JavaConversions.asScalaIterator
-
 import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import com.ibm.wala.ipa.callgraph.CGNode
@@ -11,8 +10,7 @@ import com.ibm.wala.util.MonitorUtil.beginTask
 import com.ibm.wala.util.MonitorUtil.done
 import com.ibm.wala.util.MonitorUtil.subTask
 import com.ibm.wala.util.MonitorUtil.worked
-
-import de.wwu.sdpn.core.analyses.XSBRunner
+import de.wwu.sdpn.core.ta.xsb.XSBRunner
 import de.wwu.sdpn.core.dpn.monitor.MonitorDPN
 import de.wwu.sdpn.core.ta.xsb.cuts.CutAcqStructComplTA
 import de.wwu.sdpn.core.ta.xsb.cuts.CutAcqStructPrecutTA
@@ -34,6 +32,7 @@ import de.wwu.sdpn.wala.util.BackwardSliceFilter
 import de.wwu.sdpn.wala.util.LockWithOriginLocator
 import de.wwu.sdpn.wala.util.UniqueInstanceLocator
 import de.wwu.sdpn.wala.util.WaitMap
+import de.wwu.sdpn.core.util.WPMWrapper
 
 /**
  * Interface class to use for integration of sDPN with Joana.
@@ -204,7 +203,8 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
       val (td, bu) = genWeakAutomata(writePos, readPos, pm1)
       val icheck = new IntersectionEmptinessCheck(td, bu) { override val name = "ifccheck" }
       val pm2 = new SubProgressMonitor(pm, 2)
-      return !XSBRunner.runCheck(icheck, pm2)
+      
+      return !XSBRunner.runCheck(icheck, new WPMWrapper(pm2))
     } finally {
       done(pm)
     }

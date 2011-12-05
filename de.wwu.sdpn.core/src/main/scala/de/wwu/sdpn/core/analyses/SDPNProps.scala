@@ -1,10 +1,10 @@
 package de.wwu.sdpn.core.analyses
 
-import com.ibm.wala.util.io.FileProvider
 import java.io.BufferedInputStream
 import java.io.FileInputStream
 import java.util.Properties
 import java.io.File
+import java.io.InputStream
 
 /**
  * Properties used for various analyses 
@@ -33,24 +33,30 @@ object SDPNProps{
      * Read the default properties from the {{sdpn.properties}} file found on the class path
      */
     lazy val get: SDPNProps = {
-        val f = FileProvider.getFile("sdpn.properties")
-        val fin = new BufferedInputStream(new FileInputStream(f))
+      	val stream = this.getClass().getClassLoader().getResourceAsStream("sdpn.properties")
+        get(stream)
+    }
+    
+    def get(stream:InputStream) : SDPNProps =  {      	
+        val fin = new BufferedInputStream(stream)
         val p = new Properties()
         p.load(fin)
 
         val xsbExe: String = p.getProperty("xsb_exe")
-        var file = new File(xsbExe)
-        assert (file.exists(),"Declared XSB executable doesn't exist.")
-        assert (file.canExecute(),"Declared XSB executable isn't executable.")        
+        val xsbFile = new File(xsbExe)
+        assert (xsbFile.exists(),"Declared XSB executable doesn't exist.")
+        assert (xsbFile.canExecute(),"Declared XSB executable isn't executable.")        
         val tempDir: String = p.getProperty("temp_dir")
-        file = new File(tempDir)
-        assert (file.exists(),"Declared tempDir: " + file.getAbsolutePath + " doesn't exist.")
-        assert (file.isDirectory(),"Declared tempDir: " + file.getAbsolutePath + " isn't a directory.")        
+        val tempFile = new File(tempDir)
+        if(!tempFile.exists)
+          tempFile.mkdir()
+        assert (tempFile.exists(),"Couldn't create tempDir: " + tempFile.getAbsolutePath + " .")
+        assert (tempFile.isDirectory(),"Declared tempDir: " + tempFile.getAbsolutePath + " isn't a directory.")        
         
       
         val debug: Boolean = p.getProperty("debug") != null
 
-        SDPNProps(
+        return SDPNProps(
             xsbExe,
             tempDir,
             debug)

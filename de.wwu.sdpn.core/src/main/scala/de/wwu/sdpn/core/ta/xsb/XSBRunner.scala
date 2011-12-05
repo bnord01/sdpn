@@ -1,4 +1,4 @@
-package de.wwu.sdpn.core.analyses
+package de.wwu.sdpn.core.ta.xsb
 
 import java.io.BufferedReader
 import java.io.BufferedWriter
@@ -10,12 +10,9 @@ import java.io.InputStreamReader
 import java.io.OutputStream
 import java.io.PrintWriter
 import scala.sys.process.ProcessIO
-import com.ibm.wala.util.MonitorUtil._
-import SDPNProps.get.debug
-import com.ibm.wala.util.CancelException
-import de.wwu.sdpn.core.ta.xsb.WitnessIntersectionEmptinessCheck
-import de.wwu.sdpn.core.ta.xsb.FullWitnessIntersectionEmptinessCheck
-import de.wwu.sdpn.core.ta.xsb.IntersectionEmptinessCheck
+import de.wwu.sdpn.core.util.IProgressMonitor
+import de.wwu.sdpn.core.util.ProgressMonitorUtil
+import de.wwu.sdpn.core.analyses.SDPNProps
 
 /**
  * This Object contains helper functions to run an XSB process and interpret the result.
@@ -26,6 +23,7 @@ import de.wwu.sdpn.core.ta.xsb.IntersectionEmptinessCheck
  */
 object XSBRunner {
   import SDPNProps.get.debug
+  import ProgressMonitorUtil._
   private var xsbExe = SDPNProps.get.xsbExe
   private var tempDir = new File(SDPNProps.get.tempDir)
   assert(tempDir isDirectory)
@@ -253,19 +251,13 @@ object XSBRunner {
         val pio = new ProcessIO(input _, output _, erroutput _)
 
         proc = pb.run(pio)
-        try {
-          worked(pm, 1)
-          subTask(pm, "Waiting for XSB.")
-        } catch {
-          case e: CancelException =>
-            proc.destroy()
-            throw e
-        }
-
+        worked(pm, 1)
+        subTask(pm, "Waiting for XSB.")
+        
         while (!ready) {
           if (isCanceled(pm)) {
             proc.destroy()
-            throw CancelException.make("operation canceled");
+            throw new RuntimeException("operation canceled");
           }
           try {
             Thread.sleep(100)

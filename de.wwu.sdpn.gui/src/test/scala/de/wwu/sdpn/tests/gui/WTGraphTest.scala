@@ -3,18 +3,18 @@ package de.wwu.sdpn.tests.gui
 import com.ibm.wala.ipa.callgraph.CallGraph
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import org.junit.BeforeClass
-import de.wwu.sdpn.analysis.SimpleAnalyses
-import de.wwu.sdpn.analysis.SDPNProps
 import org.junit.AfterClass
 import org.junit.Test
-import de.wwu.sdpn.dpn.explicit.StackSymbol
 import com.ibm.wala.util.strings.StringStuff
 import scala.collection.JavaConversions._
 import scala.collection.Set
 import org.junit.Assert._
 import com.ibm.wala.types.MethodReference
-import de.wwu.sdpn.ta.witness.FullWitnessParser
 import de.wwu.sdpn.ta.witness.zest.WTGraph
+import de.wwu.sdpn.wala.analyses.SimpleAnalyses
+import de.wwu.sdpn.wala.analyses.SDPNTestProps
+import de.wwu.sdpn.core.ta.xsb.witness.FullWitnessParser
+import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
 
 object WTGraphTest {
 
@@ -23,7 +23,7 @@ object WTGraphTest {
   @BeforeClass
   def setUp() {
     for (i <- 5 to 5) {
-      val (cg, pa) = SimpleAnalyses.getCGandPAfromCP(SDPNProps.get.classPath, "Lbnord/unittests/simpleAnalyses/BSP0" + i)
+      val (cg, pa) = SimpleAnalyses.getCGandPAfromCP(SDPNTestProps.get.classPath, "Lbnord/unittests/simpleAnalyses/BSP0" + i)
       val mr = StringStuff.makeMethodReference("bnord.unittests.simpleAnalyses.BSP0" + i + ".excludeMe()V")
       stuff += i -> (cg, pa, mr)
     }

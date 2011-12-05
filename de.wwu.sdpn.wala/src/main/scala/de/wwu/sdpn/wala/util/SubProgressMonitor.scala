@@ -2,7 +2,7 @@ package de.wwu.sdpn.wala.util
 
 import com.ibm.wala.util.MonitorUtil.IProgressMonitor
 
-class SubProgressMonitor(parent: IProgressMonitor, ticksToSent: Int) extends IProgressMonitor {
+class SubProgressMonitor(parent: IProgressMonitor, ticksToSend: Int) extends IProgressMonitor {
   private var sentTicks = 0
   private var scale = 0d
   private var realTicksDone = 0d
@@ -13,7 +13,7 @@ class SubProgressMonitor(parent: IProgressMonitor, ticksToSent: Int) extends IPr
     parent.subTask(task)
     sentTicks = 0
     realTicksDone = 0d
-    scale = if (totalWork <= 0) 0 else ticksToSent.asInstanceOf[Double] / totalWork.asInstanceOf[Double]
+    scale = if (totalWork <= 0) 0 else ticksToSend.asInstanceOf[Double] / totalWork.asInstanceOf[Double]
   }
 
   def subTask(subTask: String) {
@@ -37,7 +37,7 @@ class SubProgressMonitor(parent: IProgressMonitor, ticksToSent: Int) extends IPr
   def done() {
     if (parent == null)
 	    return
-    val toSent = ticksToSent - sentTicks
+    val toSent = ticksToSend - sentTicks
     if (toSent > 0)
       parent.worked(toSent)
     parent.subTask("")

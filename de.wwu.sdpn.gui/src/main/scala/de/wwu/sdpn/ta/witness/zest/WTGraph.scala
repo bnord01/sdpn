@@ -2,7 +2,6 @@ package de.wwu.sdpn.ta.witness.zest
 
 import scala.annotation.elidable
 import scala.annotation.implicitNotFound
-
 import org.eclipse.draw2d.geometry.Dimension
 import org.eclipse.swt.graphics.Color
 import org.eclipse.swt.layout.FillLayout
@@ -15,12 +14,19 @@ import org.eclipse.zest.core.widgets.GraphConnection
 import org.eclipse.zest.core.widgets.GraphNode
 import org.eclipse.zest.core.widgets.ZestStyles
 import org.eclipse.zest.layouts.algorithms.TreeLayoutAlgorithm
-
 import com.ibm.wala.ipa.callgraph.CallGraph
-
 import annotation.elidable.ASSERTION
-
 import de.wwu.sdpn.ta.witness._
+import de.wwu.sdpn.core.ta.xsb.witness.WitnessTree
+import de.wwu.sdpn.core.ta.xsb.witness.BaseTree
+import de.wwu.sdpn.core.ta.xsb.witness.Call1Tree
+import de.wwu.sdpn.core.ta.xsb.witness.AcqTree
+import de.wwu.sdpn.core.ta.xsb.witness.Call2Tree
+import de.wwu.sdpn.core.ta.xsb.witness.UseTree
+import de.wwu.sdpn.core.ta.xsb.witness.SpawnTree
+import de.wwu.sdpn.core.ta.xsb.witness.NilTree
+import de.wwu.sdpn.core.ta.xsb.witness.RetTree
+import de.wwu.sdpn.core.ta.xsb.witness.FullWitnessParser
 
 
 class WTGraph(tree: WitnessTree, parent: Composite, decorator: WitnessTree => String = _.toString, style: Int = 0) extends Graph(parent, style) {
