@@ -193,6 +193,8 @@ object XSBRunner {
    * @param name the name of the check to look for "name is empty!"
    * @return true iff the execution command yields "name is empty!".
    */
+  @throws(classOf[RuntimeException])
+  @throws(classOf[IOException])
   def runXSBCheck(name: String, pm: IProgressMonitor): Boolean = {
     XSBRunner synchronized {
       var proc: scala.sys.process.Process = null
@@ -253,7 +255,7 @@ object XSBRunner {
         proc = pb.run(pio)
         worked(pm, 1)
         subTask(pm, "Waiting for XSB.")
-        
+
         while (!ready) {
           if (isCanceled(pm)) {
             proc.destroy()
@@ -287,6 +289,8 @@ object XSBRunner {
    * @return None iff the execution of the command yields "name is empty!".
    * 	{{{Some[witness]}}} iff the  execution of the command yields "name is not empty!" and the witness.
    */
+  @throws(classOf[RuntimeException])
+  @throws(classOf[IOException])
   def runXSBWitnessCheck(command: String, name: String): Option[String] = {
     XSBRunner synchronized {
       var retVal = false

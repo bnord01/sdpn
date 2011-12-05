@@ -33,6 +33,8 @@ import de.wwu.sdpn.wala.util.LockWithOriginLocator
 import de.wwu.sdpn.wala.util.UniqueInstanceLocator
 import de.wwu.sdpn.wala.util.WaitMap
 import de.wwu.sdpn.core.util.WPMWrapper
+import java.io.IOException
+import com.ibm.wala.util.CancelException
 
 /**
  * Interface class to use for integration of sDPN with Joana.
@@ -186,9 +188,9 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
    * Throws an '''IOException''' if an error occurs while interacting with the XSB process
    * (e.g. more than five locks on a 32bit system)
    *
-   * Throws an  '''IllegalArgumentException''' if more than eight locks are used.
+   * Throws an '''IllegalArgumentException''' if more than eight locks are used.
    *
-   * Throws an '''OperationCanceledException''' if `pm0.isCanceled` is true.
+   * Throws a '''CancelException''' or '''RuntimeException''' if `pm0.isCanceled` is set to true during the execution.
    *
    * @param writePos A stack symbol representing a point where a variable is written.
    * @param readPos A stack symbol representing a point where the written variable is read.
@@ -196,6 +198,10 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
    * @return True if '''readPos''' can be reached after reaching '''writePos''' in the DPN-model
    *
    */
+  @throws(classOf[IOException])
+  @throws(classOf[IllegalArgumentException])
+  @throws(classOf[RuntimeException])
+  @throws(classOf[CancelException])
   def runWeakCheck(writePos: StackSymbol, readPos: StackSymbol, pm: IProgressMonitor = null): Boolean = {
     beginTask(pm, "Running DPN-based interference check", 3)
     try {

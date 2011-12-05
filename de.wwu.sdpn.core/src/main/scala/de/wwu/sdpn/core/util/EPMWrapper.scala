@@ -1,10 +1,10 @@
 package de.wwu.sdpn.core.util
 
 /**
- * Wrapper to wrap an org.eclipse.core.runtime.IProgressMonitor into a 
- * de.wwu.sdpn.core.util.IProgressMonitor using reflection.
- * If delegate isn't an instance of {{org.eclipse.core.runtime.IProgressMonitor}}
- * an IllegalArgumentException is thrown. 
+ * Wrapper to convert an '''org.eclipse.core.runtime.IProgressMonitor''' into a 
+ * '''de.wwu.sdpn.core.util.IProgressMonitor''' using reflection.
+ * If delegate isn't an instance of '''org.eclipse.core.runtime.IProgressMonitor'''
+ * an '''IllegalArgumentException''' is thrown. 
  * 
  * @author Benedikt Nordhoff
  */

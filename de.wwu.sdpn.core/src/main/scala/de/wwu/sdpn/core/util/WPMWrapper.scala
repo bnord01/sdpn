@@ -1,10 +1,10 @@
 package de.wwu.sdpn.core.util
 
 /**
- * Wrapper to wrap an com.ibm.wala.util.MonitorUtil.IProgressMonitor into a
- * de.wwu.sdpn.core.util.IProgressMonitor using reflection.
- * If delegate isn't an instance of {{com.ibm.wala.util.MonitorUtil.IProgressMonitor}}
- * an IllegalArgumentException is thrown.
+ * Wrapper to convert a '''com.ibm.wala.util.MonitorUtil$IProgressMonitor''' into a
+ * '''de.wwu.sdpn.core.util.IProgressMonitor''' using reflection.
+ * If delegate isn't an instance of '''com.ibm.wala.util.MonitorUtil$IProgressMonitor'''
+ * an '''IllegalArgumentException''' is thrown.
  *
  * @author Benedikt Nordhoff
  */
@@ -24,8 +24,8 @@ class WPMWrapper(delegate: Any) extends IProgressMonitor {
   }
 
   def internalWorked(work: Double): Unit = {
-    if(work <= 0)
-      return;
+    if (work <= 0)
+      return ;
     internalWork += work
     val toSend = internalWork.toInt
     if (toSend > 0) {
@@ -53,7 +53,7 @@ class WPMWrapper(delegate: Any) extends IProgressMonitor {
     }
   }
 
-  def setTaskName(name: String): Unit = { }
+  def setTaskName(name: String): Unit = {}
 
   def subTask(name: String): Unit = {
     try {

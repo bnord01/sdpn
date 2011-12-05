@@ -4,7 +4,7 @@ import com.ibm.wala.util.strings.StringStuff
 import scala.swing.MainFrame
 import scala.collection.JavaConversions._
 import com.ibm.wala.ipa.callgraph.CGNode
-import de.wwu.sdpn.gui.MonitorDPNView
+import de.wwu.sdpn.core.gui.MonitorDPNView
 import de.wwu.sdpn.wala.analyses.MyPreAnalysis
 import de.wwu.sdpn.wala.analyses.SDPNTestProps
 import de.wwu.sdpn.wala.util.BackwardSliceFilter

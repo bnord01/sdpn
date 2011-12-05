@@ -1,4 +1,4 @@
-package de.wwu.sdpn.gui
+package de.wwu.sdpn.core.gui
 
 import scala.swing.event.ButtonClicked
 import scala.swing._

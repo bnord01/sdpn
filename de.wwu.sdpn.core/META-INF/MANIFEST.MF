@@ -5,9 +5,9 @@ Bundle-SymbolicName: de.wwu.sdpn.core
 Bundle-Version: 1.0.0.qualifier
 Export-Package: de.wwu.sdpn.core.analyses,
  de.wwu.sdpn.core.dpn.monitor,
+ de.wwu.sdpn.core.gui,
  de.wwu.sdpn.core.ta.xsb,
  de.wwu.sdpn.core.ta.xsb.cuts,
  de.wwu.sdpn.core.ta.xsb.reachability,
- de.wwu.sdpn.core.ta.xsb.witness,
- de.wwu.sdpn.gui
+ de.wwu.sdpn.core.ta.xsb.witness
 Require-Bundle: org.junit;bundle-version="4.8.2"
