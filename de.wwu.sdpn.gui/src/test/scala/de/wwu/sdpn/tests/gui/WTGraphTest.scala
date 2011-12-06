@@ -10,7 +10,7 @@ import scala.collection.JavaConversions._
 import scala.collection.Set
 import org.junit.Assert._
 import com.ibm.wala.types.MethodReference
-import de.wwu.sdpn.ta.witness.zest.WTGraph
+import de.wwu.sdpn.gui.ta.witness.zest.WTGraph
 import de.wwu.sdpn.wala.analyses.SimpleAnalyses
 import de.wwu.sdpn.wala.analyses.SDPNTestProps
 import de.wwu.sdpn.core.ta.xsb.witness.FullWitnessParser

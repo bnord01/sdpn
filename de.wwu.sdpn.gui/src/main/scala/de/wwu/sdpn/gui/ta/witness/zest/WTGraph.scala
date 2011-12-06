@@ -1,4 +1,4 @@
-package de.wwu.sdpn.ta.witness.zest
+package de.wwu.sdpn.gui.ta.witness.zest
 
 import scala.annotation.elidable
 import scala.annotation.implicitNotFound
