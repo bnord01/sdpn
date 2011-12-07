@@ -34,7 +34,7 @@ object SimpleAnalysesTest {
 class SimpleAnalysesTest {
   import SimpleAnalysesTest.stuff
   @Test
-  def printCGandStackSymbols(){
+  def testPrintCGandStackSymbols(){
     val (cg,pa,mr) = stuff(1)
     println("Number of CGNodes:\t"+cg.getNumberOfNodes())
     println("Identified StackSymbols:\t" + getStackSymbols(cg,mr))
@@ -64,7 +64,7 @@ class SimpleAnalysesTest {
     val nodes = cg.getNodes(mr)
     SimpleAnalyses.runWitnessTSRCheck(cg,pa,getStackSymbols(cg,mr),getStackSymbols(cg,mr),nodes,false) match {
       case None => fail
-      case Some(_) => 
+      case Some(x) => println("Witness: " + x) 
     }
   }
   

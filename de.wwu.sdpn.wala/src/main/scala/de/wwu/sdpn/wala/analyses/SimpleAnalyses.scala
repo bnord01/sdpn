@@ -26,8 +26,10 @@ import de.wwu.sdpn.core.analyses.TwoSetReachability
 import de.wwu.sdpn.core.ta.xsb.XSBRunner
 import de.wwu.sdpn.core.ta.xsb.{FullWitnessIntersectionEmptinessCheck,WitnessIntersectionEmptinessCheck,IntersectionEmptinessCheck}
 import de.wwu.sdpn.wala.dpngen.MonitorDPNFactory
+import de.wwu.sdpn.core.ta.xsb.XSBInterRunner
 
 object SimpleAnalyses {
+  val runner = XSBInterRunner
   type MDPN = MonitorDPN[GlobalState, StackSymbol, DPNAction, InstanceKey]
 
   /**
@@ -68,7 +70,7 @@ object SimpleAnalyses {
     require(confSet.subsetOf(ss), "Some symbols of confSet are not contained in the DPN!")
     val (td, bu) = SingleSetReachability.genAutomata(dpn, confSet, lockSens)
     val check = SingleSetReachability.genCheck(td, bu)
-    return XSBRunner.runCheck(check)
+    return runner.runCheck(check)
   }
 
   /**
@@ -98,7 +100,7 @@ object SimpleAnalyses {
     require(confSet2.subsetOf(ss), "Some symbols of confSet2 are not contained in the DPN!")
     val (td, bu) = TwoSetReachability.genAutomata(dpn, confSet1, confSet2, lockSens)
     val check = new FullWitnessIntersectionEmptinessCheck(td, bu)
-    return XSBRunner.runFullWitnessCheck(check)
+    return runner.runFullWitnessCheck(check)
   }
 
   /**
@@ -128,7 +130,7 @@ object SimpleAnalyses {
     require(confSet2.subsetOf(ss), "Some symbols of confSet2 are not contained in the DPN!")
     val (td, bu) = TwoSetReachability.genAutomata(dpn, confSet1, confSet2, lockSens)
     val check = new IntersectionEmptinessCheck(td, bu)
-    return XSBRunner.runCheck(check)
+    return runner.runCheck(check)
   }
 
   /**
@@ -170,7 +172,7 @@ object SimpleAnalyses {
     require(confSet.subsetOf(ss), "Some symbols of confSet are not contained in the DPN!")
     val (td, bu) = SingleSetReachability.genAutomata(dpn, confSet, lockSens)
     val check = SingleSetReachability.genCheck(td, bu)
-    return XSBRunner.runCheck(check)
+    return runner.runCheck(check)
   }
 
   /**
@@ -201,7 +203,7 @@ object SimpleAnalyses {
     require(confSet2.subsetOf(ss), "Some symbols of confSet2 are not contained in the DPN!")
     val (td, bu) = TwoSetReachability.genAutomata(dpn, confSet1, confSet2, lockSens)
     val check = new FullWitnessIntersectionEmptinessCheck(td, bu)
-    return XSBRunner.runFullWitnessCheck(check)
+    return runner.runFullWitnessCheck(check)
   }
 
   /**
@@ -232,7 +234,7 @@ object SimpleAnalyses {
     require(confSet2.subsetOf(ss), "Some symbols of confSet2 are not contained in the DPN!")
     val (td, bu) = TwoSetReachability.genAutomata(dpn, confSet1, confSet2, lockSens)
     val check = new IntersectionEmptinessCheck(td, bu)
-    return XSBRunner.runCheck(check)
+    return runner.runCheck(check)
   }
 
   /**

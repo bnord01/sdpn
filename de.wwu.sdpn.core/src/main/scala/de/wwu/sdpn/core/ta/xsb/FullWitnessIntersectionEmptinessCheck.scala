@@ -199,6 +199,12 @@ name_runCheck :-
     write(X), nl.
 """.replace("name",name))
 
+        out("""
+name_notEmptyWitness(W) :-  
+        name_notEmpty(A,B),
+        name_witness(A,B,W).
+""".replace("name",name))
+
         buffer.toString
     }
 
