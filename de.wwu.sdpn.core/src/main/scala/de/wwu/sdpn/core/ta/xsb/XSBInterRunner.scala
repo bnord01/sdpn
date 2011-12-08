@@ -14,6 +14,7 @@ import de.wwu.sdpn.core.util.IProgressMonitor
 import de.wwu.sdpn.core.util.ProgressMonitorUtil
 import de.wwu.sdpn.core.analyses.SDPNProps
 import com.declarativa.interprolog.XSBSubprocessEngine
+import com.declarativa.interprolog.PrologEngine
 
 /**
  * This Object contains helper functions to run an XSB process and interpret the result.
@@ -25,10 +26,11 @@ import com.declarativa.interprolog.XSBSubprocessEngine
 object XSBInterRunner {
   import SDPNProps.get.debug
   import ProgressMonitorUtil._
-  private var xsbExe = SDPNProps.get.xsbExe.replace("/bin/xsb", "/config/x86_64-unknown-linux-gnu/bin/xsb")
-  private var xsbProcess: XSBSubprocessEngine = null
+  private var xsbProcess: PrologEngine = null
   def XSB = {
-    if (xsbProcess == null) { xsbProcess = new XSBSubprocessEngine(xsbExe) } 
+    if (xsbProcess == null) {
+      xsbProcess = getXSBEngine(SDPNProps.get.xsbExe)
+    }
     xsbProcess
   }
   private var tempDir = new File(SDPNProps.get.tempDir)
@@ -57,8 +59,41 @@ object XSBInterRunner {
   }
 
   def shutdown {
-	  XSB.shutdown()
-	  xsbProcess = null
+    XSB.shutdown()
+    xsbProcess = null
+  }
+
+  private def findXSBConfigBin(xsbBin: String): Set[File] = {
+    //TODO add windows support!
+    import File.separator
+    assert(xsbBin.endsWith("/bin/xsb"), "Invalid XSB executable")
+    val croot = new File(xsbBin.dropRight(8) + separator + "config")
+    assert(croot.isDirectory(), "No config dir found in dir(xsb_exe)/../config")
+
+    val subDirs = croot.listFiles().filter(_.isDirectory())
+    var candidates = Set[File]()
+    for (dir <- subDirs) {
+      val candidate = new File(dir.getAbsolutePath() + separator + "bin" + separator + "xsb")
+      if (candidate.exists() && candidate.canExecute()) {
+        candidates += candidate
+      }
+    }
+    return candidates
+  }
+
+  private def getXSBEngine(xsbBin: String): PrologEngine = {
+    val candidates = findXSBConfigBin(xsbBin)
+    val it = candidates.iterator
+    while (it.hasNext) {
+      val xsbExe = it.next()
+      try {
+        return new XSBSubprocessEngine(xsbExe.getAbsolutePath())
+      } catch {
+        case e: Throwable => e.printStackTrace()
+      }
+    }
+
+    throw new IllegalArgumentException("Couldn't find XSB config dir from " + xsbBin)
   }
 
 }
