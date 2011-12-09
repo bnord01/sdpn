@@ -1,4 +1,7 @@
 package de.wwu.sdpn.core.util
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.ScheduledFuture
 
 object ProgressMonitorUtil {
   /**
@@ -105,7 +108,7 @@ object ProgressMonitorUtil {
   }
 
   /**
-   * Wraps an Eclipse or Wala IProgressMonitor into a sDPN IProgressMonitor 
+   * Wraps an Eclipse or Wala IProgressMonitor into a sDPN IProgressMonitor
    * @param pm
    * @return
    */
@@ -118,4 +121,33 @@ object ProgressMonitorUtil {
     }
   }
 
+  def listenOnCancel(pm: IProgressMonitor, cb: () => _, delay: Int): ScheduledFuture[_] = {
+    if (pm == null)
+      null
+    else
+      scheduler.scheduleWithFixedDelay(new Runnable {
+        def run() {
+          if (pm.isCanceled()) {
+            try {
+              cb()
+            } finally {
+              throw new Exception("Unschedule the ugly way.")
+            }
+          }
+        }
+      }, 10, delay, TimeUnit.MILLISECONDS)
+  }
+
+  def delisten(future: ScheduledFuture[_]) {
+    if (future != null)
+      future.cancel(false)
+  }
+
+  lazy private val scheduler = Executors.newScheduledThreadPool(1)
+
 }
+
+trait CancelListener {
+  def hasBeenCanceled(event: CancelEvent)
+}
+case class CancelEvent(progressMonitor: IProgressMonitor, task: String)

@@ -12,6 +12,7 @@ import com.ibm.wala.types.MethodReference
 import de.wwu.sdpn.wala.analyses.SimpleAnalyses
 import de.wwu.sdpn.wala.analyses.SDPNTestProps
 import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
+import de.wwu.sdpn.core.util.EPMWrapper
 
 object SimpleAnalysesTest {
 	
@@ -119,6 +120,23 @@ class SimpleAnalysesTest {
     val res = SimpleAnalyses.runWitnessTSRCheck(cg,pa,getStackSymbols(cg,mr),getStackSymbols(cg,mr),nodes,true)
     
     assertFalse("There should be an Conflict",res == None)
+  }
+  
+  
+  @Test
+  def testUnslicedLockInsensSSR1Cancel() {
+    val (cg,pa,mr) = stuff(1)
+    val epm = new PrintingPM()
+    val pm = new EPMWrapper(epm)
+    new Thread(){
+      override def run() {
+        Thread.sleep(10000)
+        pm.setCanceled(true)
+      }
+    }.start()
+    SimpleAnalyses.runSSRCheck(cg,pa,getStackSymbols(cg,mr),null,false,pm)
+    
+    assertFalse("There should be an Conflict",false)
   }
   
   

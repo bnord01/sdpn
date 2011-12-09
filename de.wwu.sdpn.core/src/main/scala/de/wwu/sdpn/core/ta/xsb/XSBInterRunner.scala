@@ -39,37 +39,69 @@ object XSBInterRunner {
     new File(tempDir.getAbsolutePath() + File.separator + "check.P")
   }
 
-  def runCheck(check: IntersectionEmptinessCheck): Boolean = {
-    val out = new PrintWriter(new BufferedWriter(new FileWriter(tempFile)));
-    out.println(check.emptiness)
-    out.close()
-    XSB.consultAbsolute(tempFile)
-    return !XSB.deterministicGoal(check.name + "_notEmpty")
+  def runCheck(check: IntersectionEmptinessCheck, pm: IProgressMonitor = null): Boolean = {
+    try {
+      beginTask(pm, "Running XSB-based emptiness check", 5)
+      val out = new PrintWriter(new BufferedWriter(new FileWriter(tempFile)));
+      out.println(check.emptiness)
+      out.close()
+      worked(pm, 1)
+      XSB.consultAbsolute(tempFile)
+      worked(pm, 1)
+      if(isCanceled(pm))
+        throw new RuntimeException("Canceled!")
+      val future = listenOnCancel(pm, () => XSB.interrupt(), 1000)      
+      try {
+        val rev = !XSB.deterministicGoal(check.name + "_notEmpty")
+        worked(pm, 3)
+        return rev
+      } finally {
+        delisten(future)
+      }
+    } finally {
+      done(pm)
+    }
   }
 
-  def runFullWitnessCheck(check: FullWitnessIntersectionEmptinessCheck): Option[String] = {
-    val out = new PrintWriter(new BufferedWriter(new FileWriter(tempFile)));
-    out.println(check.emptiness)
-    out.close()
-    XSB.consultAbsolute(tempFile)
-    val rev = XSB.deterministicGoal(check.name + "_notEmptyWitness(W)", null)
-    if (rev == null)
-      None
-    else Some(rev(0).toString())
+  def runFullWitnessCheck(check: FullWitnessIntersectionEmptinessCheck, pm: IProgressMonitor = null): Option[String] = {
+    try {
+      beginTask(pm, "Running XSB-based emptiness check", 5)
+      val out = new PrintWriter(new BufferedWriter(new FileWriter(tempFile)));
+      out.println(check.emptiness)
+      out.close()
+      worked(pm, 1)
+      XSB.consultAbsolute(tempFile)
+      worked(pm, 1)
+      val future = listenOnCancel(pm, () => XSB.interrupt(), 1000)
+      try {
+        val rev = XSB.deterministicGoal(check.name + "_notEmptyWitness(W)", null)        
+        worked(pm, 3)
+        if (rev == null)
+          return None
+        else
+          return Some(rev(0).toString())
+      } finally {
+        delisten(future)
+      }
+    } finally {
+      done(pm)
+    }
   }
 
-  def shutdown {
-    XSB.shutdown()
+  def shutdown() {
+    if(xsbProcess != null)
+      XSB.shutdown()
     xsbProcess = null
   }
 
   private def findXSBConfigBin(xsbBin: String): Set[File] = {
-    //TODO add windows support!
+    //TODO Maybe add windows support? But no one knows how XSB is called there.
     import File.separator
     assert(xsbBin.endsWith("/bin/xsb"), "Invalid XSB executable")
     val croot = new File(xsbBin.dropRight(8) + separator + "config")
     assert(croot.isDirectory(), "No config dir found in dir(xsb_exe)/../config")
 
+   
     val subDirs = croot.listFiles().filter(_.isDirectory())
     var candidates = Set[File]()
     for (dir <- subDirs) {
@@ -89,11 +121,13 @@ object XSBInterRunner {
       try {
         return new XSBSubprocessEngine(xsbExe.getAbsolutePath())
       } catch {
-        case e: Throwable => e.printStackTrace()
+        case e: Exception => e.printStackTrace()
       }
     }
 
     throw new IllegalArgumentException("Couldn't find XSB config dir from " + xsbBin)
   }
+  
+  Runtime.getRuntime().addShutdownHook(new Thread() {override def run(){shutdown()}})
 
 }

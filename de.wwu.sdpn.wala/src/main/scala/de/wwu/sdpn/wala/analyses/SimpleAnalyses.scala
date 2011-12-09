@@ -27,8 +27,11 @@ import de.wwu.sdpn.core.ta.xsb.XSBRunner
 import de.wwu.sdpn.core.ta.xsb.{FullWitnessIntersectionEmptinessCheck,WitnessIntersectionEmptinessCheck,IntersectionEmptinessCheck}
 import de.wwu.sdpn.wala.dpngen.MonitorDPNFactory
 import de.wwu.sdpn.core.ta.xsb.XSBInterRunner
+import de.wwu.sdpn.core.util.IProgressMonitor
+import de.wwu.sdpn.core.util.ProgressMonitorUtil
 
 object SimpleAnalyses {
+  import ProgressMonitorUtil._
   val runner = XSBInterRunner
   type MDPN = MonitorDPN[GlobalState, StackSymbol, DPNAction, InstanceKey]
 
@@ -64,13 +67,18 @@ object SimpleAnalyses {
    * @param lockSens A flag which decieds if this analysis should be locksensitive.
    * @return true iff no conflict can exist.
    */
-  def runSSRCheck(cg: CallGraph, pa: PointerAnalysis, confSet: Set[StackSymbol], sliceSet: Set[CGNode], lockSens: Boolean): Boolean = {
+  def runSSRCheck(cg: CallGraph, 
+      pa: PointerAnalysis, 
+      confSet: Set[StackSymbol], 
+      sliceSet: Set[CGNode], 
+      lockSens: Boolean,
+      pm:IProgressMonitor = null): Boolean = {
     val dpn = getMDPN(cg, pa, sliceSet, lockSens)
     val ss = dpn.getStackSymbols
     require(confSet.subsetOf(ss), "Some symbols of confSet are not contained in the DPN!")
     val (td, bu) = SingleSetReachability.genAutomata(dpn, confSet, lockSens)
     val check = SingleSetReachability.genCheck(td, bu)
-    return runner.runCheck(check)
+    return runner.runCheck(check,pm)
   }
 
   /**

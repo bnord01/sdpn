@@ -16,7 +16,6 @@ import org.eclipse.zest.core.widgets.ZestStyles
 import org.eclipse.zest.layouts.algorithms.TreeLayoutAlgorithm
 import com.ibm.wala.ipa.callgraph.CallGraph
 import annotation.elidable.ASSERTION
-import de.wwu.sdpn.ta.witness._
 import de.wwu.sdpn.core.ta.xsb.witness.WitnessTree
 import de.wwu.sdpn.core.ta.xsb.witness.BaseTree
 import de.wwu.sdpn.core.ta.xsb.witness.Call1Tree

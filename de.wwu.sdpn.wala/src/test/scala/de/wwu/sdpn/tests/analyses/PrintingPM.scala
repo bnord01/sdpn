@@ -45,7 +45,10 @@ class PrintingPM extends IProgressMonitor {
 
   def isCanceled(): Boolean = { canceled }
 
-  def setCanceled(value: Boolean): Unit = { canceled = value }
+  def setCanceled(value: Boolean): Unit = {
+    if (value) println("Canceld!")
+    canceled = value
+  }
 
   def setTaskName(name: String): Unit = {
     mainTask = name
