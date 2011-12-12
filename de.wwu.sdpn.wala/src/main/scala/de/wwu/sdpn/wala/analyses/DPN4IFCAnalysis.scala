@@ -1,5 +1,8 @@
 package de.wwu.sdpn.wala.analyses
+import java.io.IOException
+
 import scala.collection.JavaConversions.asScalaIterator
+
 import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import com.ibm.wala.ipa.callgraph.CGNode
@@ -10,7 +13,8 @@ import com.ibm.wala.util.MonitorUtil.beginTask
 import com.ibm.wala.util.MonitorUtil.done
 import com.ibm.wala.util.MonitorUtil.subTask
 import com.ibm.wala.util.MonitorUtil.worked
-import de.wwu.sdpn.core.ta.xsb.XSBRunner
+import com.ibm.wala.util.CancelException
+
 import de.wwu.sdpn.core.dpn.monitor.MonitorDPN
 import de.wwu.sdpn.core.ta.xsb.cuts.CutAcqStructComplTA
 import de.wwu.sdpn.core.ta.xsb.cuts.CutAcqStructPrecutTA
@@ -20,21 +24,20 @@ import de.wwu.sdpn.core.ta.xsb.cuts.FwdCutLockSet
 import de.wwu.sdpn.core.ta.xsb.cuts.IFlowReading
 import de.wwu.sdpn.core.ta.xsb.cuts.IFlowWriting
 import de.wwu.sdpn.core.ta.xsb.cuts.MDPN2CutTA
+import de.wwu.sdpn.core.ta.xsb.ScriptTreeAutomata
 import de.wwu.sdpn.core.ta.xsb.IntersectionEmptinessCheck
 import de.wwu.sdpn.core.ta.xsb.IntersectionTA
-import de.wwu.sdpn.core.ta.xsb.ScriptTreeAutomata
-import de.wwu.sdpn.wala.util.SubProgressMonitor
+import de.wwu.sdpn.core.ta.xsb.XSBInterRunner
+import de.wwu.sdpn.core.util.WPMWrapper
+import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
 import de.wwu.sdpn.wala.dpngen.symbols.DPNAction
 import de.wwu.sdpn.wala.dpngen.symbols.GlobalState
-import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
 import de.wwu.sdpn.wala.dpngen.MonitorDPNFactory
 import de.wwu.sdpn.wala.util.BackwardSliceFilter
 import de.wwu.sdpn.wala.util.LockWithOriginLocator
+import de.wwu.sdpn.wala.util.SubProgressMonitor
 import de.wwu.sdpn.wala.util.UniqueInstanceLocator
 import de.wwu.sdpn.wala.util.WaitMap
-import de.wwu.sdpn.core.util.WPMWrapper
-import java.io.IOException
-import com.ibm.wala.util.CancelException
 
 /**
  * Interface class to use for integration of sDPN with Joana.
@@ -210,7 +213,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
       val icheck = new IntersectionEmptinessCheck(td, bu) { override val name = "ifccheck" }
       val pm2 = new SubProgressMonitor(pm, 2)
       
-      return !XSBRunner.runCheck(icheck, new WPMWrapper(pm2))
+      return !XSBInterRunner.runCheck(icheck, new WPMWrapper(pm2))
     } finally {
       done(pm)
     }
