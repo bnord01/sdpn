@@ -123,20 +123,24 @@ class SimpleAnalysesTest {
   }
   
   
-  @Test
+  //@Test // This is a bad test because it's not race free
   def testUnslicedLockInsensSSR1Cancel() {
     val (cg,pa,mr) = stuff(1)
     val epm = new PrintingPM()
     val pm = new EPMWrapper(epm)
     new Thread(){
       override def run() {
-        Thread.sleep(10000)
+        Thread.sleep(40)
         pm.setCanceled(true)
       }
     }.start()
-    SimpleAnalyses.runSSRCheck(cg,pa,getStackSymbols(cg,mr),null,false,pm)
-    
-    assertFalse("There should be an Conflict",false)
+    try {
+    	SimpleAnalyses.runSSRCheck(cg,pa,getStackSymbols(cg,mr),null,false,pm)
+    } catch {
+      case e: InterruptedException => println ("Catched expected exception: " + e) 
+      case e: RuntimeException => if(!("Canceled!" == e.getMessage())) throw e else println ("Catched expected exception: " + e) 
+    }
+    fail ("XSB wasn't canceld! (most likely bad timing)")
   }
   
   
