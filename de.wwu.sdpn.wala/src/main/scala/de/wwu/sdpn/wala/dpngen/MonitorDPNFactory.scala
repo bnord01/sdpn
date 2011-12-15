@@ -232,17 +232,29 @@ class MonitorDPNFactory(analysis: PreAnalysis) extends MonitorMatcher {
               NState, StackSymbol(target, 0, 0), StackSymbol(cgnode, bbnr2, index2))
           } else if (target.getMethod.isStatic) {
             val ik = pa.getHeapModel().getInstanceKeyForClassObject(target.getMethod().getDeclaringClass().getReference);
-            addPushRule(
-              NState, StackSymbol(cgnode, bbnr1, index1),
-              SyncMethodEnter(a, ik),
-              NState, StackSymbol(target, 0, 0), StackSymbol(cgnode, bbnr2, index2))
-            tlocks += ik
-          } else if (!target.getMethod.isStatic) {
+            if (safeLock(ik, cgnode)) {
+                addPushRule(
+                  NState, StackSymbol(cgnode, bbnr1, index1),
+                  SyncMethodEnter(a, ik),
+                  NState, StackSymbol(target, 0, 0), StackSymbol(cgnode, bbnr2, index2))
+                tlocks += ik
+              } else {
+                addPushRule(
+                  NState, StackSymbol(cgnode, bbnr1, index1),
+                  SkipAction(SyncMethodEnter(a, ik)),
+                  NState, StackSymbol(target, 0, 0), StackSymbol(cgnode, bbnr2, index2))
+              }
+          } else {
             val thisidx = target.getIR().getSymbolTable().getParameter(0)
             val ptk = pa.getHeapModel.getPointerKeyForLocal(target, thisidx)
             val iks = pa.getPointsToSet(ptk)
-            if (iks.isEmpty)
+            if (iks.isEmpty) {
               println("DPNFAC empty iks for thispointer")
+              addPushRule(
+                  NState, StackSymbol(cgnode, bbnr1, index1),
+                  SSAAction(a),
+                  NState, StackSymbol(target, 0, 0), StackSymbol(cgnode, bbnr2, index2))
+            }
             for (ik <- iks) {
               if (safeLock(ik, cgnode)) {
                 addPushRule(
@@ -253,17 +265,10 @@ class MonitorDPNFactory(analysis: PreAnalysis) extends MonitorMatcher {
               } else {
                 addPushRule(
                   NState, StackSymbol(cgnode, bbnr1, index1),
-                  SSAAction(a),
+                  SkipAction(SyncMethodEnter(a, ik)),
                   NState, StackSymbol(target, 0, 0), StackSymbol(cgnode, bbnr2, index2))
               }
             }
-
-          } else { // This shouldn't happen!
-            System.err.println("Found nonstatic method without parameters: " + target)
-            addPushRule(
-              NState, StackSymbol(cgnode, bbnr1, index1),
-              SSAAction(a),
-              NState, StackSymbol(target, 0, 0), StackSymbol(cgnode, bbnr2, index2))
           }
 
           addBaseRule(
@@ -275,65 +280,70 @@ class MonitorDPNFactory(analysis: PreAnalysis) extends MonitorMatcher {
       }
       // Monitor Action
       case a: SSAMonitorInstruction => {
-        val ptk = pa.getHeapModel.getPointerKeyForLocal(cgnode, a.getRef)
-        val iks = pa.getPointsToSet(ptk)
-        for (target <- iks) {
-          if (safeLock(target, cgnode)) {
-            if (a.isMonitorEnter) {
-              val exits = getExitTuple(cgnode, bbnr1)
+        val cfg = cgnode.getIR.getControlFlowGraph
+        if (a.isMonitorEnter) {
+          val ptk = pa.getHeapModel.getPointerKeyForLocal(cgnode, a.getRef)
+          val iks = pa.getPointsToSet(ptk)
+
+          /*
+           * we get the normal and exceptional exit points of the monitor and
+           * add a transition from the fake index with normal state to the normal exit point
+           * and a transition from the fake index with exceptional state to the exceptional exit point 
+           */
+          val fakeIndex = -1
+          val (nexit, eexit) = getExitTuple(cgnode, bbnr1)
+          addBaseRule(
+            NState, StackSymbol(cgnode, bbnr1, fakeIndex),
+            NoAction,
+            NState,
+            StackSymbol(cgnode, nexit.getGraphNodeId, 0))
+          addBaseRule(
+            EState, StackSymbol(cgnode, bbnr1, fakeIndex),
+            ExceptionInMonitor(a),
+            NState,
+            StackSymbol(cgnode, eexit.getGraphNodeId, 0))
+
+          for (target <- iks) {
+            //we use (CGNode,bbnr1,fakeIndex) as a fake return point for the fake method call
+            //for the monitor             
+
+            if (safeLock(target, cgnode)) {
               addPushRule(
                 NState, StackSymbol(cgnode, bbnr1, index1),
                 MonitorEnter(a, target),
                 NState, StackSymbol(cgnode, bbnr2, index2),
-                StackSymbol(cgnode, exits._1.getGraphNodeId, 0))
-              addPushRule(
-                NState, StackSymbol(cgnode, bbnr1, index1),
-                MonitorEnter(a, target),
-                NState, StackSymbol(cgnode, bbnr2, index2),
-                StackSymbol(cgnode, exits._2.getGraphNodeId, 0))
+                StackSymbol(cgnode, bbnr1, fakeIndex))
               tlocks += target
-              //	add exceptional rule
-              addBaseRule(
+            } else {
+              addPushRule(
                 NState, StackSymbol(cgnode, bbnr1, index1),
-                ExceptionAction(if (a.isMonitorEnter) MonitorEnter(a, target) else MonitorExit(a, target)),
-                EState, StackSymbol(cgnode, bbnr2, index2))
-            } else { //monitor exit
-              val cfg = cgnode.getIR.getControlFlowGraph
-              val bb = cfg.getBasicBlock(bbnr1)
-              if (!bb.isCatchBlock) {
-                addPopRule(NState, StackSymbol(cgnode, bbnr1, index1),
-                  MonitorExit(a, target),
-                  NState)
-              } else {
-                addPopRule(NState, StackSymbol(cgnode, bbnr1, index1),
-                  MonitorExit(a, target),
-                  EState)
-                val nxt = cfg.getNormalSuccessors(bb)
-                assert(nxt.size == 1,
-                  "Expected only one normal successor for monitor exit but found " + nxt.size)
-                for (bb2 <- nxt) {
-                  //here we refine the control flow
-                  addBaseRule(EState, StackSymbol(cgnode, bb2.getGraphNodeId, 0),
-                    ExceptionInMonitor(target),
-                    NState, StackSymbol(cgnode, bb2.getGraphNodeId, 1))
-                }
-
-              }
+                SkipAction(MonitorEnter(a, target)),
+                NState, StackSymbol(cgnode, bbnr2, index2),
+                StackSymbol(cgnode, bbnr1, fakeIndex))
             }
-          } else { //no safe lock
-            //just like compute
-            addBaseRule(
-              NState, StackSymbol(cgnode, bbnr1, index1),
-              if (action != null) SSAAction(action) else NoAction,
-              NState, StackSymbol(cgnode, bbnr2, index2))
-
-            addBaseRule(
-              NState, StackSymbol(cgnode, bbnr1, index1),
-              ExceptionAction(SSAAction(action)),
-              EState, StackSymbol(cgnode, bbnr2, index2))
           }
-
+          if (iks.isEmpty()) {
+            //This shouldn't happen
+            println("DPNFAC empty iks for lock pointer in CGNode: " + cgnode + " , BBNr: " + bbnr1)
+            addPushRule(
+              NState, StackSymbol(cgnode, bbnr1, index1),
+              SkipAction(MonitorEnter(a, null)),
+              NState, StackSymbol(cgnode, bbnr2, index2),
+              StackSymbol(cgnode, bbnr1, fakeIndex))
+          }
+        } else { //monitor exit
+          val bb = cfg.getBasicBlock(bbnr1)
+          if (!bb.isCatchBlock) {
+            addPopRule(NState, StackSymbol(cgnode, bbnr1, index1),
+              MonitorExit(a),
+              NState)
+          } else {
+            addPopRule(NState, StackSymbol(cgnode, bbnr1, index1),
+              MonitorExit(a),
+              EState)
+          }
         }
+
       }
 
       // Compute
@@ -359,6 +369,7 @@ class MonitorDPNFactory(analysis: PreAnalysis) extends MonitorMatcher {
    */
   private def createRules4ThreadStart(cgnode: CGNode) = {
     assert(isThreadStart(cgnode))
+    //TODO Only spawn Runnable.run() here not exception.init if using jSDG stubs.
     for (target <- cg.getSuccNodes(cgnode)) {
       createRule4Spawn(cgnode, target)
     }
@@ -425,6 +436,16 @@ class MonitorDPNFactory(analysis: PreAnalysis) extends MonitorMatcher {
         addPopRule(
           EState, StackSymbol(cgnode, bbnr, 0),
           SyncMethodExit(ik),
+          EState)
+      }
+      if(iks.isEmpty()) {
+        addPopRule(
+          NState, StackSymbol(cgnode, bbnr, 0),
+          Return,
+          NState)
+        addPopRule(
+          EState, StackSymbol(cgnode, bbnr, 0),
+          Return,
           EState)
       }
     }

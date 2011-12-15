@@ -14,7 +14,7 @@ case object Return extends DPNAction
 case object Spawn extends DPNAction
 
 sealed case class MonitorEnter (instruction: SSAMonitorInstruction, instanceKey : InstanceKey) extends DPNAction 
-sealed case class MonitorExit (instruction: SSAMonitorInstruction, instanceKey : InstanceKey) extends DPNAction
+sealed case class MonitorExit (instruction: SSAMonitorInstruction) extends DPNAction
 
 sealed case class SyncMethodEnter (instruction: SSAAbstractInvokeInstruction,monitor: InstanceKey) extends DPNAction
 sealed case class SyncMethodExit (monitor: InstanceKey) extends DPNAction
@@ -31,5 +31,5 @@ sealed case class SSAAction (instruction: SSAInstruction) extends DPNAction {
 		}
 	}
 }
-sealed case class ExceptionInMonitor(monitor:InstanceKey) extends DPNAction
+sealed case class ExceptionInMonitor(instruction:SSAMonitorInstruction) extends DPNAction
 sealed case class SkipAction(action: DPNAction) extends DPNAction
