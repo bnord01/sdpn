@@ -80,6 +80,19 @@ object SimpleAnalyses {
     val check = SingleSetReachability.genCheck(td, bu)
     return runner.runCheck(check,pm)
   }
+  
+  def runStdLibSSRCheck(cg: CallGraph, 
+      pa: PointerAnalysis, 
+      confSet: Set[StackSymbol], 
+      sliceSet: Set[CGNode], 
+      pm:IProgressMonitor = null): Boolean = {
+    val dpn = getMDPN(cg, pa, sliceSet, true)
+    val ss = dpn.getStackSymbols
+    require(confSet.subsetOf(ss), "Some symbols of confSet are not contained in the DPN!")
+    val (td, bu) = SingleSetReachability.genStdLibAutomata(dpn, confSet)
+    val check = SingleSetReachability.genCheck(td, bu)
+    return runner.runCheck(check,pm)
+  }
 
   /**
    * Method to run a WitnessTwoSetReachability analysis and return the result of the

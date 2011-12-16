@@ -1,6 +1,5 @@
 package de.wwu.sdpn.core.analyses
 import scala.collection.Set
-
 import de.wwu.sdpn.core.dpn.monitor.MonitorDPN
 import de.wwu.sdpn.core.ta.xsb.reachability.FwdLockSet
 import de.wwu.sdpn.core.ta.xsb.reachability.IntLockTA
@@ -11,6 +10,9 @@ import de.wwu.sdpn.core.ta.xsb.IntersectionEmptinessCheck
 import de.wwu.sdpn.core.ta.xsb.IntersectionTA
 import de.wwu.sdpn.core.ta.xsb.ScriptTreeAutomata
 import de.wwu.sdpn.core.ta.xsb.WitnessIntersectionEmptinessCheck
+import de.wwu.sdpn.core.ta.xsb.reachability.LibFwdLockSet
+import de.wwu.sdpn.core.ta.xsb.StdLibLockOperations
+import de.wwu.sdpn.core.ta.xsb.reachability.LibLockTA
 
 /**
  * Helper functions to run single set reachability analyses
@@ -57,6 +59,38 @@ object SingleSetReachability {
     } else {
       new SingleSetConflictTA("conflict", cset)
     }
+    return (cflow, conflict)
+  }
+  
+  /**
+   * Generate tree automata based on an arbitrary monitor dpn and conflict set
+   * @param dpn the MonitorDPN to analyze
+   * @param cset the conflict set of stack symbols
+   * @param lockSens should this analysis be lock sensitive
+   * @return (td-automata,bu-automata)
+   */
+  def genStdLibAutomata[GlobalState <% HTR, StackSymbol <% HTR, DPNAction, Lock](
+    dpn: MonitorDPN[GlobalState, StackSymbol, DPNAction, Lock],
+    cset: Set[StackSymbol]): (ScriptTreeAutomata, ScriptTreeAutomata) = {
+
+    require(dpn != null, "Can't analyze null-DPN")
+    
+    val cflow: ScriptTreeAutomata = {
+      val flow = new MDPN2TA(dpn, "cflow")
+      val fwdLS = new LibFwdLockSet("fwdLS", new StdLibLockOperations())
+
+      new IntersectionTA(flow, fwdLS) {
+        override val name = "flowls"
+      }
+    }
+
+    val conflict: ScriptTreeAutomata = {
+      val c1 = new SingleSetConflictTA("conflict", cset)
+      val lockTA = new LibLockTA("acq", new StdLibLockOperations())
+      new IntersectionTA(lockTA, c1) {
+        override val name = "acq_conf"
+      }
+    } 
     return (cflow, conflict)
   }
 
