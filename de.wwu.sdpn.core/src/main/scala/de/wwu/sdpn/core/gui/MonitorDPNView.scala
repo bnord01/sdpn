@@ -159,3 +159,14 @@ class MonitorDPNView[C, S, A, L](dpn: MonitorDPN[C, S, A, L], var state: C, var 
 
     case class RuleButton(rule: DPNRule[C, S, A]) extends Button(toHtml(rule))
 }
+
+object MonitorDPNView {
+    def show[C, S, A, L](dpn: MonitorDPN[C, S, A, L]) {
+        val gui = new MainFrame {
+            title = "DPN Explorer"
+            contents = new MonitorDPNView(dpn)
+            maximize()
+            visible = true
+        }
+    }
+}

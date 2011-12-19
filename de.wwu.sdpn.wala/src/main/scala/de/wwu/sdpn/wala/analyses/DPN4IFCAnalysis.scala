@@ -1,8 +1,6 @@
 package de.wwu.sdpn.wala.analyses
 import java.io.IOException
-
 import scala.collection.JavaConversions.asScalaIterator
-
 import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import com.ibm.wala.ipa.callgraph.CGNode
@@ -14,7 +12,6 @@ import com.ibm.wala.util.MonitorUtil.done
 import com.ibm.wala.util.MonitorUtil.subTask
 import com.ibm.wala.util.MonitorUtil.worked
 import com.ibm.wala.util.CancelException
-
 import de.wwu.sdpn.core.dpn.monitor.MonitorDPN
 import de.wwu.sdpn.core.ta.xsb.cuts.CutAcqStructComplTA
 import de.wwu.sdpn.core.ta.xsb.cuts.CutAcqStructPrecutTA
@@ -38,6 +35,8 @@ import de.wwu.sdpn.wala.util.LockWithOriginLocator
 import de.wwu.sdpn.wala.util.SubProgressMonitor
 import de.wwu.sdpn.wala.util.UniqueInstanceLocator
 import de.wwu.sdpn.wala.util.WaitMap
+import com.ibm.wala.ipa.callgraph.propagation.ConstantKey
+import com.ibm.wala.classLoader.IClass
 
 /**
  * Interface class to use for integration of sDPN with Joana.
@@ -75,14 +74,20 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
   type MDPN = MonitorDPN[GlobalState, StackSymbol, DPNAction, InstanceKey]
 
   protected var possibleLocks: Set[InstanceKey] = null
-  protected var lockUsages: Map[InstanceKey, Set[CGNode]] = null
+  protected var lockUsages: Map[InstanceKey, (Set[CGNode],Boolean)] = null
   protected var waitMap: Map[CGNode, scala.collection.Set[InstanceKey]] = null
   protected var includeLockLocations = true
   protected var uniqueInstances: Set[InstanceKey] = null
-  protected var lockFilter: InstanceKey => Boolean = {
-    x: InstanceKey =>
-      ClassLoaderReference.Application.equals(x.getConcreteType().getClassLoader().getReference())
-  }
+  protected var lockFilter: InstanceKey => Boolean = {        
+        case x: ConstantKey[_] =>
+            x.getValue() match {
+                case x: IClass => ClassLoaderReference.Application.equals(x.getClassLoader().getReference())
+                case _ => false
+            }
+        case x: InstanceKey =>
+            ClassLoaderReference.Application.equals(x.getConcreteType().getClassLoader().getReference())
+        case _ => false
+    }
 
   /**
    * Should locations of used locks be factored in when pruning the call graph for DPN generation.
@@ -153,7 +158,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
 
       subTask(pm, "Identifying lock usages")
       val loi = LockWithOriginLocator.instances(cg, pa)
-      lockUsages = loi.filterKeys(ui)
+      lockUsages = loi.filter(p => (p._2._2 || ui(p._1)))
       possibleLocks = lockUsages.keySet
       worked(pm, 1)
 
@@ -172,7 +177,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
   def genMDPN(pruneSet: Set[CGNode]): MDPN = {
     var ss0 = pruneSet
     if (includeLockLocations) {
-      for ((ik, nodes) <- lockUsages; node <- nodes)
+      for ((ik, (nodes,_)) <- lockUsages; node <- nodes)
         if (lockFilter(ik) && !waitMap(node)(ik))
           ss0 += node
     }

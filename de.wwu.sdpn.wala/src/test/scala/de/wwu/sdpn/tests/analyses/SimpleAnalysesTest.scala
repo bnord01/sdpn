@@ -20,7 +20,7 @@ object SimpleAnalysesTest {
 
     @BeforeClass
     def setUp() {
-        for (i <- 1 to 6) {
+        for (i <- 1 to 7) {
             val (cg, pa) = SimpleAnalyses.getCGandPAfromCP(SDPNTestProps.get.classPath, "Lbnord/unittests/simpleAnalyses/BSP0" + i)
             val mr = StringStuff.makeMethodReference("bnord.unittests.simpleAnalyses.BSP0" + i + ".excludeMe()V")
             stuff += i -> (cg, pa, mr)
@@ -94,6 +94,12 @@ class SimpleAnalysesTest {
     @Test
     def testSlicedLockSensSSR2() {
         val (cg, pa, mr) = stuff(3)
+        val nodes = cg.getNodes(mr)
+        assertTrue("There shouldn't be an Conflict", SimpleAnalyses.runSSRCheck(cg, pa, getStackSymbols(cg, mr), nodes, true))
+    }
+    @Test
+    def testSlicedLockSensSSR7() {
+        val (cg, pa, mr) = stuff(7)
         val nodes = cg.getNodes(mr)
         assertTrue("There shouldn't be an Conflict", SimpleAnalyses.runSSRCheck(cg, pa, getStackSymbols(cg, mr), nodes, true))
     }
