@@ -14,3 +14,6 @@ case class StackSymbol(node: CGNode, basicBlock: Int, instrNr: Int) extends HasT
     def toTerm = "s(" + node.getGraphNodeId() + "," + basicBlock + "," + instrNr + ")"
 
 }
+object StackSymbol {
+    implicit def toCGNode(ss:StackSymbol):CGNode =  ss.node
+}
