@@ -2,6 +2,7 @@ package de.wwu.sdpn.wala.ri
 
 import de.wwu.sdpn.core.ta.xsb.{HasTermRepresentation => HTR}
 
+//TODO The view bound makes this very ugly to use. Change this! 
 sealed abstract class RISymbol [I<%HTR,S<%HTR] extends HTR {
 	def oldSymbol : S
 	def instance: Option[I]

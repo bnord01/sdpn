@@ -18,7 +18,7 @@ import de.wwu.sdpn.wala.dpngen.symbols.SyncMethodEnter
 
 import de.wwu.sdpn.core.ta.xsb.{ HasTermRepresentation => HTR }
 
-class RIDPN[GS <% HTR, SS <% HTR <% CGNode](
+class RIDPN[GS , SS <% HTR <% CGNode](
     dpn: MonitorDPN[GS, SS, DPNAction, InstanceKey],
     isolationKey: InstanceKey,
     ikTerm: String,
@@ -251,8 +251,8 @@ class RIDPN[GS <% HTR, SS <% HTR <% CGNode](
 
     private def actionForThisLock(a: DPNAction): DPNAction = {
         a.getSSAInstruction match {
-            case ii: SSAAbstractInvokeInstruction => SyncMethodEnter(ii, isolationKey)
-            case mi: SSAMonitorInstruction => MonitorEnter(mi, isolationKey)
+            case Some(ii: SSAAbstractInvokeInstruction) => SyncMethodEnter(ii, isolationKey)
+            case Some(mi: SSAMonitorInstruction) => MonitorEnter(mi, isolationKey)
             case _ => sys.error("Tried to convert non Invoke nor MonitorInstruction to LockAction")
         }
 
