@@ -5,7 +5,7 @@ import com.ibm.wala.classLoader.IMethod
 import de.wwu.sdpn.wala.util.ThreadSensContextSelector
 import com.ibm.wala.ipa.callgraph.propagation.SSAPropagationCallGraphBuilder
 import com.ibm.wala.ipa.callgraph.impl.Util
-import com.ibm.wala.core.tests.callGraph.CallGraphTestUtil
+
 import com.ibm.wala.util.io.FileProvider
 import com.ibm.wala.util.config.AnalysisScopeReader
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
