@@ -54,7 +54,7 @@ class DPN4IFCTest {
   }
   
   @Test
-  def testBSP01 {
+  def testBSP01MHS {
     val (cg,pa,cha) = stuff(1)
     val dia = new DPN4IFCAnalysis(cg, pa)
     var im = mrr("bnord.unittests.dpn4ifc.BSP01.p2()V",cha)
@@ -69,14 +69,14 @@ class DPN4IFCTest {
     node = nodes.first
     val readPos = StackSymbol(node, 5, 0)
     dia.init(ProgressMonitorDelegate.createProgressMonitorDelegate((new PrintingPM())))
-    val res = dia.runWeakCheck(writePos,readPos,ProgressMonitorDelegate.createProgressMonitorDelegate(new PrintingPM()))
+    val res = dia.mayHappenSuccessively(writePos,readPos,ProgressMonitorDelegate.createProgressMonitorDelegate(new PrintingPM()))
     assertFalse("there should be no flow", res)
     
     
   }
 
   @Test
-  def testBSP02 {
+  def testBSP02MHS {
     val (cg,pa,cha) = stuff(2)
     val dia = new DPN4IFCAnalysis(cg, pa)
     var im = mrr("bnord.unittests.dpn4ifc.BSP02.p2()V",cha)
@@ -91,14 +91,14 @@ class DPN4IFCTest {
     node = nodes.first
     val readPos = StackSymbol(node, 9, 0)
     dia.init(ProgressMonitorDelegate.createProgressMonitorDelegate((new PrintingPM())))
-    val res = dia.runWeakCheck(writePos,readPos,ProgressMonitorDelegate.createProgressMonitorDelegate(new PrintingPM()))
+    val res = dia.mayHappenSuccessively(writePos,readPos,ProgressMonitorDelegate.createProgressMonitorDelegate(new PrintingPM()))
     assertTrue("there should be flow", res)
     
     
   }
   
   @Test
-  def testBSP03 {
+  def testBSP03MHS {
     val (cg,pa,cha) = stuff(3)
     val dia = new DPN4IFCAnalysis(cg, pa)
     var im = mrr("bnord.unittests.dpn4ifc.BSP03.p2()V",cha)
@@ -116,8 +116,52 @@ class DPN4IFCTest {
     val readPos = StackSymbol(node, 2, 0)
     dia.init(ProgressMonitorDelegate.createProgressMonitorDelegate((new PrintingPM())))
     println(dia.getPossibleLocks)
-    val res = dia.runWeakCheck(writePos,readPos,ProgressMonitorDelegate.createProgressMonitorDelegate(new PrintingPM()))
+    val res = dia.mayHappenSuccessively(writePos,readPos,ProgressMonitorDelegate.createProgressMonitorDelegate(new PrintingPM()))
     assertFalse("there should be no flow", res) 
+    
+    
+  }
+  
+  @Test
+  def testBSP01MHP {
+    val (cg,pa,cha) = stuff(1)
+    val dia = new DPN4IFCAnalysis(cg, pa)
+    var im = mrr("bnord.unittests.dpn4ifc.BSP01.p2()V",cha)
+    var nodes = cg.getNodes(im.getReference())
+    assert(nodes.size == 1)
+    var node = nodes.first
+    val writePos = StackSymbol(node, 2, 0)
+    
+    im = mrr("bnord.unittests.dpn4ifc.BSP01.p1()V",cha)
+    nodes = cg.getNodes(im.getReference())
+    assert(nodes.size == 1)
+    node = nodes.first
+    val readPos = StackSymbol(node, 5, 0)
+    dia.init(ProgressMonitorDelegate.createProgressMonitorDelegate((new PrintingPM())))
+    val res = dia.mayHappenInParallel(writePos,readPos,ProgressMonitorDelegate.createProgressMonitorDelegate(new PrintingPM()))
+    assertFalse("there should be no flow", res)
+    
+    
+  }
+  
+  @Test
+  def testBSP01MHP2 {
+    val (cg,pa,cha) = stuff(1)
+    val dia = new DPN4IFCAnalysis(cg, pa)
+    var im = mrr("bnord.unittests.dpn4ifc.BSP01.p2()V",cha)
+    var nodes = cg.getNodes(im.getReference())
+    assert(nodes.size == 1)
+    var node = nodes.first
+    val beforeWritePos = StackSymbol(node, 0, 0)
+    
+    im = mrr("bnord.unittests.dpn4ifc.BSP01.p1()V",cha)
+    nodes = cg.getNodes(im.getReference())
+    assert(nodes.size == 1)
+    node = nodes.first
+    val readPos = StackSymbol(node, 5, 0)
+    dia.init(ProgressMonitorDelegate.createProgressMonitorDelegate((new PrintingPM())))
+    val res = dia.mayHappenInParallel(beforeWritePos,readPos,ProgressMonitorDelegate.createProgressMonitorDelegate(new PrintingPM()))
+    assertTrue("there should be no flow", res)
     
     
   }
@@ -130,5 +174,7 @@ class DPN4IFCTest {
     return m
 
   }
+  
+  
 
 }

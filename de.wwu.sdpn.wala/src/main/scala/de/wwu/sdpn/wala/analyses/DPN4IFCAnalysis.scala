@@ -1,6 +1,11 @@
 package de.wwu.sdpn.wala.analyses
 import java.io.IOException
+
+import scala.annotation.implicitNotFound
 import scala.collection.JavaConversions.asScalaIterator
+
+import com.ibm.wala.classLoader.IClass
+import com.ibm.wala.ipa.callgraph.propagation.ConstantKey
 import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import com.ibm.wala.ipa.callgraph.CGNode
@@ -12,6 +17,8 @@ import com.ibm.wala.util.MonitorUtil.done
 import com.ibm.wala.util.MonitorUtil.subTask
 import com.ibm.wala.util.MonitorUtil.worked
 import com.ibm.wala.util.CancelException
+
+import de.wwu.sdpn.core.analyses.TwoSetReachability
 import de.wwu.sdpn.core.dpn.monitor.MonitorDPN
 import de.wwu.sdpn.core.ta.xsb.cuts.CutAcqStructComplTA
 import de.wwu.sdpn.core.ta.xsb.cuts.CutAcqStructPrecutTA
@@ -21,22 +28,20 @@ import de.wwu.sdpn.core.ta.xsb.cuts.FwdCutLockSet
 import de.wwu.sdpn.core.ta.xsb.cuts.IFlowReading
 import de.wwu.sdpn.core.ta.xsb.cuts.IFlowWriting
 import de.wwu.sdpn.core.ta.xsb.cuts.MDPN2CutTA
-import de.wwu.sdpn.core.ta.xsb.ScriptTreeAutomata
 import de.wwu.sdpn.core.ta.xsb.IntersectionEmptinessCheck
 import de.wwu.sdpn.core.ta.xsb.IntersectionTA
+import de.wwu.sdpn.core.ta.xsb.ScriptTreeAutomata
 import de.wwu.sdpn.core.ta.xsb.XSBInterRunner
 import de.wwu.sdpn.core.util.WPMWrapper
-import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
 import de.wwu.sdpn.wala.dpngen.symbols.DPNAction
 import de.wwu.sdpn.wala.dpngen.symbols.GlobalState
+import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
 import de.wwu.sdpn.wala.dpngen.MonitorDPNFactory
 import de.wwu.sdpn.wala.util.BackwardSliceFilter
 import de.wwu.sdpn.wala.util.LockWithOriginLocator
 import de.wwu.sdpn.wala.util.SubProgressMonitor
 import de.wwu.sdpn.wala.util.UniqueInstanceLocator
 import de.wwu.sdpn.wala.util.WaitMap
-import com.ibm.wala.ipa.callgraph.propagation.ConstantKey
-import com.ibm.wala.classLoader.IClass
 
 /**
  * Interface class to use for integration of sDPN with Joana.
@@ -74,20 +79,23 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
   type MDPN = MonitorDPN[GlobalState, StackSymbol, DPNAction, InstanceKey]
 
   protected var possibleLocks: Set[InstanceKey] = null
-  protected var lockUsages: Map[InstanceKey, (Set[CGNode],Boolean)] = null
+  protected var lockUsages: Map[InstanceKey, (Set[CGNode], Boolean)] = null
   protected var waitMap: Map[CGNode, scala.collection.Set[InstanceKey]] = null
   protected var includeLockLocations = true
   protected var uniqueInstances: Set[InstanceKey] = null
-  protected var lockFilter: InstanceKey => Boolean = {        
-        case x: ConstantKey[_] =>
-            x.getValue() match {
-                case x: IClass => ClassLoaderReference.Application.equals(x.getClassLoader().getReference())
-                case _ => false
-            }
-        case x: InstanceKey =>
-            ClassLoaderReference.Application.equals(x.getConcreteType().getClassLoader().getReference())
+
+  protected var lockFilter: InstanceKey => Boolean = defaultLockFilter
+
+  protected def defaultLockFilter: InstanceKey => Boolean = {
+    case x: ConstantKey[_] =>
+      x.getValue() match {
+        case x: IClass => ClassLoaderReference.Application.equals(x.getClassLoader().getReference())
         case _ => false
-    }
+      }
+    case x: InstanceKey =>
+      ClassLoaderReference.Application.equals(x.getConcreteType().getClassLoader().getReference())
+    case _ => false
+  }
 
   /**
    * Should locations of used locks be factored in when pruning the call graph for DPN generation.
@@ -98,7 +106,8 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
 
   /**
    * Set a filter which decides for abstractable locks whether they should
-   * be considered for DPN generation. The default value is
+   * be considered for DPN generation.  This doesn't effect the identification of possible locks.
+   * The default value is
    * {{{
    * x: InstanceKey =>
    *   ClassLoaderReference.Application.equals(x.getConcreteType().getClassLoader().getReference())
@@ -109,6 +118,20 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
    * @param value A new filter used to select locks.
    */
   def setLockFilter(value: InstanceKey => Boolean) { lockFilter = value }
+
+  /**
+   * Reset the lock filter to it's default value.
+   */
+  def resetLockFilter() {
+    lockFilter = defaultLockFilter
+  }
+
+  /**
+   * Set the lock filter to ignore all locks.
+   */
+  def setLockInsensitive() {
+    lockFilter = _ => false
+  }
 
   /**
    * @return The set of instance keys which have been identified to be unique
@@ -177,8 +200,9 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
   def genMDPN(pruneSet: Set[CGNode]): MDPN = {
     var ss0 = pruneSet
     if (includeLockLocations) {
-      for ((ik, (nodes,_)) <- lockUsages; node <- nodes)
-        if (lockFilter(ik) && !waitMap(node)(ik))
+      for ((ik, (nodes, _)) <- lockUsages; node <- nodes)
+        if (lockFilter(ik)
+          && !waitMap(node)(ik))
           ss0 += node
     }
     val prea = new MyPreAnalysis(cg, pa) with BackwardSliceFilter {
@@ -203,26 +227,67 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
    * @param writePos A stack symbol representing a point where a variable is written.
    * @param readPos A stack symbol representing a point where the written variable is read.
    * @param pm0 A progress monitor used to report progress with default value null.
-   * @return True if '''readPos''' can be reached after reaching '''writePos''' in the DPN-model
+   * @return True if '''readPos''' can be reached after reaching '''writePos''' in the DPN-model.
    *
    */
   @throws(classOf[IOException])
   @throws(classOf[IllegalArgumentException])
   @throws(classOf[RuntimeException])
   @throws(classOf[CancelException])
-  def runWeakCheck(writePos: StackSymbol, readPos: StackSymbol, pm: IProgressMonitor = null): Boolean = {
+  def mayHappenSuccessively(writePos: StackSymbol, readPos: StackSymbol, pm: IProgressMonitor = null): Boolean = {
     beginTask(pm, "Running DPN-based interference check", 3)
     try {
       val pm1 = new SubProgressMonitor(pm, 1)
       val (td, bu) = genWeakAutomata(writePos, readPos, pm1)
       val icheck = new IntersectionEmptinessCheck(td, bu) { override val name = "ifccheck" }
       val pm2 = new SubProgressMonitor(pm, 2)
-      
+
       return !XSBInterRunner.runCheck(icheck, new WPMWrapper(pm2))
     } finally {
       done(pm)
     }
 
+  }
+
+  /**
+   * Run a may happen in parallel check between '''posOne''' and '''posTwo'''.
+   * Note: If '''posOne == posTwo''' two processes must reach '''posOne'''.
+   *
+   * Throws an '''IOException''' if an error occurs while interacting with the XSB process
+   * (e.g. more than five locks on a 32bit system)
+   *
+   * Throws an '''IllegalArgumentException''' if more than eight locks are used.
+   *
+   * Throws a '''CancelException''' or '''RuntimeException''' if `pm0.isCanceled` is set to true during the execution.
+   *
+   * @param posOne A stack symbol representing a point where a variable is written.
+   * @param posTwo A stack symbol representing a point where the written variable is read.
+   * @param pm0 A progress monitor used to report progress with default value null.
+   * @return True if '''posOne''' and '''posTwo''' may happen in parallel in the DPN-model.
+   *
+   */
+  @throws(classOf[IOException])
+  @throws(classOf[IllegalArgumentException])
+  @throws(classOf[RuntimeException])
+  @throws(classOf[CancelException])
+  def mayHappenInParallel(posOne: StackSymbol, posTwo: StackSymbol, pm: IProgressMonitor = null): Boolean = {
+    beginTask(pm, "Running DPN-based MHP check", 5)
+    try {
+      subTask(pm, "Generating MonitorDPN")
+      val dpn = genMDPN(Set(posOne.node, posTwo.node))
+      worked(pm, 1)
+      val lockSens = !dpn.locks.isEmpty
+
+      subTask(pm, "Generating tree automata")
+      val (td, bu) = TwoSetReachability.genAutomata(dpn, Set(posOne), Set(posTwo), lockSens)
+      val icheck = new IntersectionEmptinessCheck(td, bu) { override val name = "mhpcheck" }
+      worked(pm, 1)
+      val pm2 = new SubProgressMonitor(pm, 3)
+
+      return !XSBInterRunner.runCheck(icheck, new WPMWrapper(pm2))
+    } finally {
+      done(pm)
+    }
   }
 
   /**
@@ -239,21 +304,27 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
     try {
       beginTask(pm, "Generating automata for interference check", 2)
 
-      subTask(pm, "Generating Monitor DPN")
+      subTask(pm, "Generating MonitorDPN")
       val dpn = genMDPN(Set(readPos.node, writePos.node))
       worked(pm, 1)
+
+      val lockSens = !dpn.locks.isEmpty
 
       subTask(pm, "Generating tree automata")
 
       //The automata representing the lock insensitive  control flow of the DPN 
       val cflow = new MDPN2CutTA(dpn)
 
-      //An top down automata calculating lock sets to identify reentrant operations
-      val fwdLS = new FwdCutLockSet("fwdLS", dpn.locks.size)
+      val topDown: ScriptTreeAutomata = if (lockSens) {
+        //An top down automata calculating lock sets to identify reentrant operations
+        val fwdLS = new FwdCutLockSet("fwdLS", dpn.locks.size)
 
-      //The control flow and the lock sets are evaluated top down
-      val topDown = new IntersectionTA(cflow, fwdLS) {
-        override val name = "flowls"
+        //The control flow and the lock sets are evaluated top down
+        new IntersectionTA(cflow, fwdLS) {
+          override val name = "flowls"
+        }
+      } else {
+        cflow
       }
 
       //Now we build an bottom up tree automata which checks for conflicts and
@@ -275,20 +346,23 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
         override val name = "cwfc"
       }
 
-      //Automatons which ensure lock sensitive schedulability      
+      val bottomUp: ScriptTreeAutomata = if (lockSens) {
 
-      val relstr = new CutReleaseStructTA("crs", dpn.locks.size)
-      val inter1 = new IntersectionTA(cwfc, relstr) {
-        override val name = "crf"
-      }
+        //Automatons which ensure lock sensitive schedulability      
 
-      val lockTA = new CutAcqStructComplTA("compacq", dpn.locks.size)
-      val inter2 = new IntersectionTA(inter1, lockTA) {
-        override val name = "craf"
-      }
+        val relstr = new CutReleaseStructTA("crs", dpn.locks.size)
+        val inter1 = new IntersectionTA(cwfc, relstr) {
+          override val name = "crf"
+        }
 
-      val lockPreTA = new CutAcqStructPrecutTA("precutacq", dpn.locks.size)
-      val bottomUp = new IntersectionTA(inter2, lockPreTA)
+        val lockTA = new CutAcqStructComplTA("compacq", dpn.locks.size)
+        val inter2 = new IntersectionTA(inter1, lockTA) {
+          override val name = "craf"
+        }
+
+        val lockPreTA = new CutAcqStructPrecutTA("precutacq", dpn.locks.size)
+        new IntersectionTA(inter2, lockPreTA)
+      } else { cwfc }
 
       worked(pm, 1)
 
