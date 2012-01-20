@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         point="org.eclipse.debug.core.launchConfigurationTypes">
+      <launchConfigurationType
+            delegate="de.wwu.sdpn.eclipse.launching.DataraceLaunchConfigurationDelegate"
+            id="de.wwu.sdpn.eclipse.launching.DataraceLaunchConfigurationType"
+            modes="run"
+            name="Data race check">
+      </launchConfigurationType>
+   </extension>
+   <extension
+         point="org.eclipse.debug.ui.launchConfigurationTabGroups">
+      <launchConfigurationTabGroup
+            class="de.wwu.sdpn.eclipse.launching.ui.DataraceLaunchConfigurationTabGroup"
+            id="de.wwu.sdpn.eclipse.launch.ui.DataraceLaunchConfigurationTabGroup1"
+            type="de.wwu.sdpn.eclipse.launching.DataraceLaunchConfigurationType">
+      </launchConfigurationTabGroup>
+   </extension>
+
+</plugin>
