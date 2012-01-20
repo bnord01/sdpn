@@ -155,6 +155,8 @@ object SimpleAnalyses {
         val check = new IntersectionEmptinessCheck(td, bu)
         return runner.runCheck(check)
     }
+    def runTSRCheck(cg: CallGraph, pa: PointerAnalysis, confSet1: Set[StackSymbol], confSet2: Set[StackSymbol], lockSens: Boolean): Boolean = 
+       runTSRCheck(cg, pa, confSet1, confSet2, confSet1.map(_.node) ++ confSet2.map (_.node), lockSens: Boolean)
 
     /**
      * Method to run a SingleSetReachability analysis and return the result of the
