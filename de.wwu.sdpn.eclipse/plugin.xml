@@ -26,5 +26,34 @@
             id="de.wwu.sdpn.eclipse.launching.DataraceLaunchConfigurationTypeImage">
       </launchConfigurationTypeImage>
    </extension>
+   <extension
+         point="org.eclipse.debug.ui.launchShortcuts">
+      <shortcut
+            class="de.wwu.sdpn.eclipse.launching.ui.DataraceLaunchShortcut"
+            description="Run a full data race check using this class as main class."
+            icon="images/dataraceicon16.png"
+            id="de.wwu.sdpn.eclipse.launching.ui.DataraceLauchShortcut1"
+            label="Data race check"
+            modes="run">
+         <contextualLaunch>
+            <enablement>
+            <with variable="selection">
+             <count value="1"/>
+              <iterate>
+               <and>
+                <adapt type="org.eclipse.jdt.core.IJavaElement">
+                	<test property="org.eclipse.jdt.core.isInJavaProject"/>
+                </adapt>
+              	 <or>
+              	   <test property="org.eclipse.jdt.launching.hasMain"/>
+              	 </or>
+               </and>
+              </iterate>
+             </with>
+            
+            </enablement>
+         </contextualLaunch>
+      </shortcut>
+   </extension>
 
 </plugin>
