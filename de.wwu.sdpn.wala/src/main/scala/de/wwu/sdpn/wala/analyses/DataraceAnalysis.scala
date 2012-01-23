@@ -13,7 +13,8 @@ import de.wwu.sdpn.wala.util.Converters
 import com.ibm.wala.ipa.callgraph.propagation.PointerKey
 import com.ibm.wala.types.FieldReference
 
-class DataraceAnalysis(cg: CallGraph, pa: PointerAnalysis, ops: DRAOptions = new DRAOptions) {
+class DataraceAnalysis(cg: CallGraph, pa: PointerAnalysis, ops: DRAOptions) {
+  def this(cg: CallGraph, pa: PointerAnalysis) = this(cg,pa,new DRAOptions)
   ops.seal
   import ops.applicationOnly
   var fieldMap: Map[(InstanceKey, Atom), (Set[StackSymbol], Set[StackSymbol])] = Map().withDefaultValue((Set(), Set()))

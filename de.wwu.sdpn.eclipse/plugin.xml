@@ -18,5 +18,13 @@
             type="de.wwu.sdpn.eclipse.launching.DataraceLaunchConfigurationType">
       </launchConfigurationTabGroup>
    </extension>
+   <extension
+         point="org.eclipse.debug.ui.launchConfigurationTypeImages">
+      <launchConfigurationTypeImage
+            configTypeID="de.wwu.sdpn.eclipse.launching.DataraceLaunchConfigurationType"
+            icon="images/dataraceicon16.png"
+            id="de.wwu.sdpn.eclipse.launching.DataraceLaunchConfigurationTypeImage">
+      </launchConfigurationTypeImage>
+   </extension>
 
 </plugin>

@@ -10,4 +10,7 @@ Export-Package: de.wwu.sdpn.core.analyses,
  de.wwu.sdpn.core.ta.xsb.cuts,
  de.wwu.sdpn.core.ta.xsb.reachability,
  de.wwu.sdpn.core.ta.xsb.witness
-Require-Bundle: org.junit;bundle-version="4.0.0"
+Require-Bundle: org.junit;bundle-version="4.0.0",
+ org.scala-ide.scala.library;bundle-version="2.9.1"
+Bundle-ClassPath: lib/interprolog.jar,
+ .
