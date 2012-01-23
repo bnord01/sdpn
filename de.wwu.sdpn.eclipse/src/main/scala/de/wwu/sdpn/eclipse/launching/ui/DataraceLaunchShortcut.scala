@@ -10,6 +10,7 @@ import org.eclipse.jdt.core.ICompilationUnit
 import org.eclipse.jdt.core.IType
 import org.eclipse.jdt.core.IMethod
 import org.eclipse.jdt.core.IField
+import de.wwu.sdpn.eclipse.launching.DataraceLauncher
 
 class DataraceLaunchShortcut extends ILaunchShortcut {
 
@@ -39,8 +40,10 @@ class DataraceLaunchShortcut extends ILaunchShortcut {
       case _ => throw new IllegalArgumentException("Expecte TreeSelection but got " + selection)
     }
     
-    val prjoect = mainClass.getJavaProject()
+    val project = mainClass.getJavaProject()
     val className = mainClass.getFullyQualifiedName()
+    
+    DataraceLauncher.runDataRaceAnalysisOnClass(project,className)
 
   }
 
