@@ -30,7 +30,7 @@ class DataraceLaunchConfigurationDelegate extends AbstractJavaLaunchConfiguratio
       val iproj = ResourcesPlugin.getWorkspace().getRoot().findMember(projName).asInstanceOf[IProject]
       val jproj = JavaCore.create(iproj)
       
-      DataraceLauncher.runDataRaceAnalysisOnClass(jproj,mcName)
+      DataraceLauncher.runDataRaceAnalysisOnClass(jproj,mcName,monitor)
     } catch {
       case e: Exception => e.printStackTrace(); throw e //Activator.getDefault().showError(e, "A " + e.getClass().getSimpleName() + " has occured")
     }
