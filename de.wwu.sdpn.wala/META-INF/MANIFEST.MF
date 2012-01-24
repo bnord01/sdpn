@@ -15,5 +15,4 @@ Export-Package: de.wwu.sdpn.wala.analyses,
  de.wwu.sdpn.wala.dpngen.symbols,
  de.wwu.sdpn.wala.mnfs,
  de.wwu.sdpn.wala.runner,
- de.wwu.sdpn.wala.util,
- de.wwu.sdpn.wala.util.proxies.dataflow
+ de.wwu.sdpn.wala.util
