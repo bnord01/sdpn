@@ -23,6 +23,10 @@ public class Main extends Thread {
 
 	static void dummy(int x) {
 	}
+	
+	static void dummy2(int x) {
+		
+	}
 
 	static void p1() {
 		synchronized (lock1) {
