@@ -16,7 +16,7 @@ import de.wwu.sdpn.wala.analyses.SDPNTestProps
 import de.wwu.sdpn.wala.analyses.DPN4IFCAnalysis
 import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
 import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
-import de.wwu.sdpn.wala.analyses.DataraceAnalysis
+import de.wwu.sdpn.wala.analyses.datarace._
 
 object DataraceAnalysisTest {
 
@@ -53,6 +53,11 @@ class DataraceAnalysisTest {
   def testBSP03 {
     runTest(3,false)
   }
+  
+  @Test
+  def testDetailedBSP01 {
+      runDetailedTest(3,Negative)
+  }
 
   def runTest(num: Int, expectedResult: Boolean) {
     val (cg, pa, cha) = stuff(num)
@@ -68,6 +73,23 @@ class DataraceAnalysisTest {
       assertTrue("There should be any race!", dra.anyRacePossible)
     else
       assertFalse("There shouldn't be any race!", dra.anyRacePossible)
+  }
+  
+  def runDetailedTest(num: Int, expectedResult: ResultValue) {
+    val (cg, pa, cha) = stuff(num)
+    val dra = new DataraceAnalysis(cg, pa)
+    
+    println()
+    println ("Testing BSP0" + num + " expect " + expectedResult)
+    
+    for (m <- dra.fieldMap)
+      println(m)
+    println("Number of Fields: " + dra.fieldMap.size)
+    println("Number of read/writes: " + dra.fieldMap.map((x => x._2._1.size + x._2._2.size)).sum)
+    
+    val result = dra.fullDetailedAnalysis()
+    println(result)
+    assertEquals("Wrong Result!",expectedResult,result.value)      
   }
 
 }
