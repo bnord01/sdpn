@@ -55,5 +55,13 @@
          </contextualLaunch>
       </shortcut>
    </extension>
+   <extension
+         point="org.eclipse.ui.views">
+      <view
+            class="de.wwu.sdpn.eclipse.DataraceResultView"
+            id="de.wwu.sdpn.eclipse.DataraceResultView"
+            name="Datarace Result">
+      </view>
+   </extension>
 
 </plugin>

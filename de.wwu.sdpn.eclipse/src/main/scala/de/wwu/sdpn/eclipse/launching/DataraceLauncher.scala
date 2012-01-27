@@ -1,14 +1,13 @@
 package de.wwu.sdpn.eclipse.launching
-import org.eclipse.jdt.core.IJavaProject
-import org.eclipse.jdt.core.IType
-import de.wwu.sdpn.wala.util.WalaUtil
-import de.wwu.sdpn.wala.analyses.datarace.DataraceAnalysis
-import org.eclipse.ui.PlatformUI
-import org.eclipse.jface.dialogs.MessageDialog
 import org.eclipse.core.runtime.IProgressMonitor
 import org.eclipse.core.runtime.NullProgressMonitor
-import de.wwu.sdpn.wala.analyses.datarace.Positive
-import de.wwu.sdpn.wala.analyses.datarace.Negative
+import org.eclipse.jdt.core.IJavaProject
+import org.eclipse.ui.PlatformUI
+
+import de.wwu.sdpn.eclipse.launching.ui.ResultTreeModel
+import de.wwu.sdpn.eclipse.DataraceResultDialog
+import de.wwu.sdpn.wala.analyses.datarace.DataraceAnalysis
+import de.wwu.sdpn.wala.util.WalaUtil
 
 object DataraceLauncher {
 
@@ -58,17 +57,22 @@ object DataraceLauncher {
             //      val shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell()
             val display = PlatformUI.getWorkbench().getDisplay()
 
-            result.value match {
-                case Positive =>
-                    display.asyncExec(task(
-                        MessageDialog.openWarning(display.getActiveShell(), "Race found!", "There might be a race in your program\n" + result.toString())))
-                case Negative =>
-                    display.asyncExec(task(
-                        MessageDialog.openInformation(display.getActiveShell(), "No race found", "There is no race in your program:\n" + result.toString())))
-                case _ => 
-                    display.asyncExec(task(
-                        MessageDialog.openError(display.getActiveShell(), "Something stupid", "I don't understand this result:\n" + result.toString())))
-            }
+//            result.value match {
+//                case Positive =>
+//                    display.asyncExec(task(
+//                        MessageDialog.openWarning(display.getActiveShell(), "Race found!", "There might be a race in your program\n" + result.toString())))
+//                case Negative =>
+//                    display.asyncExec(task(
+//                        MessageDialog.openInformation(display.getActiveShell(), "No race found", "There is no race in your program:\n" + result.toString())))
+//                case _ => 
+//                    display.asyncExec(task(
+//                        MessageDialog.openError(display.getActiveShell(), "Something stupid", "I don't understand this result:\n" + result.toString())))
+//            }
+            display.asyncExec(task( {
+                    val rv = new DataraceResultDialog(display.getActiveShell(),new ResultTreeModel(result))
+                    rv.open()
+            		}
+                    ))
 
         } finally {
             pm done

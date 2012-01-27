@@ -17,6 +17,7 @@ import de.wwu.sdpn.wala.analyses.DPN4IFCAnalysis
 import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
 import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
 import de.wwu.sdpn.wala.analyses.datarace._
+import de.wwu.sdpn.core.result._
 
 object DataraceAnalysisTest {
 

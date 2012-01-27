@@ -23,4 +23,7 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.help;bundle-version="3.5.100"
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
-Export-Package: de.wwu.sdpn.eclipse.launching
+Export-Package: de.wwu.sdpn.eclipse.launching,
+ de.wwu.sdpn.eclipse.launching.ui
+Bundle-ClassPath: .,
+ swing2swt.jar

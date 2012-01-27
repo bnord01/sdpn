@@ -13,8 +13,17 @@ import de.wwu.sdpn.wala.util.Converters
 import com.ibm.wala.ipa.callgraph.propagation.PointerKey
 import com.ibm.wala.types.FieldReference
 import de.wwu.sdpn.wala.analyses.SimpleAnalyses
+import de.wwu.sdpn.core.result._
+
+object DataraceAnalysis {
+    type DRBaseResult = BaseResult[InstanceKey]
+    type DRFieldResult = DisjunctiveResult[FieldReference, InstanceKey, DRBaseResult, Nothing, Nothing]
+    type DRResult = DisjunctiveRootResult[FieldReference, DRFieldResult, InstanceKey, DRBaseResult]
+}
 
 class DataraceAnalysis(cg: CallGraph, pa: PointerAnalysis, ops: DRAOptions) {
+    import DataraceAnalysis._
+
     def this(cg: CallGraph, pa: PointerAnalysis) = this(cg, pa, new DRAOptions)
     ops.seal
     import ops.applicationOnly
@@ -51,21 +60,19 @@ class DataraceAnalysis(cg: CallGraph, pa: PointerAnalysis, ops: DRAOptions) {
         return false
     }
 
-    def fullDetailedAnalysis(fireUpdate: Result[String] => Unit = {_ => ()}): Result[String] = {
+    def fullDetailedAnalysis(fireUpdate: DRResult => Unit = { _ => () }): DRResult = {
         val subResults = for ((fr, iks) <- fieldRefMap) yield {
-            val signature = fr.getSignature()
             val subResults = for ((ik, atom) <- iks) yield {
-                ik.toString() -> BaseResult[String](Undecidet)
+                ik -> BaseResult[InstanceKey](ik, Undecidet)
             }
-            signature -> DisjunctiveResult(Map() ++ subResults)
+            fr -> (DisjunctiveResult(fr, Map() ++ subResults): DRFieldResult)
         }
-        val mainResult = DisjunctiveResult(subResults)
+        val mainResult = DisjunctiveRootResult(subResults): DRResult
         fireUpdate(mainResult)
 
         for ((fr, iks) <- fieldRefMap) {
-            val signature = fr.getSignature()
             for ((ik, atom) <- iks) {
-                val path = List(signature, ik.toString())
+                val path = List(fr, ik)
                 if (possibleRaceOnField(ik, atom))
                     mainResult.updateValue(path, Positive)
                 else

@@ -18,7 +18,6 @@ import com.ibm.wala.ipa.callgraph.CallGraph
 import scala.collection.immutable.Map
 import scala.collection.JavaConversions._
 import scala.collection.Set
-import de.wwu.sdpn.wala.util.proxies.dataflow._
 
 //TODO maybe change to BitVectors instead of Scala sets.
 

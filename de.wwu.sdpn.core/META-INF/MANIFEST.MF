@@ -6,6 +6,7 @@ Bundle-Version: 1.0.0.qualifier
 Export-Package: de.wwu.sdpn.core.analyses,
  de.wwu.sdpn.core.dpn.monitor,
  de.wwu.sdpn.core.gui,
+ de.wwu.sdpn.core.result,
  de.wwu.sdpn.core.ta.xsb,
  de.wwu.sdpn.core.ta.xsb.cuts,
  de.wwu.sdpn.core.ta.xsb.reachability,
