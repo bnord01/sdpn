@@ -3,11 +3,15 @@ import org.eclipse.core.runtime.IProgressMonitor
 import org.eclipse.core.runtime.NullProgressMonitor
 import org.eclipse.jdt.core.IJavaProject
 import org.eclipse.ui.PlatformUI
-
 import de.wwu.sdpn.eclipse.launching.ui.ResultTreeModel
 import de.wwu.sdpn.eclipse.DataraceResultDialog
 import de.wwu.sdpn.wala.analyses.datarace.DataraceAnalysis
 import de.wwu.sdpn.wala.util.WalaUtil
+import de.wwu.sdpn.eclipse.Activator
+import de.wwu.sdpn.eclipse.DataraceResultViewPart
+import de.wwu.sdpn.core.result.Positive
+import org.eclipse.jface.dialogs.MessageDialog
+import de.wwu.sdpn.core.result.Negative
 
 object DataraceLauncher {
 
@@ -56,29 +60,43 @@ object DataraceLauncher {
 
             //      val shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell()
             val display = PlatformUI.getWorkbench().getDisplay()
+            
+            Activator.getDefault().setLastDataraceResult(new ResultTreeModel(result))
+            var view = PlatformUI.getWorkbench().getWorkbenchWindows()(0).getPages()(0).findView(DataraceResultViewPart.ID)
+            if(view == null) {                
+                println ("View was null!")
+                view = PlatformUI.getWorkbench().getWorkbenchWindows()(0).getPages()(0).showView(DataraceResultViewPart.ID)                
+            } 
+            
+            guiDo(view.setFocus())
+            
 
-//            result.value match {
-//                case Positive =>
-//                    display.asyncExec(task(
-//                        MessageDialog.openWarning(display.getActiveShell(), "Race found!", "There might be a race in your program\n" + result.toString())))
-//                case Negative =>
-//                    display.asyncExec(task(
-//                        MessageDialog.openInformation(display.getActiveShell(), "No race found", "There is no race in your program:\n" + result.toString())))
-//                case _ => 
-//                    display.asyncExec(task(
-//                        MessageDialog.openError(display.getActiveShell(), "Something stupid", "I don't understand this result:\n" + result.toString())))
-//            }
-            display.asyncExec(task( {
-                    val rv = new DataraceResultDialog(display.getActiveShell(),new ResultTreeModel(result))
-                    rv.open()
-            		}
-                    ))
+            result.value match {
+                case Positive =>
+                    guiDo(
+                        MessageDialog.openWarning(display.getActiveShell(), "Race found!", "There might be a race in your program\nSee result view."))
+                case Negative =>
+                    guiDo(
+                        MessageDialog.openInformation(display.getActiveShell(), "No race found", "There is no race in your program"))
+                case _ => 
+                    guiDo(
+                        MessageDialog.openError(display.getActiveShell(), "Something stupid", "I don't understand this result:\n" + result.toString()))
+            }
+//            display.asyncExec(task( {
+//                    val rv = new DataraceResultDialog(display.getActiveShell(),new ResultTreeModel(result))
+//                    rv.open()
+//            		}
+//                    ))
 
         } finally {
             pm done
         }
     }
 
+    def guiDo(body: => Unit) {
+        val display = PlatformUI.getWorkbench().getDisplay()
+        display.asyncExec(new Runnable { override def run() { body } })
+    }
     def task(body: => Unit): Runnable = new Runnable { override def run() { body } }
 
     def check(pm: IProgressMonitor) { if (pm.isCanceled()) throw new RuntimeException("Job canceled by user.") }

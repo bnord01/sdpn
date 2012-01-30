@@ -58,10 +58,16 @@
    <extension
          point="org.eclipse.ui.views">
       <view
-            class="de.wwu.sdpn.eclipse.DataraceResultView"
-            id="de.wwu.sdpn.eclipse.DataraceResultView"
-            name="Datarace Result">
+            category="de.wwu.sdpn.eclipse.category"
+            class="de.wwu.sdpn.eclipse.DataraceResultViewPart"
+            icon="images/dataraceicon16.png"
+            id="de.wwu.sdpn.eclipse.DataraceResultViewPart"
+            name="Data race result">
       </view>
+      <category
+            id="de.wwu.sdpn.eclipse.category"
+            name="Analyses">
+      </category>
    </extension>
 
 </plugin>

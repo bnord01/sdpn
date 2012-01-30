@@ -1,16 +1,17 @@
 package de.wwu.sdpn.core.result
 
-sealed trait Result[K,KS,R] extends Mutable {
+sealed trait Result[K,D,KS,R] extends Mutable {
     def value: ResultValue
     def key: K
+    def detail: D
     def subResults:Map[KS,R]
     def hasSubResults:Boolean
     def updateValue(path: List[_], newValue: ResultValue): Unit
-    def lookUp(path: List[_]): Result[_,_,_]
+    def lookUp(path: List[_]): Result[_,_,_,_]
     override def toString() : String = Result.prettyPrint(this)
 }
 
-case class BaseResult[K](key:K, var value: ResultValue) extends Result[K,Nothing,Nothing] {
+case class BaseResult[K,D](key:K, var detail: D, var value: ResultValue) extends Result[K,D,Nothing,Nothing] {
     def updateValue(path: List[_], newValue: ResultValue) {
         require(path == Nil, "Can't update result at path: " + path + " in BaseResult.")
         require(value == Undecidet, "Can't update non 'Undecidet' result! Old value: " + value + ", new value: " + newValue)
@@ -25,14 +26,14 @@ case class BaseResult[K](key:K, var value: ResultValue) extends Result[K,Nothing
     
 }
 
-abstract case class ComposedResult[K,SK,SR<:Result[SK,SSK,SSR],SSK,SSR](key: K, subResults: Map[SK, SR]) extends Result[K,SK,SR] {
+abstract case class ComposedResult[K,D,SK,SR<:Result[SK,SD,SSK,SSR],SD,SSK,SSR](key: K, var detail:D, subResults: Map[SK, SR]) extends Result[K,D,SK,SR] {
     def updateValue(path: List[_], newValue: ResultValue) {
         path match {
             case (car:SK) :: cdr => subResults(car).updateValue(cdr, newValue)
             case Nil        => throw new IllegalArgumentException("Can't update composed result with Nil path.")
         }
     }
-    def lookUp(path: List[_]) : Result[_,_,_]= {
+    def lookUp(path: List[_]) : Result[_,_,_,_]= {
         path match {
             case (car:SK) :: cdr => subResults(car).lookUp(cdr)
             case Nil        => this
@@ -41,7 +42,7 @@ abstract case class ComposedResult[K,SK,SR<:Result[SK,SSK,SSR],SSK,SSR](key: K, 
     def hasSubResults = !subResults.isEmpty
 }
 
-class ConjunctiveResult[K,SK,SR<:Result[SK,SSK,SSR],SSK,SSR](override val key: K, override val subResults: Map[SK,SR]) extends ComposedResult[K,SK,SR,SSK,SSR](key,subResults) {
+class ConjunctiveResult[K,D,SK,SR<:Result[SK,SD,SSK,SSR],SD,SSK,SSR](override val key: K, detail0 :D , override val subResults: Map[SK,SR]) extends ComposedResult[K,D,SK,SR,SD,SSK,SSR](key,detail0,subResults) {
     def value: ResultValue = {
         val valset: Set[ResultValue] = Set() ++ (subResults.values.map(_.value))
         if (valset contains Unprocessed)
@@ -57,13 +58,13 @@ class ConjunctiveResult[K,SK,SR<:Result[SK,SSK,SSR],SSK,SSR](override val key: K
     }
 } 
 object ConjunctiveResult {
-    def apply[K,SK,SR<:Result[SK,SSK,SSR],SSK,SSR](key:K,subResults:Map[SK,SR]) :  ConjunctiveResult[K,SK,SR,SSK,SSR]= new ConjunctiveResult[K,SK,SR,SSK,SSR](key,subResults)
-    def unapply[K,SK,SR<:Result[SK,SSK,SSR],SSK,SSR](cr : ConjunctiveResult[K,SK,SR,SSK,SSR]): Option[(K,Map[SK,SR])] = {
-        Some(cr.key,cr.subResults)
+    def apply[K,D,SK,SR<:Result[SK,SD,SSK,SSR],SD,SSK,SSR](key:K,detail:D,subResults:Map[SK,SR]) :  ConjunctiveResult[K,D,SK,SR,SD,SSK,SSR]= new ConjunctiveResult[K,D,SK,SR,SD,SSK,SSR](key,detail,subResults)
+    def unapply[K,D,SK,SR<:Result[SK,SD,SSK,SSR],SD,SSK,SSR](cr : ConjunctiveResult[K,D,SK,SR,SD,SSK,SSR]): Option[(K,D,Map[SK,SR])] = {
+        Some(cr.key,cr.detail,cr.subResults)
     }
 }
 
-class DisjunctiveResult[K,SK,SR<:Result[SK,SSK,SSR],SSK,SSR](override val key: K, override val subResults: Map[SK,SR]) extends ComposedResult[K,SK,SR,SSK,SSR](key,subResults) {
+class DisjunctiveResult[K,D,SK,SR<:Result[SK,SD,SSK,SSR],SD,SSK,SSR](override val key: K, detail0 :D , override val subResults: Map[SK,SR]) extends ComposedResult[K,D,SK,SR,SD,SSK,SSR](key,detail0,subResults) {
     def value: ResultValue = {
         val valset: Set[ResultValue] = Set() ++ (subResults.values.map(_.value))
         if (valset contains Unprocessed)
@@ -79,25 +80,25 @@ class DisjunctiveResult[K,SK,SR<:Result[SK,SSK,SSR],SSK,SSR](override val key: K
     }
 }
 object DisjunctiveResult {
-    def apply[K,SK,SR<:Result[SK,SSK,SSR],SSK,SSR](key:K,subResults:Map[SK,SR]) :  DisjunctiveResult[K,SK,SR,SSK,SSR]= new DisjunctiveResult[K,SK,SR,SSK,SSR](key,subResults)
-    def unapply[K,SK,SR<:Result[SK,SSK,SSR],SSK,SSR](cr : DisjunctiveResult[K,SK,SR,SSK,SSR]): Option[(K,Map[SK,SR])] = {
-        Some(cr.key,cr.subResults)
+    def apply[K,D,SK,SR<:Result[SK,SD,SSK,SSR],SD,SSK,SSR](key:K,detail:D,subResults:Map[SK,SR]) :  DisjunctiveResult[K,D,SK,SR,SD,SSK,SSR]= new DisjunctiveResult[K,D,SK,SR,SD,SSK,SSR](key,detail,subResults)
+    def unapply[K,D,SK,SR<:Result[SK,SD,SSK,SSR],SD,SSK,SSR](cr : DisjunctiveResult[K,D,SK,SR,SD,SSK,SSR]): Option[(K,D,Map[SK,SR])] = {
+        Some(cr.key,cr.detail,cr.subResults)
     }
 }
 
-class DisjunctiveRootResult[SK,SR<:Result[SK,SSK,SSR],SSK,SSR](override val subResults: Map[SK, SR]) extends DisjunctiveResult[Unit,SK,SR,SSK,SSR]((),subResults)
+class DisjunctiveRootResult[D,SK,SR<:Result[SK,SD,SSK,SSR],SD,SSK,SSR](detail0: D, override val subResults: Map[SK, SR]) extends DisjunctiveResult[Unit,D,SK,SR,SD,SSK,SSR]((),detail0,subResults)
 object DisjunctiveRootResult {
-    def apply[SK,SR<:Result[SK,SSK,SSR],SSK,SSR](subResults:Map[SK,SR]) :  DisjunctiveRootResult[SK,SR,SSK,SSR]= new DisjunctiveRootResult[SK,SR,SSK,SSR](subResults)
-    def unapply[SK,SR<:Result[SK,SSK,SSR],SSK,SSR](cr : DisjunctiveRootResult[SK,SR,SSK,SSR]): Option[Map[SK,SR]] = {
-        Some(cr.subResults)
+    def apply[D,SK,SR<:Result[SK,SD,SSK,SSR],SD,SSK,SSR](detail:D , subResults:Map[SK,SR]) :  DisjunctiveRootResult[D,SK,SR,SD,SSK,SSR]= new DisjunctiveRootResult[D,SK,SR,SD,SSK,SSR](detail,subResults)
+    def unapply[D,SK,SR<:Result[SK,SD,SSK,SSR],SD,SSK,SSR](cr : DisjunctiveRootResult[D,SK,SR,SD,SSK,SSR]): Option[(D,Map[SK,SR])] = {
+        Some(cr.detail,cr.subResults)
     }
 }
 
-class ConjunctiveRootResult[SK,SR<:Result[SK,SSK,SSR],SSK,SSR](override val subResults: Map[SK, SR]) extends ConjunctiveResult[Unit,SK,SR,SSK,SSR]((),subResults)
+class ConjunctiveRootResult[D,SK,SR<:Result[SK,SD,SSK,SSR],SD,SSK,SSR](detail0: D, override val subResults: Map[SK, SR]) extends ConjunctiveResult[Unit,D,SK,SR,SD,SSK,SSR]((),detail0,subResults)
 object ConjunctiveRootResult {
-    def apply[SK,SR<:Result[SK,SSK,SSR],SSK,SSR](subResults:Map[SK,SR]) :  ConjunctiveRootResult[SK,SR,SSK,SSR]= new ConjunctiveRootResult[SK,SR,SSK,SSR](subResults)
-    def unapply[SK,SR<:Result[SK,SSK,SSR],SSK,SSR](cr : ConjunctiveRootResult[SK,SR,SSK,SSR]): Option[Map[SK,SR]] = {
-        Some(cr.subResults)
+    def apply[D,SK,SR<:Result[SK,SD,SSK,SSR],SD,SSK,SSR](detail:D , subResults:Map[SK,SR]) :  ConjunctiveRootResult[D,SK,SR,SD,SSK,SSR]= new ConjunctiveRootResult[D,SK,SR,SD,SSK,SSR](detail,subResults)
+    def unapply[D,SK,SR<:Result[SK,SD,SSK,SSR],SD,SSK,SSR](cr : ConjunctiveRootResult[D,SK,SR,SD,SSK,SSR]): Option[(D,Map[SK,SR])] = {
+        Some(cr.detail,cr.subResults)
     }
 }
 
@@ -112,10 +113,10 @@ case object Unprocessed extends ResultValue
 case object ProcessingError extends ResultValue
 
 object Result {
-    def prettyPrint(res: Result[_,_,_], intention:String=""): String = {
+    def prettyPrint(res: Result[_,_,_,_], intention:String=""): String = {
         res match {
-            case BaseResult(key,value) => intention + key + ": " + value.toString + "\n"
-            case v:ComposedResult[_,_,_,_,_] => {            	
+            case BaseResult(key,_,value) => intention + key + ": " + value.toString + "\n"
+            case v:ComposedResult[_,_,_,_,_,_,_] => {      
                 val buf = new StringBuilder()
                 buf append intention
                 buf append v.key

@@ -3,6 +3,8 @@ package de.wwu.sdpn.eclipse;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
+import de.wwu.sdpn.eclipse.launching.ui.ResultTreeModel;
+
 /**
  * The activator class controls the plug-in life cycle
  */
@@ -14,6 +16,16 @@ public class Activator extends AbstractUIPlugin {
 	// The shared instance
 	private static Activator plugin;
 	
+	private ResultTreeModel lastDataraceResult = null;
+	
+	public ResultTreeModel getLastDataraceResult() {
+		return lastDataraceResult;
+	}
+
+	public void setLastDataraceResult(ResultTreeModel lastDataraceResult) {
+		this.lastDataraceResult = lastDataraceResult;
+	}
+
 	/**
 	 * The constructor
 	 */

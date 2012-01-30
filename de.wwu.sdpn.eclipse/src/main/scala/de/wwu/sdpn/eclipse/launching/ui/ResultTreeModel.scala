@@ -13,6 +13,10 @@ import com.ibm.wala.analysis.reflection.InstanceKeyWithNode
 import com.ibm.wala.ipa.callgraph.propagation.ConstantKey
 import com.ibm.wala.types.TypeReference
 import de.wwu.sdpn.core.result._
+import com.ibm.wala.ipa.callgraph.CGNode
+import com.ibm.wala.ssa.SSAFieldAccessInstruction
+import com.ibm.wala.ssa.SSAGetInstruction
+import com.ibm.wala.ssa.SSAPutInstruction
 
 class ResultTreeModel(result: DRResult) extends ITreeContentProvider with ILabelProvider {
 
@@ -38,8 +42,13 @@ class ResultTreeModel(result: DRResult) extends ITreeContentProvider with ILabel
 
     def getElements(inputElement: Object): Array[Object] = {
         inputElement match {
-            case null => Array(Nil)
-            case res: Result[AnyRef, AnyRef, AnyRef] => {
+            case null => Array()
+            case dbr: DRBaseResult =>
+                val rv: Array[Object] = new Array(dbr.detail.size)
+                for ((kv, nr) <- dbr.detail.zipWithIndex)
+                    rv(nr) = kv
+                rv
+            case res: Result[AnyRef, AnyRef, AnyRef, AnyRef] => {
                 val rv: Array[Object] = new Array(res.subResults.size)
                 for ((kv, nr) <- res.subResults.zipWithIndex)
                     rv(nr) = kv._2
@@ -53,14 +62,14 @@ class ResultTreeModel(result: DRResult) extends ITreeContentProvider with ILabel
     }
 
     def getParent(element: Object): Object = {
-        element match {
-            case path: List[String] => path.dropRight(1)
-        }
+        null
     }
 
     def hasChildren(element: Object): Boolean = {
         element match {
-            case res: Result[_, _, _] => res.hasSubResults
+            case dbr: DRBaseResult => !dbr.detail.isEmpty
+            case res: Result[_, _, _, _]                          => res.hasSubResults
+            case (node: CGNode, instr: SSAFieldAccessInstruction) => false
         }
     }
 
@@ -68,13 +77,19 @@ class ResultTreeModel(result: DRResult) extends ITreeContentProvider with ILabel
         val si = JavaUI.getSharedImages
 
         obj match {
-            case res: Result[_, _, _] => {
+            case res: Result[_, _, _, _] => {
                 res.value match {
                     case Positive => si.getImage(ISharedImages.IMG_OBJS_PRIVATE)
                     case Negative => si.getImage(ISharedImages.IMG_OBJS_PUBLIC)
                     case _        => si.getImage(ISharedImages.IMG_OBJS_PROTECTED)
                 }
             }
+            case (node: CGNode, instr: SSAFieldAccessInstruction) =>
+                instr match {
+                    case _:SSAGetInstruction => si.getImage(ISharedImages.IMG_FIELD_PUBLIC)
+                    case _:SSAPutInstruction => si.getImage(ISharedImages.IMG_FIELD_PRIVATE)
+                }
+
         }
     }
 
@@ -93,6 +108,10 @@ class ResultTreeModel(result: DRResult) extends ITreeContentProvider with ILabel
                 case ck: ConstantKey[_]      => "Field on static object: " + ck.getValue()
                 case k                       => k.toString()
             }
+            case (node: CGNode, instr: SSAFieldAccessInstruction) => instr match {
+                    case _:SSAGetInstruction => "Field read in " + node.getMethod().getSignature()
+                    case _:SSAPutInstruction => "Field write in " + node.getMethod().getSignature()
+                }
         }
     }
 
