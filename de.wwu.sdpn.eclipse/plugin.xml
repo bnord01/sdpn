@@ -44,9 +44,9 @@
                 <adapt type="org.eclipse.jdt.core.IJavaElement">
                 	<test property="org.eclipse.jdt.core.isInJavaProject"/>
                 </adapt>
-              	 <or>
-              	   <test property="org.eclipse.jdt.launching.hasMain"/>
-              	 </or>
+                <test
+                      property="org.eclipse.jdt.launching.hasMain">
+                </test>
                </and>
               </iterate>
              </with>

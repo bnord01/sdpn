@@ -15,11 +15,13 @@ import com.ibm.wala.types.FieldReference
 import de.wwu.sdpn.wala.analyses.SimpleAnalyses
 import de.wwu.sdpn.core.result._
 import com.ibm.wala.ipa.callgraph.CGNode
+import org.eclipse.core.runtime.IProgressMonitor
+import org.eclipse.core.runtime.NullProgressMonitor
 
 object DataraceAnalysis {
-    type DRBaseResult = BaseResult[InstanceKey,Set[(CGNode,SSAFieldAccessInstruction)]]
-    type DRFieldResult = DisjunctiveResult[FieldReference,Unit, InstanceKey, DRBaseResult, Set[(CGNode,SSAFieldAccessInstruction)] ,Nothing, Nothing]
-    type DRResult = DisjunctiveRootResult[Unit, FieldReference ,DRFieldResult, Unit, InstanceKey, DRBaseResult]
+    type DRBaseResult = BaseResult[InstanceKey, Set[(CGNode, SSAFieldAccessInstruction)]]
+    type DRFieldResult = DisjunctiveResult[FieldReference, Unit, InstanceKey, DRBaseResult, Set[(CGNode, SSAFieldAccessInstruction)], Nothing, Nothing]
+    type DRResult = DisjunctiveRootResult[Unit, FieldReference, DRFieldResult, Unit, InstanceKey, DRBaseResult]
 }
 
 class DataraceAnalysis(cg: CallGraph, pa: PointerAnalysis, ops: DRAOptions) {
@@ -28,13 +30,13 @@ class DataraceAnalysis(cg: CallGraph, pa: PointerAnalysis, ops: DRAOptions) {
     def this(cg: CallGraph, pa: PointerAnalysis) = this(cg, pa, new DRAOptions)
     ops.seal
     import ops.applicationOnly
-    var fieldMap: Map[(InstanceKey, Atom), (Set[StackSymbol], Set[StackSymbol],Set[(CGNode,SSAFieldAccessInstruction)])] = Map().withDefaultValue((Set(), Set(),Set()))
+    var fieldMap: Map[(InstanceKey, Atom), (Set[StackSymbol], Set[StackSymbol], Set[(CGNode, SSAFieldAccessInstruction)])] = Map().withDefaultValue((Set(), Set(), Set()))
     var fieldRefMap: Map[FieldReference, Set[(InstanceKey, Atom)]] = Map().withDefaultValue(Set())
-    
+
     buildFieldMap()
 
     def possibleRaceOnField(ik: InstanceKey, atom: Atom): Boolean = {
-        val (rs, ws,_) = fieldMap((ik, atom))
+        val (rs, ws, _) = fieldMap((ik, atom))
         if (ws.isEmpty)
             return false;
         return !SimpleAnalyses.runTSRCheck(cg, pa, ws, ws ++ rs, true)
@@ -62,27 +64,38 @@ class DataraceAnalysis(cg: CallGraph, pa: PointerAnalysis, ops: DRAOptions) {
         return false
     }
 
-    def fullDetailedAnalysis(fireUpdate: DRResult => Unit = { _ => () }): DRResult = {
-        val subResults = for ((fr, iks) <- fieldRefMap) yield {
-            val subResults = for ((ik, atom) <- iks) yield {
-                ik -> BaseResult[InstanceKey,Set[(CGNode,SSAFieldAccessInstruction)]](ik, fieldMap((ik,atom))._3,Undecidet)
+    def fullDetailedAnalysis(fireUpdate: DRResult => Unit = { _ => () }, pm: IProgressMonitor = new NullProgressMonitor): DRResult = {
+        import de.wwu.sdpn.core.util.ProgressMonitorUtil._
+        try {
+            val instances = fieldMap.size
+            var current = 1
+            pm.beginTask("Preparing to run " + instances + "Analyes", instances)
+            val subResults = for ((fr, iks) <- fieldRefMap) yield {
+                val subResults = for ((ik, atom) <- iks) yield {
+                    ik -> BaseResult[InstanceKey, Set[(CGNode, SSAFieldAccessInstruction)]](ik, fieldMap((ik, atom))._3, Undecidet)
+                }
+                fr -> (DisjunctiveResult(fr, (), Map() ++ subResults): DRFieldResult)
             }
-            fr -> (DisjunctiveResult(fr,(), Map() ++ subResults): DRFieldResult)
-        }
-        val mainResult = DisjunctiveRootResult((),subResults): DRResult
-        fireUpdate(mainResult)
+            val mainResult = DisjunctiveRootResult((), subResults): DRResult
+            fireUpdate(mainResult)
 
-        for ((fr, iks) <- fieldRefMap) {
-            for ((ik, atom) <- iks) {
-                val path = List(fr, ik)
-                if (possibleRaceOnField(ik, atom))
-                    mainResult.updateValue(path, Positive)
-                else
-                    mainResult.updateValue(path, Negative)
-                fireUpdate(mainResult)
+            for ((fr, iks) <- fieldRefMap) {
+                for ((ik, atom) <- iks) {
+                    val path = List(fr, ik)
+                    if (possibleRaceOnField(ik, atom))
+                        mainResult.updateValue(path, Positive)
+                    else
+                        mainResult.updateValue(path, Negative)
+                    pm worked 1
+                    pm subTask ("Finished data race analyis " + current + " of " + instances + ".")
+                    current += 1
+                    fireUpdate(mainResult)
+                }
             }
+            mainResult
+        } finally {
+            pm done
         }
-        mainResult
     }
 
     protected def buildFieldMap() {
@@ -105,10 +118,10 @@ class DataraceAnalysis(cg: CallGraph, pa: PointerAnalysis, ops: DRAOptions) {
                         val isRead = fai.isInstanceOf[SSAGetInstruction]
                         val ss = Converters.getSS4NodeAndIndex(node, instr.iindex)
                         for (field <- fields) {
-                            val (or, ow,is) = fieldMap(field)
+                            val (or, ow, is) = fieldMap(field)
                             val nr = if (isRead) or + ss else or
                             val nw = if (!isRead) ow + ss else ow
-                            fieldMap += field -> ((nr, nw,is + ((node,fai))))
+                            fieldMap += field -> ((nr, nw, is + ((node, fai))))
                         }
                     case _ =>
                 }

@@ -13,6 +13,9 @@ import de.wwu.sdpn.eclipse.launching.ui.ResultTreeModel;
 import de.wwu.sdpn.core.result.ResultValue;
 
 import org.eclipse.swt.widgets.Text;
+import org.eclipse.jface.viewers.IDoubleClickListener;
+import org.eclipse.jface.viewers.DoubleClickEvent;
+import org.eclipse.jface.viewers.ITreeSelection;
 
 public class DataraceResultComposite extends Composite {
 
@@ -77,6 +80,7 @@ public class DataraceResultComposite extends Composite {
 		treeViewer.setContentProvider(result);
 		treeViewer.setLabelProvider(result);
 		treeViewer.setInput(result.getRoot());
+		treeViewer.addDoubleClickListener(result);			
 		lblNumRaceFree.setText("Race free: " + result.getNegativeCount() + "/" + result.getTotalCount());
 		lblTotalResults.setImage(result.getImage(result.getRoot()));
 		lblNumPossibleRace.setText("Possible race: " + result.getPositiveCount() + "/" + result.getTotalCount());

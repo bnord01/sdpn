@@ -17,8 +17,15 @@ import com.ibm.wala.ipa.callgraph.CGNode
 import com.ibm.wala.ssa.SSAFieldAccessInstruction
 import com.ibm.wala.ssa.SSAGetInstruction
 import com.ibm.wala.ssa.SSAPutInstruction
+import org.eclipse.jdt.core.IJavaProject
+import org.eclipse.jface.viewers.IDoubleClickListener
+import org.eclipse.jface.viewers.DoubleClickEvent
+import org.eclipse.jface.viewers.ITreeSelection
+import de.wwu.sdpn.eclipse.util.WalaEclipseUtil
+import org.eclipse.jdt.ui.JavaUI
+import org.eclipse.jdt.core.IJavaElement
 
-class ResultTreeModel(result: DRResult) extends ITreeContentProvider with ILabelProvider {
+class ResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITreeContentProvider with ILabelProvider with IDoubleClickListener{
 
     def getRoot: Object = result
     def getTotalResult = result.value
@@ -134,5 +141,22 @@ class ResultTreeModel(result: DRResult) extends ITreeContentProvider with ILabel
     def removeListener(listener: ILabelProviderListener) {
 
     }
+    
+    def doubleClick(event : DoubleClickEvent) {
+        event.getSelection() match {
+            case ts: ITreeSelection => 
+                ts.getFirstElement() match {                    
+                	case drr: DRResult     => 
+                	case fr: DRFieldResult => 
+                	case br: DRBaseResult =>  
+                	case (node: CGNode, instr: SSAFieldAccessInstruction) =>
+                	    val imeth = WalaEclipseUtil.cgnode2IMethod(jproj,node)
+                	    if (imeth != null)
+                	        JavaUI.revealInEditor(JavaUI.openInEditor(imeth), imeth:IJavaElement);
+                }
+                
+        }
+    }
+    
 
 }

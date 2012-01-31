@@ -15,6 +15,8 @@ import org.eclipse.jface.dialogs.ProgressMonitorDialog
 import org.eclipse.jface.operation.IRunnableWithProgress
 import org.eclipse.core.runtime.IProgressMonitor
 import org.eclipse.ui.PlatformUI
+import org.eclipse.jdt.ui.JavaUI
+import org.eclipse.jdt.core.IJavaProject
 
 class DataraceLaunchShortcut extends ILaunchShortcut {
 
@@ -32,7 +34,9 @@ class DataraceLaunchShortcut extends ILaunchShortcut {
       case is: ITreeSelection =>
         is.getFirstElement match {
           case cu: ICompilationUnit =>
-            mainClass = cu.getTypes().filter(_.isClass()).first
+              val classes = cu.getTypes().filter(hasMain(_))
+              assert(classes.size == 1, "Didn't find exactly one class with main method in compilation Unit, invoke on class instead!")
+              mainClass = classes.first
           case it: IType =>
             mainClass = it
           case im: IMethod =>
@@ -46,22 +50,41 @@ class DataraceLaunchShortcut extends ILaunchShortcut {
 
     val project = mainClass.getJavaProject()
     val className = mainClass.getFullyQualifiedName()
+    
+    runAnalysis(project,className)
+    
 
-    val iop = new IRunnableWithProgress {
+  }
+
+  def launch(editor: IEditorPart, mode: String): Unit = {
+      val cu = JavaUI.getEditorInputJavaElement(editor.getEditorInput())
+      cu match {
+          case cu: ICompilationUnit =>
+              val classes = cu.getTypes().filter(hasMain(_))
+              assert(classes.size == 1, "Didn't find exactly one class with main method in compilation Unit, invoke on class instead!")
+              val mc = classes.first
+              runAnalysis(mc.getJavaProject(),mc.getFullyQualifiedName())
+          
+      }
+
+  }
+  
+  private def task(body: => Unit): Runnable = new Runnable { override def run() { body } }
+  
+  
+  def runAnalysis(project: IJavaProject, mc: String) {
+      val iop = new IRunnableWithProgress {
       override def run(pm: IProgressMonitor) {
-        DataraceLauncher.runDataRaceAnalysisOnClass(project, className, pm)
+        DataraceLauncher.runDataRaceAnalysisOnClass(project, mc, pm)
       }
     }
     val display = PlatformUI.getWorkbench().getDisplay()
 
     display.syncExec(task(new ProgressMonitorDialog(display.getActiveShell()).run(true,true,iop)))
-
   }
-
-  def task(body: => Unit): Runnable = new Runnable { override def run() { body } }
-  def launch(editor: IEditorPart, mode: String): Unit = {
-    throw new UnsupportedOperationException("Did not expect to get opend on editor!")
-
+  
+  def hasMain(it:IType) : Boolean = {
+      it.isClass() && it.getMethods().exists(_.isMainMethod())
   }
 
 }

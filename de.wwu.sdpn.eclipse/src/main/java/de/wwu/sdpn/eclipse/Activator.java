@@ -1,5 +1,6 @@
 package de.wwu.sdpn.eclipse;
 
+import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
@@ -17,6 +18,7 @@ public class Activator extends AbstractUIPlugin {
 	private static Activator plugin;
 	
 	private ResultTreeModel lastDataraceResult = null;
+	private IJavaProject lastJavaProject = null;
 	
 	public ResultTreeModel getLastDataraceResult() {
 		return lastDataraceResult;
@@ -57,6 +59,14 @@ public class Activator extends AbstractUIPlugin {
 	 */
 	public static Activator getDefault() {
 		return plugin;
+	}
+
+	public IJavaProject getLastJavaProject() {
+		return lastJavaProject;
+	}
+
+	public void setLastJavaProject(IJavaProject lastJavaProject) {
+		this.lastJavaProject = lastJavaProject;
 	}
 
 }

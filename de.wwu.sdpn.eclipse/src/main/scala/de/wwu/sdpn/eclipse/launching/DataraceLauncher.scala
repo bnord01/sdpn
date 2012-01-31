@@ -12,6 +12,7 @@ import de.wwu.sdpn.eclipse.DataraceResultViewPart
 import de.wwu.sdpn.core.result.Positive
 import org.eclipse.jface.dialogs.MessageDialog
 import de.wwu.sdpn.core.result.Negative
+import org.eclipse.core.runtime.SubProgressMonitor
 
 object DataraceLauncher {
 
@@ -19,7 +20,7 @@ object DataraceLauncher {
         val pm: IProgressMonitor = if (pm0 == null) new NullProgressMonitor else pm0
 
         try {
-            pm.beginTask("Running DPN-based data race analysis on class " + mcname, 7)
+            pm.beginTask("Running DPN-based data race analysis on class " + mcname, 9)
 
             check(pm)
 
@@ -52,24 +53,25 @@ object DataraceLauncher {
             check(pm)
             pm subTask "Running DPN-based analyses for individual instances."
 
-            val result = rda.fullDetailedAnalysis()
-
-            pm worked 3
+            
+            val result = rda.fullDetailedAnalysis(pm=new SubProgressMonitor(pm,5))
 
             println("Data race possible: " + result.value)
 
             //      val shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell()
             val display = PlatformUI.getWorkbench().getDisplay()
-            
-            Activator.getDefault().setLastDataraceResult(new ResultTreeModel(result))
-            var view = PlatformUI.getWorkbench().getWorkbenchWindows()(0).getPages()(0).findView(DataraceResultViewPart.ID)
-            if(view == null) {                
-                println ("View was null!")
-                view = PlatformUI.getWorkbench().getWorkbenchWindows()(0).getPages()(0).showView(DataraceResultViewPart.ID)                
-            } 
-            
-            guiDo(view.setFocus())
-            
+
+            Activator.getDefault().setLastDataraceResult(new ResultTreeModel(proj, result))
+            var page = PlatformUI.getWorkbench().getWorkbenchWindows()(0).getPages()(0)
+            guiDo({
+                var view = page.findView(DataraceResultViewPart.ID)
+                if (view == null) {
+                    println("View was null!")
+                    view = page.showView(DataraceResultViewPart.ID)
+                }
+
+                view.setFocus()
+            })
 
             result.value match {
                 case Positive =>
@@ -78,15 +80,15 @@ object DataraceLauncher {
                 case Negative =>
                     guiDo(
                         MessageDialog.openInformation(display.getActiveShell(), "No race found", "There is no race in your program"))
-                case _ => 
+                case _ =>
                     guiDo(
                         MessageDialog.openError(display.getActiveShell(), "Something stupid", "I don't understand this result:\n" + result.toString()))
             }
-//            display.asyncExec(task( {
-//                    val rv = new DataraceResultDialog(display.getActiveShell(),new ResultTreeModel(result))
-//                    rv.open()
-//            		}
-//                    ))
+            //            display.asyncExec(task( {
+            //                    val rv = new DataraceResultDialog(display.getActiveShell(),new ResultTreeModel(result))
+            //                    rv.open()
+            //            		}
+            //                    ))
 
         } finally {
             pm done
