@@ -5,7 +5,6 @@ import scala.collection.JavaConversions.asScalaIterator
 import scala.collection.JavaConversions.asScalaSet
 import scala.collection.JavaConversions.collectionAsScalaIterable
 import scala.collection.JavaConversions.iterableAsScalaIterable
-
 import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 import com.ibm.wala.ipa.callgraph.CGNode
 import com.ibm.wala.ssa.SSAAbstractInvokeInstruction
@@ -13,7 +12,6 @@ import com.ibm.wala.ssa.SSACFG
 import com.ibm.wala.ssa.SSAInstruction
 import com.ibm.wala.ssa.SSAMonitorInstruction
 import com.ibm.wala.util.graph.traverse.BFSIterator
-
 import de.wwu.sdpn.core.dpn.monitor.MonitorDPN
 import de.wwu.sdpn.core.dpn.monitor.BaseRule
 import de.wwu.sdpn.core.dpn.monitor.DPNRule
@@ -39,13 +37,14 @@ import de.wwu.sdpn.wala.dpngen.symbols.SyncMethodEnter
 import de.wwu.sdpn.wala.dpngen.symbols.SyncMethodExit
 import de.wwu.sdpn.wala.util.MonitorMatcher
 import de.wwu.sdpn.wala.util.PreAnalysis
+import de.wwu.sdpn.wala.dpngen.symbols.MExitState
 
 /**
  * Factory to create a MonitorDPN using the given PreAnalysis
  *
  * @author Benedikt Nordhoff
  */
-class MonitorDPNFactory(analysis: PreAnalysis) extends MonitorMatcher {
+class MonitorDPNFactory(analysis: PreAnalysis) {
   import analysis._
 
   //private val dpn = new DPN[GlobalState, StackSymbol, DPNAction](
@@ -286,22 +285,27 @@ class MonitorDPNFactory(analysis: PreAnalysis) extends MonitorMatcher {
           val iks = pa.getPointsToSet(ptk)
 
           /*
-           * we get the normal and exceptional exit points of the monitor and
-           * add a transition from the fake index with normal state to the normal exit point
-           * and a transition from the fake index with exceptional state to the exceptional exit point 
+           * We obtain the possible monitor exits corresponding to this enter  
+           * For each exit we introduce a special global state
+           * We introduce a fake index within this basic block (-1)
+           * The enter will push the fake index onto the stack
+           * Instead of the exit we perform a pop operation which moves to the 
+           * special global state.  From this special global state at the fake index 
+           * which was pushed before we continue to the point after the exit.
            */
           val fakeIndex = -1
-          val (nexit, eexit) = getExitTuple(cgnode, bbnr1)
-          addBaseRule(
-            NState, StackSymbol(cgnode, bbnr1, fakeIndex),
-            NoAction,
-            NState,
-            StackSymbol(cgnode, nexit.getGraphNodeId, 0))
-          addBaseRule(
-            EState, StackSymbol(cgnode, bbnr1, fakeIndex),
-            ExceptionInMonitor(a),
-            NState,
-            StackSymbol(cgnode, eexit.getGraphNodeId, 0))
+          val exits = MonitorMatcher.getExits(cfg,bbnr1).zipWithIndex
+          for(((exitBlock,idxBeforeMonitorExit),num) <- exits) {
+              addPopRule(
+            		  NState, StackSymbol(cgnode, exitBlock.getGraphNodeId(), idxBeforeMonitorExit),
+            		  MonitorExit(a),
+            		  MExitState(num)) 
+              addBaseRule(
+            		  MExitState(num), StackSymbol(cgnode, bbnr1, fakeIndex),
+            		  NoAction,
+            		  NState,
+            		  StackSymbol(cgnode, exitBlock.getGraphNodeId, idxBeforeMonitorExit + 1))
+          }          
 
           for (target <- iks) {
             //we use (CGNode,bbnr1,fakeIndex) as a fake return point for the fake method call
@@ -331,17 +335,13 @@ class MonitorDPNFactory(analysis: PreAnalysis) extends MonitorMatcher {
               NState, StackSymbol(cgnode, bbnr2, index2),
               StackSymbol(cgnode, bbnr1, fakeIndex))
           }
-        } else { //monitor exit
-          val bb = cfg.getBasicBlock(bbnr1)
-          if (!bb.isCatchBlock) {
-            addPopRule(NState, StackSymbol(cgnode, bbnr1, index1),
-              MonitorExit(a),
-              NState)
-          } else {
-            addPopRule(NState, StackSymbol(cgnode, bbnr1, index1),
-              MonitorExit(a),
-              EState)
-          }
+        } else { 
+            //monitor exit // Only the exceptional case.
+            // The normal case is already handled at the enter.
+            addBaseRule(
+              NState, StackSymbol(cgnode, bbnr1, index1),
+              ExceptionAction(SSAAction(action)),
+              EState, StackSymbol(cgnode, bbnr2, index2))
         }
 
       }
