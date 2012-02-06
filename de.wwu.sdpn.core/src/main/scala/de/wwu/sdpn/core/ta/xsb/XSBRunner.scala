@@ -22,13 +22,13 @@ import de.wwu.sdpn.core.analyses.SDPNProps
  * @author Benedikt Nordhoff
  */
 object XSBRunner {
-  import SDPNProps.get.debug
+  private def debug = SDPNProps.get.debug
   import ProgressMonitorUtil._
-  private var xsbExe = SDPNProps.get.xsbExe
-  private var tempDir = new File(SDPNProps.get.tempDir)
-  assert(tempDir isDirectory)
-  private var tempFile = {
-    new File(tempDir.getAbsolutePath() + File.separator + "check.P")
+  private def xsbExe = SDPNProps.get.xsbExe
+  private def tempDir = new File(SDPNProps.get.tempDir)
+  private def tempFile = {
+      assert(tempDir isDirectory)
+      new File(tempDir.getAbsolutePath() + File.separator + "check.P")
   }
 
   /**

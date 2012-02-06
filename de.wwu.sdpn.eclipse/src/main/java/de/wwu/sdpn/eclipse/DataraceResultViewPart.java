@@ -6,7 +6,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.ui.part.ViewPart;
 
-import de.wwu.sdpn.eclipse.launching.ui.ResultTreeModel;
+import de.wwu.sdpn.eclipse.launching.ui.DataraceResultTreeModel;
 import swing2swt.layout.BorderLayout;
 
 public class DataraceResultViewPart extends ViewPart {
@@ -35,7 +35,7 @@ public class DataraceResultViewPart extends ViewPart {
 		initializeMenu();
 	}
 	
-	private ResultTreeModel getModel() {
+	private DataraceResultTreeModel getModel() {
 		return Activator.getDefault().getLastDataraceResult();
 	}
 
@@ -68,7 +68,7 @@ public class DataraceResultViewPart extends ViewPart {
 	}
 	
 	private void resetModel() {
-		ResultTreeModel model = getModel();
+		DataraceResultTreeModel model = getModel();
 		if(model != null)
 			dataraceResultComposite.setModel(model);
 	}

@@ -9,17 +9,25 @@ import org.eclipse.swt.custom.SashForm;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.jface.viewers.TreeViewer;
 
-import de.wwu.sdpn.eclipse.launching.ui.ResultTreeModel;
+import de.wwu.sdpn.eclipse.launching.ui.DataraceResultTreeModel;
 import de.wwu.sdpn.core.result.ResultValue;
 
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.jface.viewers.IDoubleClickListener;
 import org.eclipse.jface.viewers.DoubleClickEvent;
 import org.eclipse.jface.viewers.ITreeSelection;
+import org.eclipse.swt.widgets.TabFolder;
+import org.eclipse.swt.widgets.TabItem;
+import org.eclipse.swt.widgets.Menu;
+import org.eclipse.swt.widgets.MenuItem;
+import org.eclipse.swt.layout.RowLayout;
+import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.events.SelectionAdapter;
+import org.eclipse.swt.events.SelectionEvent;
 
 public class DataraceResultComposite extends Composite {
 
-	private ResultTreeModel result;
+	private DataraceResultTreeModel result;
 	private TreeViewer treeViewer;
 	private Label lblNumPossibleRace;
 	private Label lblNumRaceFree;
@@ -65,7 +73,7 @@ public class DataraceResultComposite extends Composite {
 		sashForm.setLayoutData(BorderLayout.CENTER);
 		
 		treeViewer = new TreeViewer(sashForm, SWT.BORDER);
-		Tree tree = treeViewer.getTree(); 
+		Tree tree = treeViewer.getTree();
 		sashForm.setWeights(new int[] {1});
 
 	}
@@ -75,7 +83,7 @@ public class DataraceResultComposite extends Composite {
 		// Disable the check that prevents subclassing of SWT components
 	}
 	
-	public void setModel(ResultTreeModel result) {
+	public void setModel(DataraceResultTreeModel result) {
 		this.result = result;
 		treeViewer.setContentProvider(result);
 		treeViewer.setLabelProvider(result);
@@ -87,5 +95,5 @@ public class DataraceResultComposite extends Composite {
 
 	}
 	
-
+	
 }

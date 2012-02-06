@@ -4,7 +4,7 @@ import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.ui.plugin.AbstractUIPlugin;
 import org.osgi.framework.BundleContext;
 
-import de.wwu.sdpn.eclipse.launching.ui.ResultTreeModel;
+import de.wwu.sdpn.eclipse.launching.ui.DataraceResultTreeModel;
 
 /**
  * The activator class controls the plug-in life cycle
@@ -17,14 +17,14 @@ public class Activator extends AbstractUIPlugin {
 	// The shared instance
 	private static Activator plugin;
 	
-	private ResultTreeModel lastDataraceResult = null;
+	private DataraceResultTreeModel lastDataraceResult = null;
 	private IJavaProject lastJavaProject = null;
 	
-	public ResultTreeModel getLastDataraceResult() {
+	public DataraceResultTreeModel getLastDataraceResult() {
 		return lastDataraceResult;
 	}
 
-	public void setLastDataraceResult(ResultTreeModel lastDataraceResult) {
+	public void setLastDataraceResult(DataraceResultTreeModel lastDataraceResult) {
 		this.lastDataraceResult = lastDataraceResult;
 	}
 

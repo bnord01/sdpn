@@ -9,17 +9,17 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.SWT;
 
-import de.wwu.sdpn.eclipse.launching.ui.ResultTreeModel;
+import de.wwu.sdpn.eclipse.launching.ui.DataraceResultTreeModel;
 
 public class DataraceResultDialog extends Dialog {
 
-	protected ResultTreeModel model;
+	protected DataraceResultTreeModel model;
 	private DataraceResultComposite resultComposite;
 	/**
 	 * Create the dialog.
 	 * @param parentShell
 	 */
-	public DataraceResultDialog(Shell parentShell,ResultTreeModel model) {
+	public DataraceResultDialog(Shell parentShell,DataraceResultTreeModel model) {
 		super(parentShell);
 		this.model = model;		
 	}

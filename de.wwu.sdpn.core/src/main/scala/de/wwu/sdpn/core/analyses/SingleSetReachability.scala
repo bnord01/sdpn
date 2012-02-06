@@ -22,7 +22,7 @@ import de.wwu.sdpn.core.ta.xsb.reachability.LibLockTA
  * @author Benedikt Nordhoff
  */
 object SingleSetReachability {
-  import SDPNProps.get.debug
+  private def debug = SDPNProps.get.debug
   import System.{ currentTimeMillis => now }
 
   /**

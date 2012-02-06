@@ -13,15 +13,18 @@ import de.wwu.sdpn.wala.util.Converters
 import com.ibm.wala.ipa.callgraph.propagation.PointerKey
 import com.ibm.wala.types.FieldReference
 import de.wwu.sdpn.wala.analyses.SimpleAnalyses
+import de.wwu.sdpn.wala.analyses.SimpleTSRResult
 import de.wwu.sdpn.core.result._
 import com.ibm.wala.ipa.callgraph.CGNode
 import org.eclipse.core.runtime.IProgressMonitor
 import org.eclipse.core.runtime.NullProgressMonitor
 
 object DataraceAnalysis {
-    type DRBaseResult = BaseResult[InstanceKey, Set[(CGNode, SSAFieldAccessInstruction)]]
-    type DRFieldResult = DisjunctiveResult[FieldReference, Unit, InstanceKey, DRBaseResult, Set[(CGNode, SSAFieldAccessInstruction)], Nothing, Nothing]
-    type DRResult = DisjunctiveRootResult[Unit, FieldReference, DRFieldResult, Unit, InstanceKey, DRBaseResult]
+    class DRBaseResult(ik:InstanceKey,nodes: Set[(CGNode, SSAFieldAccessInstruction)]) 
+    	extends BaseResult[(InstanceKey, Set[(CGNode, SSAFieldAccessInstruction)],SimpleTSRResult)] ((ik,nodes,null),Undecidet)
+    class DRFieldResult(fr:FieldReference,srm: Map[InstanceKey,DRBaseResult])
+    	extends DisjunctiveResult[FieldReference, InstanceKey, DRBaseResult, (InstanceKey,Set[(CGNode, SSAFieldAccessInstruction)],SimpleTSRResult), Nothing, Nothing](fr,srm)
+    class DRResult(srm:Map[FieldReference,DRFieldResult]) extends DisjunctiveResult[Unit, FieldReference, DRFieldResult, FieldReference, InstanceKey, DRBaseResult]((),srm)
 }
 
 class DataraceAnalysis(cg: CallGraph, pa: PointerAnalysis, ops: DRAOptions) {
@@ -40,6 +43,13 @@ class DataraceAnalysis(cg: CallGraph, pa: PointerAnalysis, ops: DRAOptions) {
         if (ws.isEmpty)
             return false;
         return !SimpleAnalyses.runTSRCheck(cg, pa, ws, ws ++ rs, true)
+    }
+    
+    def possibleRaceOnFieldDetailed(ik: InstanceKey, atom: Atom): SimpleTSRResult = {
+        val (rs, ws, _) = fieldMap((ik, atom))
+        if (ws.isEmpty)
+            return SimpleTSRResult(null,null,null,null,null,null,false,Negative);
+        return SimpleAnalyses.runDetailedTSRCheck(cg, pa, ws, ws ++ rs, true)
     }
 
     def possibleRaceOnField(ref: FieldReference): Boolean = {
@@ -72,20 +82,27 @@ class DataraceAnalysis(cg: CallGraph, pa: PointerAnalysis, ops: DRAOptions) {
             pm.beginTask("Preparing to run " + instances + "Analyes", instances)
             val subResults = for ((fr, iks) <- fieldRefMap) yield {
                 val subResults = for ((ik, atom) <- iks) yield {
-                    ik -> BaseResult[InstanceKey, Set[(CGNode, SSAFieldAccessInstruction)]](ik, fieldMap((ik, atom))._3, Undecidet)
+                    ik -> new DRBaseResult(ik, fieldMap((ik, atom))._3)
                 }
-                fr -> (DisjunctiveResult(fr, (), Map() ++ subResults): DRFieldResult)
+                fr -> (new DRFieldResult(fr, Map() ++ subResults))
             }
-            val mainResult = DisjunctiveRootResult((), subResults): DRResult
+            val mainResult = new DRResult(subResults)
             fireUpdate(mainResult)
 
             for ((fr, iks) <- fieldRefMap) {
                 for ((ik, atom) <- iks) {
                     val path = List(fr, ik)
-                    if (possibleRaceOnField(ik, atom))
-                        mainResult.updateValue(path, Positive)
-                    else
-                        mainResult.updateValue(path, Negative)
+                    val res = possibleRaceOnFieldDetailed(ik,atom)
+                    res.value match {
+                        case Positive =>
+                            mainResult.updateValue(path, Negative)
+                        case Negative =>	
+                            mainResult.updateValue(path, Positive)
+                        case _ =>
+                            mainResult.updateValue(path, ProcessingError)                            
+                    }
+                    val subResult = mainResult.lookUp(path).asInstanceOf[DRBaseResult]
+                    mainResult.updateDetail(path,(subResult.detail._1,subResult.detail._2,res))                    
                     pm worked 1
                     pm subTask ("Finished data race analyis " + current + " of " + instances + ".")
                     current += 1

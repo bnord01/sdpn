@@ -24,7 +24,7 @@ import com.declarativa.interprolog.PrologEngine
  * @author Benedikt Nordhoff
  */
 object XSBInterRunner {
-  import SDPNProps.get.debug
+  private def debug = SDPNProps.get.debug
   import ProgressMonitorUtil._
   private var xsbProcess: PrologEngine = null
   def XSB = {
@@ -33,9 +33,9 @@ object XSBInterRunner {
     }
     xsbProcess
   }
-  private var tempDir = new File(SDPNProps.get.tempDir)
-  assert(tempDir isDirectory)
-  private var tempFile = {
+  private def tempDir = new File(SDPNProps.get.tempDir)  
+  private def tempFile = {
+      assert(tempDir isDirectory)
     new File(tempDir.getAbsolutePath() + File.separator + "check.P")
   }
 

@@ -69,5 +69,13 @@
             name="Analyses">
       </category>
    </extension>
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            class="de.wwu.sdpn.eclipse.DRAPrefPage"
+            id="de.wwu.sdpn.eclipse.page1"
+            name="DRAPrefs">
+      </page>
+   </extension>
 
 </plugin>

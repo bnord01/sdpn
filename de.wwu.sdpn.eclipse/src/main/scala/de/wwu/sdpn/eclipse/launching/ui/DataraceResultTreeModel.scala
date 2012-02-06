@@ -25,7 +25,7 @@ import de.wwu.sdpn.eclipse.util.WalaEclipseUtil
 import org.eclipse.jdt.ui.JavaUI
 import org.eclipse.jdt.core.IJavaElement
 
-class ResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITreeContentProvider with ILabelProvider with IDoubleClickListener{
+class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITreeContentProvider with ILabelProvider with IDoubleClickListener{
 
     def getRoot: Object = result
     def getTotalResult = result.value
@@ -51,11 +51,11 @@ class ResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITreeConten
         inputElement match {
             case null => Array()
             case dbr: DRBaseResult =>
-                val rv: Array[Object] = new Array(dbr.detail.size)
-                for ((kv, nr) <- dbr.detail.zipWithIndex)
+                val rv: Array[Object] = new Array(dbr.detail._2.size)
+                for ((kv, nr) <- dbr.detail._2.zipWithIndex)
                     rv(nr) = kv
                 rv
-            case res: Result[AnyRef, AnyRef, AnyRef, AnyRef] => {
+            case res: Result[AnyRef, AnyRef, AnyRef] => {
                 val rv: Array[Object] = new Array(res.subResults.size)
                 for ((kv, nr) <- res.subResults.zipWithIndex)
                     rv(nr) = kv._2
@@ -74,8 +74,8 @@ class ResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITreeConten
 
     def hasChildren(element: Object): Boolean = {
         element match {
-            case dbr: DRBaseResult => !dbr.detail.isEmpty
-            case res: Result[_, _, _, _]                          => res.hasSubResults
+            case dbr: DRBaseResult => !dbr.detail._2.isEmpty
+            case res: Result[ _, _, _]                          => res.hasSubResults
             case (node: CGNode, instr: SSAFieldAccessInstruction) => false
         }
     }
@@ -84,7 +84,7 @@ class ResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITreeConten
         val si = JavaUI.getSharedImages
 
         obj match {
-            case res: Result[_, _, _, _] => {
+            case res: Result[_, _, _] => {
                 res.value match {
                     case Positive => si.getImage(ISharedImages.IMG_OBJS_PRIVATE)
                     case Negative => si.getImage(ISharedImages.IMG_OBJS_PUBLIC)
@@ -109,8 +109,8 @@ class ResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITreeConten
         }
         obj match {
             case drr: DRResult     => "Overview"
-            case fr: DRFieldResult => "Field: " + nn(fr.key.getDeclaringClass()) + "." + fr.key.getName() + " of type: " + nn(fr.key.getFieldType())
-            case br: DRBaseResult => br.key match {
+            case fr: DRFieldResult => "Field: " + nn(fr.detail.getDeclaringClass()) + "." + fr.detail.getName() + " of type: " + nn(fr.detail.getFieldType())
+            case br: DRBaseResult => br.detail._1 match {
                 case nk: InstanceKeyWithNode => "Object created in: " + nk.getNode().getMethod().getSignature()
                 case ck: ConstantKey[_]      => "Field on static object: " + ck.getValue()
                 case k                       => k.toString()
@@ -148,7 +148,7 @@ class ResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITreeConten
                 ts.getFirstElement() match {                    
                 	case drr: DRResult     => 
                 	case fr: DRFieldResult => 
-                	case br: DRBaseResult =>  
+                	case br: DRBaseResult =>  de.wwu.sdpn.core.gui.MonitorDPNView.show(br.detail._3.dpn)
                 	case (node: CGNode, instr: SSAFieldAccessInstruction) =>
                 	    val imeth = WalaEclipseUtil.cgnode2IMethod(jproj,node)
                 	    if (imeth != null)
