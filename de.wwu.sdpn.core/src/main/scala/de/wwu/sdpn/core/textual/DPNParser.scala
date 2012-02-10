@@ -17,7 +17,22 @@ import java.io.FileInputStream
 import java.io.InputStreamReader
 import java.io.FileReader
 /**
- * We use the following grammar:
+ * This is a parser for a textual representation of a DPN and a reachability check.
+ * 
+ * It can be used from the command line when a file containing the textual 
+ * representation is given as the argument.  
+ * If the option `--explore`  is given as the first argument 
+ * a viewer is started which simulates the DPN instead of analyzing it.
+ * Without this option the program prints `true` resp. `false` to stdout if
+ * the conflict is reachable resp. not reachable.   
+ * 
+ * ==Grammar in EBNF==  
+ * The parser uses the following grammar. 
+ * Here `term` is a natural number or a combination of lower and upper case alpha numerical 
+ * symbols and _ which starts with a lower case letter.
+ * `name` can be any string literal enclosed in `"` as accepted java. 
+ * 
+ * {{{
  * term           ::= [1-9][0-9]* | [a-z][a-zA-Z0-9_]*
  * name           ::= STRINGLITERAL "..."
  * named          ::= term ":" name
@@ -31,7 +46,7 @@ import java.io.FileReader
  *
  * control        ::= term
  * stack          ::= term
- * action 	      ::= term
+ * action         ::= term
  * lock           ::= term
  * base_rule      ::= "(" control "," stack ")" "--" action "-->" "(" control "," stack ")"
  * pop_rule       ::= "(" control "," stack ")" "--" action "-->" "(" control ")"
@@ -45,11 +60,51 @@ import java.io.FileReader
  * dpn            ::= "dpn" "{" naming initial_conf rules "}"
  *
  * repstack       ::= stack { [","] stack}
- * tsr_conflict   ::= ["check"] "conflict" ["nolocks"] ["between"] "{" repstack "}" ["and"] "{” repstack "}"
+ * tsr_conflict   ::= ["check" ["for"]] "conflict" ["nolocks"] ["between"] "{" repstack "}" ["and"] "{” repstack "}"
  *
  * tsr_task       ::= dpn tsr_conflict_def
+ * }}}
+ * 
+ * ==Example==
+ * The following is an example of a simple TSRTask. 
+ * It uses numbers as terms.
+ * 
+ * {{{
+ * dpn{
+ *    controls {1:"Normal"}
+ *    stacks {
+ *        1:"Start"
+ *        2:"Before monitor enter"
+ *        3:"Inside Monitor, Spawning (1,1)"
+ *        4: "Just spawned, now returning to 10"
+ *        10:"Monitor return point. Going to Start"           
+ *    }
+ *    actions {
+ *        1:"base" 
+ *        2:"Entering monitor"
+ *        3:"Spawning"
+ *        4:"Leaving monitor"
+ *        5:"Resuming to start"
+ *    }            
+ *    locks {
+ *        1:"Lock number one"
+ *    }
  *
+ *    initial(1,1) 
  *
+ *    rules {
+ *        (1,1) --1--> (1,2)
+ *        (1,2) --2-1--> (1,3,10)
+ *        (1,3) --3--> (1,4:>1,1)
+ *        (1,4) --4--> (1)
+ *        (1,10) --5--> (1,2)
+ *    }
+ * }
+ *
+ * conflict between {4} and {4}
+ * }}}
+ * 
+ * 
  */
 object DPNParser extends JavaTokenParsers {
 
@@ -149,7 +204,7 @@ object DPNParser extends JavaTokenParsers {
     def repstack(implicit n:Naming) :Parser[Set[Stack]] = rep1sep(stack,opt(",")) ^^ {Set() ++ _}
     
     def tsr_conflict(implicit n:Naming) : Parser[(Set[Stack],Set[Stack],Boolean)] = 
-        opt("check")~>"conflict"~>opt("nolocks")~(opt("between")~>"{"~>repstack~("}"~>opt("and")~>"{"~>repstack<~"}")) ^^ {
+        opt("check"~opt("for"))~>"conflict"~>opt("nolocks")~(opt("between")~>"{"~>repstack~("}"~>opt("and")~>"{"~>repstack<~"}")) ^^ {
             case Some(_)~(c1~c2) => (c1,c2,false)
             case None~(c1~c2) => (c1,c2,true)
         }

@@ -15,7 +15,7 @@ dpn{
     	5:"Resuming to start"
 	}            
     locks {
-    	1:"Erstes Lock"
+    	1:"Lock number one"
     }
 
 	initial(1,1) 
