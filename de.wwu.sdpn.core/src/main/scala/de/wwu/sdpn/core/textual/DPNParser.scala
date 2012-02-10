@@ -19,18 +19,30 @@ import java.io.FileReader
 /**
  * This is a parser for a textual representation of a DPN and a reachability check.
  * 
- * It can be used from the command line when a file containing the textual 
- * representation is given as the argument.  
- * If the option `--explore`  is given as the first argument 
- * a viewer is started which simulates the DPN instead of analyzing it.
- * Without this option the program prints `true` resp. `false` to stdout if
- * the conflict is reachable resp. not reachable.   
+ * It can be used from the command line with the name of a file, containing the textual 
+ * representation, as an argument.  
+ * The program then prints `true` resp. `false` to stdout if
+ * the conflict is reachable resp. not reachable.
+ *    
+ * Moreover, if the option `--explore`  is given as the first argument ,
+ * a viewer is started which simulates the DPN instead.
+ * 
+ * The file given as argument should contain a tsr_task as defined by the following grammar.
+ * 
+ * Names are optional and are only used when exploring the DPN.  
+ * In later versions they may be used to represent a generated witness.    
  * 
  * ==Grammar in EBNF==  
- * The parser uses the following grammar. 
- * Here `term` is a natural number or a combination of lower and upper case alpha numerical 
+ * The parser uses the following grammar which is in EBNF except for the rules for `term` and `name`.
+ *  
+ * `term` is a natural number or a combination of lower and upper case alpha numerical 
  * symbols and _ which starts with a lower case letter.
+ * 
  * `name` can be any string literal enclosed in `"` as accepted java. 
+ * 
+ * When using the optional `nolocks` keyword in the task definition a lock insensitive analysis is performed.
+ * 
+ * In all lists commas are optional.  
  * 
  * {{{
  * term           ::= [1-9][0-9]* | [a-z][a-zA-Z0-9_]*
@@ -54,7 +66,7 @@ import java.io.FileReader
  * simple_push    ::= "(" control "," stack ")" "--" action "-->" "(" control "," stack "," stack ")"
  * lock_push      ::= "(" control "," stack ")" "--" action "-" lock "-->" "(" control "," stack "," stack ")"
  *
- * rules          ::= "rules" "{" [rule { "," rule }] "}"
+ * rules          ::= "rules" "{" [rule { [","] rule }] "}"
  * initial_conf   ::= "initial" "(" control "," stack ")"
  *
  * dpn            ::= "dpn" "{" naming initial_conf rules "}"
@@ -66,7 +78,7 @@ import java.io.FileReader
  * }}}
  * 
  * ==Example==
- * The following is an example of a simple TSRTask. 
+ * The following is an example of a simple TSRTask which can be passed to the parser and prints the result `false`.
  * It uses numbers as terms.
  * 
  * {{{
@@ -104,6 +116,7 @@ import java.io.FileReader
  * conflict between {4} and {4}
  * }}}
  * 
+ * @author Benedikt Nordhoff
  * 
  */
 object DPNParser extends JavaTokenParsers {
