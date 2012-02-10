@@ -1,11 +1,11 @@
 dpn{
 	controls {1:"Normal"}
    	stacks {
-   		1:"Start",
-   	    2:"Before monitor enter",
-   	    3:"Inside Monitor, Spawning (1,1)",
+   		1:"Start"
+   	    2:"Before monitor enter"
+   	    3:"Inside Monitor, Spawning (1,1)"
    	    4: "Just spawned, now returning to 10"
-   	    10:"Monitor return point. Going to Start",   	    
+   	    10:"Monitor return point. Going to Start"   	    
 	}
     actions {
     	1:"base" 
@@ -22,7 +22,7 @@ dpn{
 
 	rules {
 		(1,1) --1--> (1,2)
-  		(1,2) --2-1--> (1,3,10),
+  		(1,2) --2-1--> (1,3,10)
   		(1,3) --3--> (1,4:>1,1)
   		(1,4) --4--> (1)
   		(1,10) --5--> (1,2)
