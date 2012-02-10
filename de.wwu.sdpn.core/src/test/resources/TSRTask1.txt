@@ -1,0 +1,32 @@
+dpn{
+	controls {1:"Normal"}
+   	stacks {
+   		1:"Start",
+   	    2:"Before monitor enter",
+   	    3:"Inside Monitor, Spawning (1,1)",
+   	    4: "Just spawned, now returning to 10"
+   	    10:"Monitor return point. Going to Start",   	    
+	}
+    actions {
+    	1:"base" 
+    	2:"Entering monitor"
+    	3:"Spawning"
+    	4:"Leaving monitor"
+    	5:"Resuming to start"
+	}            
+    locks {
+    	1:"Erstes Lock"
+    }
+
+initial(1,1) 
+
+rules {
+  (1,1) --1--> (1,2)
+  (1,2) --2-1--> (1,3,10),
+  (1,3) --3--> (1,4:>1,1)
+  (1,4) --4--> (1)
+  (1,10) --5--> (1,2)
+  }
+}
+
+conflict between {4} and {4}

@@ -113,7 +113,7 @@ object SimpleAnalyses {
      * @param confSet1 A set of StackSymbols which should be checked for mutual exclusion with confSet2.
      * @param confSet2 A set of StackSymbols which should be checked for mutual exclusion with confSet1.
      * @param sliceSet A set of CGNodes which are used for slicing. E.g. the methods of confSet plus locking positions.
-     * @param lockSens A flag which decieds if this analysis should be locksensitive.
+     * @param lockSens A flag which decides if this analysis should be lock sensitive.
      * @return None iff no conflict can exist Some(witness) iff an conflict exists with the given witness
      */
     def runWitnessTSRCheck(cg: CallGraph, pa: PointerAnalysis, confSet1: Set[StackSymbol], confSet2: Set[StackSymbol], sliceSet: Set[CGNode], lockSens: Boolean): Option[String] = {

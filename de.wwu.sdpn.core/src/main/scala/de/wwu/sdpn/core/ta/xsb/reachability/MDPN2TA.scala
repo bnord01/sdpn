@@ -41,13 +41,18 @@ class MDPN2TA[GS <% HTR, StackSymbol <% HTR, DPNAction, Lock](dpn: MonitorDPN[GS
     import buffer.{ append => out }
     out(name + "_nil(t(G,S),c(G,S,G,0)).\n")
 
-    if (lockMap.isEmpty) { //TODO this assumes that at least one safe lock is used somewhere otherwise 
-      out("""
+    // Define all predicates just in case the DPN doesn't contains some of them. 
+    out("""
 %% No safe locks used in program  
 name_acq(_,c(_,_,_,_),c(_,_,_,_)) :- fail.
 name_use(_,c(_,_,_,_),c(_,_,_,_),c(_,_,_,_)) :- fail.
+name_ret(_) :- fail.
+name_base(_,_) :- fail.
+name_spawn(_,_) :- fail.
+name_call1(_,_) :- fail.
+name_call2(_,_,_) :- fail.
 """.replace("name", name))
-    }
+    
 
     for (rule <- dpn.getTransitions) {
       rule match {

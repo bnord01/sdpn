@@ -161,12 +161,22 @@ class MonitorDPNView[C, S, A, L](dpn: MonitorDPN[C, S, A, L], var state: C, var 
 }
 
 object MonitorDPNView {
-    def show[C, S, A, L](dpn: MonitorDPN[C, S, A, L]) {
-        val gui = new Frame {
-            title = "DPN Explorer"
-            contents = new MonitorDPNView(dpn)
-            maximize()
-            visible = true
+    def show[C, S, A, L](dpn: MonitorDPN[C, S, A, L], exitOnClose: Boolean = false) {
+        if (exitOnClose) {
+            val gui = new MainFrame {
+                title = "DPN Explorer"
+                contents = new MonitorDPNView(dpn)
+                maximize()
+                visible = true
+            }
+        } else {
+            val gui = new Frame {
+                title = "DPN Explorer"
+                contents = new MonitorDPNView(dpn)
+                maximize()
+                visible = true
+            }
         }
+
     }
 }
