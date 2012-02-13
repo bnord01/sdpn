@@ -2,11 +2,15 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>de.wwu.sdpn</groupId>
-	<artifactId>core</artifactId>
+	<artifactId>wala</artifactId>
 	<name>sDPN</name>
 	<version>0.1</version>
 	<inceptionYear>2010</inceptionYear>
 	
+	<dependencyManagement>
+		<dependencies>
+		</dependencies>
+	</dependencyManagement>
 	<properties>
 		<scala.version>2.9.1</scala.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -40,6 +44,19 @@
 			<version>4.4</version>
 			<scope>test</scope>
 		</dependency>
+		
+		<dependency>
+			<groupId>de.wwu.sdpn</groupId>
+			<artifactId>core</artifactId>
+			<version>0.1</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>com.ibm.wala</groupId>
+			<artifactId>core</artifactId>
+			<version>1.3.2</version>
+		</dependency>
+		
 		<!-- <dependency> <groupId>org.scala-tools.testing</groupId> <artifactId>specs_${scala.version}</artifactId> 
 			<version>1.6.6</version> <scope>test</scope> </dependency> -->
 		<!-- <dependency> <groupId>edu.kit</groupId> <artifactId>jsdg-full</artifactId> 
@@ -61,21 +78,21 @@
 			<scope>compile</scope>
 		</dependency>
 
-<!-- 	  <dependency> -->
-<!-- 			<groupId>org.eclipse.core</groupId> -->
-<!-- 			<artifactId>runtime</artifactId> -->
-<!-- 			<version>[3.5.0,4.0.0)</version> -->
-<!-- 		</dependency> -->
-
-		<dependency>
-			<!-- This is Ugly! -->
-			<!-- http://www.declarativa.com/interprolog/ -->
-			<groupId>com.declarativa</groupId>
-			<artifactId>interprolog</artifactId>
-			<version>2.1.2a</version>
-			<scope>system</scope>
-			<systemPath>${project.basedir}/lib/interprolog.jar</systemPath>
+	  <dependency>
+			<groupId>org.eclipse.core</groupId>
+			<artifactId>runtime</artifactId>
+			<version>[3.5.0,4.0.0)</version>
 		</dependency>
+
+<!-- 		<dependency> -->
+			<!-- This is Ugly! --> 
+			<!-- http://www.declarativa.com/interprolog/ --> 
+<!-- 			<groupId>com.declarativa</groupId> -->
+<!-- 			<artifactId>interprolog</artifactId> -->
+<!-- 			<version>2.1.2a</version> -->
+<!-- 			<scope>system</scope> -->
+<!-- 			<systemPath>${project.basedir}/lib/interprolog.jar</systemPath> -->
+<!-- 		</dependency> -->
 
 	</dependencies>
 
@@ -114,12 +131,14 @@
 						<arg>-target:jvm-1.5</arg>
 					</args>
 					<launchers>
-						<launcher>
-							<id>Gui</id>
-							<mainClass>de.wwu.sdpn.core.textual.DPNParser</mainClass>
-							<args> <arg>src/test/resources/TSRTask1</arg> </args>							
-						</launcher>
-						
+<!-- 						<launcher> -->
+<!-- 							<id>Gui</id> -->
+<!-- 							<mainClass>sdpn.runner.DPNExplorerRunner</mainClass> -->
+<!-- 							<args> <arg>arg1</arg> </args> -->
+<!-- 							jvmArgs are optional -->
+<!-- 							<jvmArgs> <jvmArg>-Xmx128m</jvmArg> <jvmArg>-Djava.library.path=...</jvmArg> 
+<!-- 								</jvmArgs> --> 
+<!-- 						</launcher> -->
 					</launchers>
 				</configuration>
 			</plugin>
@@ -229,15 +248,8 @@
 										<include>**/wala.properties</include>
 										<include>**/primordial.txt</include>
 										<include>**/Java60RegressionExclusions.txt</include>
-										<include>**/sdpn.properties</include>
 									</includes>
-								</resource>
-								<resource>
-									<directory>src/test/resources</directory>
-									<!-- <filtering>true</filtering> -->
-									<includes>
-										<include>**/TSRTask1.txt</include>
-									</includes>
+
 								</resource>
 							</resources>
 						</configuration>
