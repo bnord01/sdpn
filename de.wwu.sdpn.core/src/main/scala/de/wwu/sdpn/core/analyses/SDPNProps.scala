@@ -74,10 +74,12 @@ object SDPNProps {
         p.load(fin)
 
         val xsbExe: String = p.getProperty("xsb_exe")
+        assert(xsbExe != null, "Couldn't read property 'xsb_exe' from properties file!")
         val xsbFile = new File(xsbExe)
         assert(xsbFile.exists(), "Declared XSB executable doesn't exist: " + xsbExe)
         assert(xsbFile.canExecute(), "Declared XSB executable isn't executable: " + xsbExe)
         val tempDir: String = p.getProperty("temp_dir")
+        assert(tempDir != null, "Couldn't read property 'temp_dir' from properties file!")
         val tempFile = new File(tempDir)
         if (!tempFile.exists)
             tempFile.mkdir()
