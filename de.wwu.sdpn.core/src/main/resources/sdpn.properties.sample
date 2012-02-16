@@ -21,44 +21,6 @@ temp_dir = /tmp
 #####
 debug
 
-################## Optional settings for predefined tests ######################
-
-##### 
-# Default classpath to analyze
-#####
-std_cp = ../de.wwu.sdpn.testapps/target/classes
-
-##### 
-# Default main class to analyze
-#####
-std_mc = Lbnord/testapps/Main
-#std_mc = Lbnord/unittests/simpleAnalyses/Main
-
-##### 
-# Default method to check for mutual exclusion
-#####
-std_ex = bnord.testapps.Main.excludeMe()V
-
-##### 
-# Default lock type used for filtering
-#####
-std_lt = Lbnord/examples/Lock
-
-##### 
-# Run lockinsensitive analysis
-#####
-#std_lockinsensitive
-
-##### 
-# Don't use slicing 
-#####
-#std_noslice
-
-##### 
-# Generate witness
-#####
-#std_witness
-
 
 
 

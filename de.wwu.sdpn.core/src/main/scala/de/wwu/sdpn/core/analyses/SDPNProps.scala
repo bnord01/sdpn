@@ -24,26 +24,47 @@ case class SDPNProps(
 object SDPNProps {
     var defaultProps: SDPNProps = null;
     /**
-     * Read the default properties from the {{sdpn.properties}} file found on the class path
+     * Read the default properties from the {{sdpn.properties}} file 
+     * defined by the system property `sdpn.properties` 
+     * or found in the current directory or found on the class path.
+     * In that order.
      */
     def get: SDPNProps = {
         if (defaultProps == null) {
+            val propfile = System.getProperty("sdpn.properties")
+            if (propfile != null) {
+                val file = new File(propfile)
+                assert(file.exists() && file.canRead(), "Can't read sdpn.properties file: " + propfile)
+                val instream = new BufferedInputStream(new FileInputStream(file));
+                defaultProps = get(instream)
+                return defaultProps
+            }
+            val file = new File("sdpn.properties")
+            if (file.exists()) {
+                assert(file.canRead(), "Can't read sdpn.properties file: sdpn.properties")
+                val instream = new BufferedInputStream(new FileInputStream(file));
+                defaultProps = get(instream)
+                return defaultProps
+            }
+
             val stream = this.getClass().getClassLoader().getResourceAsStream("sdpn.properties")
             defaultProps = get(stream)
+            return defaultProps
+
         }
         return defaultProps
     }
-    def setXSB(exe:String) {
+    def setXSB(exe: String) {
         defaultProps = get.copy(xsbExe = exe)
     }
-    def setTempDir(dir:String) {
-        defaultProps = get.copy(tempDir = dir)       
+    def setTempDir(dir: String) {
+        defaultProps = get.copy(tempDir = dir)
     }
-    def setDebug(value:Boolean) {
+    def setDebug(value: Boolean) {
         defaultProps = get.copy(debug = value)
     }
-    
-    def set(props:SDPNProps) {
+
+    def set(props: SDPNProps) {
         defaultProps = props
     }
 
@@ -54,8 +75,8 @@ object SDPNProps {
 
         val xsbExe: String = p.getProperty("xsb_exe")
         val xsbFile = new File(xsbExe)
-        assert(xsbFile.exists(), "Declared XSB executable doesn't exist.")
-        assert(xsbFile.canExecute(), "Declared XSB executable isn't executable.")
+        assert(xsbFile.exists(), "Declared XSB executable doesn't exist: " + xsbExe)
+        assert(xsbFile.canExecute(), "Declared XSB executable isn't executable: " + xsbExe)
         val tempDir: String = p.getProperty("temp_dir")
         val tempFile = new File(tempDir)
         if (!tempFile.exists)
