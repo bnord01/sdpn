@@ -9,7 +9,7 @@ package de.wwu.sdpn.core.ta.xsb.cuts
  * @author Benedikt Nordhoff
  */
 class FwdCutLockSet(val name: String, numLocks: Int) extends CutLockTreeAutomataAlphabet {
-    require(numLocks <= 8 && numLocks > 0,"can only handle 1 to 8 locks")
+    require(numLocks <= 8 && numLocks > 0,"can only handle 1 to 8 locks - number of locks: " + numLocks)
     
     val isForwardRule = alphabet.keySet + "final"
 
