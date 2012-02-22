@@ -15,6 +15,7 @@ import de.wwu.sdpn.core.util.ProgressMonitorUtil
 import de.wwu.sdpn.core.analyses.SDPNProps
 import com.declarativa.interprolog.XSBSubprocessEngine
 import com.declarativa.interprolog.PrologEngine
+import scala.sys.ShutdownHookThread
 
 /**
  * This Object contains helper functions to run an XSB process and interpret the result.
@@ -29,7 +30,9 @@ object XSBInterRunner {
   private var xsbProcess: PrologEngine = null
   def XSB = {
     if (xsbProcess == null) {
-      xsbProcess = getXSBEngine(SDPNProps.get.xsbExe)
+      val proc = getXSBEngine(SDPNProps.get.xsbExe)
+      xsbProcess = proc
+      ShutdownHookThread({println("DESTROY XSB");proc.shutdown()})
     }
     xsbProcess
   }
@@ -90,7 +93,7 @@ object XSBInterRunner {
 
   def shutdown() {
     if(xsbProcess != null)
-      XSB.shutdown()
+      xsbProcess.shutdown()
     xsbProcess = null
   }
 
@@ -128,6 +131,6 @@ object XSBInterRunner {
     throw new IllegalArgumentException("Couldn't find XSB config dir from " + xsbBin)
   }
   
-  Runtime.getRuntime().addShutdownHook(new Thread() {override def run(){shutdown()}})
+  
 
 }

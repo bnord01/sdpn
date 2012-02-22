@@ -421,5 +421,9 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
     }
     return StackSymbol(node, bb.getNumber, index)
   }
+  
+  def shutdown() {
+      XSBInterRunner.shutdown();
+  }
 
 }
