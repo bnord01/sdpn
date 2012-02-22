@@ -1,9 +1,32 @@
-;; This config was generated using ensime-config-gen. Feel free to customize its contents manually.
-
-(
-
-:project-package "sdpn"
-
-:use-sbt t
-
-)
+(:subprojects
+((:runtime-deps
+("/Users/bnord/git/sdpn/de.wwu.sdpn.core/lib/interprolog.jar"
+"/Users/bnord/.sbt/boot/scala-2.9.1/lib/scala-library.jar"
+"/Users/bnord/.ivy2/cache/org.scala-lang/scala-swing/jars/scala-swing-2.9.1.jar"
+"/Users/bnord/git/sdpn/de.wwu.sdpn.core/target/scala-2.9.1/classes"
+"/Users/bnord/git/sdpn/de.wwu.sdpn.core/target/scala-2.9.1/classes")
+:compile-deps
+("/Users/bnord/git/sdpn/de.wwu.sdpn.core/lib/interprolog.jar"
+"/Users/bnord/.sbt/boot/scala-2.9.1/lib/scala-library.jar"
+"/Users/bnord/.ivy2/cache/org.scala-lang/scala-swing/jars/scala-swing-2.9.1.jar")
+:version
+"1.0"
+:name
+"sDPN core"
+:package
+"bnord"
+:target
+"/Users/bnord/git/sdpn/de.wwu.sdpn.core/target/scala-2.9.1/classes"
+:source-roots
+("/Users/bnord/git/sdpn/de.wwu.sdpn.core/src/main/scala"
+"/Users/bnord/git/sdpn/de.wwu.sdpn.core/src/main/java"
+"/Users/bnord/git/sdpn/de.wwu.sdpn.core/target/scala-2.9.1/src_managed/main"
+"/Users/bnord/git/sdpn/de.wwu.sdpn.core/src/test/scala"
+"/Users/bnord/git/sdpn/de.wwu.sdpn.core/src/test/java"
+"/Users/bnord/git/sdpn/de.wwu.sdpn.core/target/scala-2.9.1/src_managed/test")
+:test-deps
+("/Users/bnord/git/sdpn/de.wwu.sdpn.core/lib/interprolog.jar"
+"/Users/bnord/.sbt/boot/scala-2.9.1/lib/scala-library.jar"
+"/Users/bnord/.ivy2/cache/org.scala-lang/scala-swing/jars/scala-swing-2.9.1.jar"
+"/Users/bnord/git/sdpn/de.wwu.sdpn.core/target/scala-2.9.1/classes"
+"/Users/bnord/git/sdpn/de.wwu.sdpn.core/target/scala-2.9.1/test-classes"))))

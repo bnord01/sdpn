@@ -13,6 +13,8 @@ import de.wwu.sdpn.wala.analyses.SimpleAnalyses
 import de.wwu.sdpn.wala.analyses.SDPNTestProps
 import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
 import de.wwu.sdpn.core.util.EPMWrapper
+import junit.framework.JUnit4TestAdapter
+import de.wwu.sdpn.core.ta.xsb.XSBInterRunner
 
 object SimpleAnalysesTest {
 
@@ -30,7 +32,13 @@ object SimpleAnalysesTest {
     @AfterClass
     def tearDown() {
         stuff = null
+        XSBInterRunner.shutdown();
     }
+
+//    /**
+//     * test suite for JUnit3 and SBT compatibility
+//     */
+//    def suite(): junit.framework.Test = new JUnit4TestAdapter(classOf[SimpleAnalysesTest])
 }
 class SimpleAnalysesTest {
     import SimpleAnalysesTest.stuff
@@ -63,7 +71,7 @@ class SimpleAnalysesTest {
         val (cg, pa, mr) = stuff(1)
         val nodes = cg.getNodes(mr)
         SimpleAnalyses.runWitnessTSRCheck(cg, pa, getStackSymbols(cg, mr), getStackSymbols(cg, mr), nodes, false) match {
-            case None => fail
+            case None    => fail
             case Some(x) => println("Witness: " + x)
         }
     }
@@ -143,11 +151,11 @@ class SimpleAnalysesTest {
         val (cg, pa, mr) = stuff(2)
         assertTrue("There shouldn't be an Conflict", SimpleAnalyses.runStdLibSSRCheck(cg, pa, getStackSymbols(cg, mr), null))
     }
-    
+
     @Test
     def testUnslicedLockSensSR6() {
         val (cg, pa, mr) = stuff(6)
-        assertFalse("There should be an Conflict", SimpleAnalyses.runSSRCheck(cg, pa, getStackSymbols(cg, mr), null,true))
+        assertFalse("There should be an Conflict", SimpleAnalyses.runSSRCheck(cg, pa, getStackSymbols(cg, mr), null, true))
     }
     @Test
     def testStdLibUnslicedLockSensSR6() {
@@ -170,7 +178,7 @@ class SimpleAnalysesTest {
             SimpleAnalyses.runSSRCheck(cg, pa, getStackSymbols(cg, mr), null, false, pm)
         } catch {
             case e: InterruptedException => println("Catched expected exception: " + e)
-            case e: RuntimeException => if (!("Canceled!" == e.getMessage())) throw e else println("Catched expected exception: " + e)
+            case e: RuntimeException     => if (!("Canceled!" == e.getMessage())) throw e else println("Catched expected exception: " + e)
         }
         fail("XSB wasn't canceld! (most likely bad timing)")
     }

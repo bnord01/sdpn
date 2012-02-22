@@ -13,13 +13,13 @@ import org.junit.Test
 import org.junit.Assert._
 import de.wwu.sdpn.wala.ri.RIDPN
 import de.wwu.sdpn.core.gui.MonitorDPNView
-
 import de.wwu.sdpn.core.analyses.SingleSetReachability
 import de.wwu.sdpn.core.ta.xsb.XSBInterRunner
 import de.wwu.sdpn.wala.ri.Isolated
 import de.wwu.sdpn.wala.ri.RISymbol
 import de.wwu.sdpn.core.ta.xsb.HasTermRepresentation
 import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
+import junit.framework.JUnit4TestAdapter
 
 object SimpleRITest {
 
@@ -44,7 +44,14 @@ object SimpleRITest {
     @AfterClass
     def tearDown() {
         stuff = null
+        XSBInterRunner.shutdown();
     }
+
+//    /**
+//     * test suite for JUnit3 and SBT compatibility
+//     */
+//    def suite(): junit.framework.Test = new JUnit4TestAdapter(classOf[SimpleRITest])
+
 }
 
 class SimpleRITest {
@@ -52,14 +59,14 @@ class SimpleRITest {
 
     @Test
     def testRIBsp01() {
-        runCheck(1,true)
+        runCheck(1, true)
     }
     @Test
     def testRIBsp02() {
-        runCheck(2,false)
+        runCheck(2, false)
     }
-    
-    def runCheck(nr:Int, expectedResult:Boolean) {
+
+    def runCheck(nr: Int, expectedResult: Boolean) {
         val (cg, pa, mr, ik) = stuff(nr)
         val sliceSet = cg.getNodes(mr)
         val cgnode = sliceSet.first
@@ -75,14 +82,14 @@ class SimpleRITest {
             }
         }
 
-        val confSet = Set[RISymbol[InstanceKey,StackSymbol]](Isolated(ik, StackSymbol(cgnode,0,0)))
+        val confSet = Set[RISymbol[InstanceKey, StackSymbol]](Isolated(ik, StackSymbol(cgnode, 0, 0)))
 
         require(confSet.subsetOf(ss), "Some symbols of confSet are not contained in the DPN!")
         val (td, bu) = SingleSetReachability.genAutomata(ridpn, confSet)
         val check = SingleSetReachability.genCheck(td, bu)
-        assert(XSBInterRunner.runCheck(check, null) == expectedResult, "There should" + (if(expectedResult) "n't" else "" ) +" be a conflict.")
+        assert(XSBInterRunner.runCheck(check, null) == expectedResult, "There should" + (if (expectedResult) "n't" else "") + " be a conflict.")
     }
-    
+
     // TODO This doesn't terminate! Check Why! 
     //@Test 
     def testStdLibCheck() {
@@ -101,12 +108,12 @@ class SimpleRITest {
             }
         }
 
-        val confSet = Set[RISymbol[InstanceKey,StackSymbol]](Isolated(ik, StackSymbol(cgnode,0,0)))
+        val confSet = Set[RISymbol[InstanceKey, StackSymbol]](Isolated(ik, StackSymbol(cgnode, 0, 0)))
 
         require(confSet.subsetOf(ss), "Some symbols of confSet are not contained in the DPN!")
         val (td, bu) = SingleSetReachability.genStdLibAutomata(ridpn, confSet)
         val check = SingleSetReachability.genCheck(td, bu)
-        assertTrue("There shouldn't be a conflict.",XSBInterRunner.runCheck(check, null))
+        assertTrue("There shouldn't be a conflict.", XSBInterRunner.runCheck(check, null))
     }
 
 }

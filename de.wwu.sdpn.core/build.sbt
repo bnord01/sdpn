@@ -10,6 +10,11 @@ resolvers += "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/
 
 libraryDependencies += "org.scala-lang" % "scala-swing" % "2.9.1"
 
+//addCompilerPlugin("org.scala-tools.sxr" %% "sxr" % "0.2.7")
+
+//scalacOptions <+= scalaSource in Compile map { "-P:sxr:base-directory:" + _.getAbsolutePath }
+
 //externalPom()
 
+libraryDependencies += "com.novocode" % "junit-interface" % "0.8" % "test"
 

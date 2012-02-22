@@ -1,30 +1,35 @@
 package de.wwu.sdpn.tests.util
 
-import com.ibm.wala.ipa.callgraph.CGNode
-import com.ibm.wala.classLoader.IMethod
-import com.ibm.wala.util.strings.StringStuff
-import org.junit._
-import com.ibm.wala.ipa.callgraph.CallGraph
-import org.junit.Assert._
-import com.ibm.wala.ipa.callgraph.AnalysisCache
-import scala.collection.JavaConversions._
-import com.ibm.wala.ssa.SSACFG
+import scala.collection.JavaConversions.asScalaIterator
+import scala.collection.JavaConversions.iterableAsScalaIterable
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.AfterClass
+import org.junit.BeforeClass
+import org.junit.Test
 import com.ibm.wala.classLoader.IBytecodeMethod
+import com.ibm.wala.classLoader.IMethod
+import com.ibm.wala.ipa.callgraph.AnalysisCache
+import com.ibm.wala.ssa.SSACFG
 import com.ibm.wala.ssa.SSAInvokeInstruction
-import com.ibm.wala.util.graph.Graph
 import com.ibm.wala.util.graph.impl.BasicOrderedMultiGraph
 import com.ibm.wala.util.graph.GraphPrint
-import de.wwu.sdpn.wala.util.PreAnalysis
+import com.ibm.wala.util.strings.StringStuff
+import de.wwu.sdpn.core.ta.xsb.witness.FullWitnessParser
 import de.wwu.sdpn.wala.analyses.MyPreAnalysis
 import de.wwu.sdpn.wala.analyses.SDPNTestProps
-import de.wwu.sdpn.wala.util.LockLocator
-import de.wwu.sdpn.wala.util.UniqueInstanceLocator
-import de.wwu.sdpn.wala.util.LockWithOriginLocator
 import de.wwu.sdpn.wala.util.ExceptionTypeLocator
-import de.wwu.sdpn.wala.util.MonitorMatcher
-import de.wwu.sdpn.wala.util.WaitMap
 import de.wwu.sdpn.wala.util.GraphCycleFinder
-import de.wwu.sdpn.core.ta.xsb.witness.FullWitnessParser
+import de.wwu.sdpn.wala.util.LockLocator
+import de.wwu.sdpn.wala.util.LockWithOriginLocator
+import de.wwu.sdpn.wala.util.MonitorMatcher
+import de.wwu.sdpn.wala.util.PreAnalysis
+import de.wwu.sdpn.wala.util.UniqueInstanceLocator
+import de.wwu.sdpn.wala.util.WaitMap
+import junit.framework.JUnit4TestAdapter
 
 object UtilTest {
   var analysis: PreAnalysis = null
@@ -38,6 +43,12 @@ object UtilTest {
   def tearDown() {
     analysis = null
   }
+//  
+//  /**
+//   * test suite for JUnit3 and SBT compatibility 
+//   */
+//  def suite() :junit.framework.Test =  new JUnit4TestAdapter(classOf[UtilTest]) 
+
 }
 
 class UtilTest {
