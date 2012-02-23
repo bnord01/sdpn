@@ -19,7 +19,7 @@ case object Spawn extends DPNAction { val getSSAInstruction = None }
 sealed case class MonitorEnter(instruction: SSAMonitorInstruction, instanceKey: InstanceKey) extends DPNAction {
     val getSSAInstruction = Some(instruction)
 }
-sealed case class MonitorExit(instruction: SSAMonitorInstruction) extends DPNAction{
+sealed case class MonitorExit(instruction: SSAMonitorInstruction,enter:StackSymbol) extends DPNAction{
     val getSSAInstruction = Some(instruction)
 }
 

@@ -298,7 +298,7 @@ class MonitorDPNFactory(analysis: PreAnalysis) {
           for(((exitBlock,idxBeforeMonitorExit),num) <- exits) {
               addPopRule(
             		  NState, StackSymbol(cgnode, exitBlock.getGraphNodeId(), idxBeforeMonitorExit),
-            		  MonitorExit(a),
+            		  MonitorExit(a,StackSymbol(cgnode,bbnr1,index2)),
             		  MExitState(num)) 
               addBaseRule(
             		  MExitState(num), StackSymbol(cgnode, bbnr1, fakeIndex),
