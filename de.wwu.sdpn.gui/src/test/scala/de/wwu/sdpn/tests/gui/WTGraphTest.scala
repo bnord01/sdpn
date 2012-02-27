@@ -44,7 +44,7 @@ class WTGraphTest {
   //@Test 
   def testStaticGUI() {
     val lsTestTree = "st(c(i(c(0,s(0,0,0),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(0,0,1),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(0,1,0),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(0,1,1),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(0,2,0),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(0,2,1),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(0,3,0),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(0,3,1),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(0,4,0),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(0,4,1),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(0,5,0),0,0),0),i(l(3,3,2),i(2,i(top,top)))),call1(st(c(i(c(0,s(5,0,0),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(5,1,0),0,0),0),i(l(3,3,2),i(2,i(top,top)))),call1(st(c(i(c(0,s(10,0,0),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(10,1,0),0,0),0),i(l(3,3,2),i(2,i(top,top)))),base(st(c(i(c(0,s(10,1,1),0,0),0),i(l(3,3,2),i(2,i(top,top)))),call2(st(c(i(c(0,s(16,0,0),0,1),0),i(l(2,2,0),i(1,i(top,top)))),spawn(st(c(i(c(0,s(21,0,0),0,0),0),i(l(2,2,0),i(1,i(top,top)))),base(st(c(i(c(0,s(21,1,0),0,0),0),i(l(2,2,0),i(1,i(top,top)))),call1(st(c(i(c(0,s(24,0,0),0,0),0),i(l(2,2,0),i(1,i(top,top)))),base(st(c(i(c(0,s(24,1,0),0,0),0),i(l(2,2,0),i(1,i(top,top)))),base(st(c(i(c(0,s(24,1,1),0,0),0),i(l(2,2,0),i(1,i(top,top)))),acq(la(1,0),st(c(i(c(0,s(24,1,2),0,0),2),i(l(0,0,0),i(1,i(top,top)))),base(st(c(i(c(0,s(24,2,0),0,0),2),i(l(0,0,0),i(1,i(top,top)))),call1(st(c(i(c(0,s(18,0,0),0,0),2),i(l(0,0,0),i(1,i(top,top)))),nil(t(0,s(18,0,0)))))))))))))))))),st(c(i(c(0,s(16,1,0),0,1),0),i(l(0,0,0),i(0,i(bot,bot)))),ret))),st(c(i(c(0,s(10,1,2),0,0),0),i(l(1,3,2),i(1,i(top,top)))),base(st(c(i(c(0,s(10,2,0),0,0),0),i(l(1,3,2),i(1,i(top,top)))),base(st(c(i(c(0,s(10,2,1),0,0),0),i(l(1,3,2),i(1,i(top,top)))),acq(la(0,0),st(c(i(c(0,s(10,2,2),0,0),1),i(l(0,2,0),i(1,i(top,top)))),base(st(c(i(c(0,s(10,3,0),0,0),1),i(l(0,2,0),i(1,i(top,top)))),base(st(c(i(c(0,s(10,3,1),0,0),1),i(l(0,2,0),i(1,i(top,top)))),use(la(1,0),st(c(i(c(0,s(10,3,2),0,1),3),i(l(0,0,0),i(0,i(bot,bot)))),base(st(c(i(c(0,s(10,4,0),0,1),3),i(l(0,0,0),i(0,i(bot,bot)))),base(st(c(i(c(0,s(10,4,1),0,1),3),i(l(0,0,0),i(0,i(bot,bot)))),base(st(c(i(c(0,s(10,5,0),0,1),3),i(l(0,0,0),i(0,i(bot,bot)))),ret))))))),st(c(i(c(0,s(10,6,0),0,0),1),i(l(0,0,0),i(1,i(top,top)))),base(st(c(i(c(0,s(10,6,1),0,0),1),i(l(0,0,0),i(1,i(top,top)))),base(st(c(i(c(0,s(10,9,0),0,0),1),i(l(0,0,0),i(1,i(top,top)))),call1(st(c(i(c(0,s(18,0,0),0,0),1),i(l(0,0,0),i(1,i(top,top)))),nil(t(0,s(18,0,0))))))))))))))))))))))))))))))))))))))))))))))))))))))"
-    val witness = FullWitnessParser.parseTree(lsTestTree)
+    val witness = FullWitnessParser.parseTreeWithName(lsTestTree)
     WTGraph.showTree(witness.get)
   }
 
@@ -57,7 +57,7 @@ class WTGraphTest {
     assertFalse("There should be an Conflict", res == None)
     val switness = res.get
     val parser = FullWitnessParser
-    val witness = parser.parseTree(switness)
+    val witness = parser.parseTreeWithName(switness)
     WTGraph.showTree(witness.get, cg)
 
   }

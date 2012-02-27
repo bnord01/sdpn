@@ -24,8 +24,21 @@ import org.eclipse.jface.viewers.ITreeSelection
 import de.wwu.sdpn.eclipse.util.WalaEclipseUtil
 import org.eclipse.jdt.ui.JavaUI
 import org.eclipse.jdt.core.IJavaElement
+import org.eclipse.swt.widgets.Listener
+import org.eclipse.swt.widgets.Event
+import org.eclipse.swt.widgets.Menu
+import org.eclipse.swt.widgets.Tree
+import org.eclipse.jface.viewers.TreeViewer
+import org.eclipse.swt.widgets.MenuItem
+import org.eclipse.swt.events.SelectionListener
+import org.eclipse.swt.events.SelectionEvent
+import de.wwu.sdpn.core.ta.xsb.witness.WitnessTree
+import de.wwu.sdpn.gui.ta.witness.zest.WTGraph
+import org.eclipse.ui.PlatformUI
+import org.eclipse.swt.widgets.Shell
+import org.eclipse.swt.layout.FillLayout
 
-class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITreeContentProvider with ILabelProvider with IDoubleClickListener{
+class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITreeContentProvider with ILabelProvider with IDoubleClickListener {
 
     def getRoot: Object = result
     def getTotalResult = result.value
@@ -53,12 +66,12 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
             case dbr: DRBaseResult =>
                 val rv: Array[Object] = new Array(dbr.detail._2.size)
                 for ((kv, nr) <- dbr.detail._2.zipWithIndex)
-                    rv(nr) = kv
+                    rv(nr) = (dbr, kv)
                 rv
             case res: Result[AnyRef, AnyRef, AnyRef] => {
                 val rv: Array[Object] = new Array(res.subResults.size)
-                for ((kv, nr) <- res.subResults.zipWithIndex)
-                    rv(nr) = kv._2
+                for (((k, v), nr) <- res.subResults.zipWithIndex)
+                    rv(nr) = v
                 rv
             }
         }
@@ -75,8 +88,8 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
     def hasChildren(element: Object): Boolean = {
         element match {
             case dbr: DRBaseResult => !dbr.detail._2.isEmpty
-            case res: Result[ _, _, _]                          => res.hasSubResults
-            case (node: CGNode, instr: SSAFieldAccessInstruction) => false
+            case res: Result[_, _, _] => res.hasSubResults
+            case (baseResult: DRBaseResult, (node: CGNode, instr: SSAFieldAccessInstruction)) => false
         }
     }
 
@@ -91,10 +104,10 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
                     case _        => si.getImage(ISharedImages.IMG_OBJS_PROTECTED)
                 }
             }
-            case (node: CGNode, instr: SSAFieldAccessInstruction) =>
+            case (baseResult: DRBaseResult, (node: CGNode, instr: SSAFieldAccessInstruction)) =>
                 instr match {
-                    case _:SSAGetInstruction => si.getImage(ISharedImages.IMG_FIELD_PUBLIC)
-                    case _:SSAPutInstruction => si.getImage(ISharedImages.IMG_FIELD_PRIVATE)
+                    case _: SSAGetInstruction => si.getImage(ISharedImages.IMG_FIELD_PUBLIC)
+                    case _: SSAPutInstruction => si.getImage(ISharedImages.IMG_FIELD_PRIVATE)
                 }
 
         }
@@ -115,10 +128,10 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
                 case ck: ConstantKey[_]      => "Field on static object: " + ck.getValue()
                 case k                       => k.toString()
             }
-            case (node: CGNode, instr: SSAFieldAccessInstruction) => instr match {
-                    case _:SSAGetInstruction => "Field read in " + node.getMethod().getSignature()
-                    case _:SSAPutInstruction => "Field write in " + node.getMethod().getSignature()
-                }
+            case (baseResult: DRBaseResult, (node: CGNode, instr: SSAFieldAccessInstruction)) => instr match {
+                case _: SSAGetInstruction => "Field read in " + node.getMethod().getSignature()
+                case _: SSAPutInstruction => "Field write in " + node.getMethod().getSignature()
+            }
         }
     }
 
@@ -141,22 +154,122 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
     def removeListener(listener: ILabelProviderListener) {
 
     }
-    
-    def doubleClick(event : DoubleClickEvent) {
+
+    def doubleClick(event: DoubleClickEvent) {
         event.getSelection() match {
-            case ts: ITreeSelection => 
-                ts.getFirstElement() match {                    
-                	case drr: DRResult     => 
-                	case fr: DRFieldResult => 
-                	case br: DRBaseResult =>  de.wwu.sdpn.core.gui.MonitorDPNView.show(br.detail._3.dpn)
-                	case (node: CGNode, instr: SSAFieldAccessInstruction) =>
-                	    val imeth = WalaEclipseUtil.cgnode2IMethod(jproj,node)
-                	    if (imeth != null)
-                	        JavaUI.revealInEditor(JavaUI.openInEditor(imeth), imeth:IJavaElement);
+            case ts: ITreeSelection =>
+                ts.getFirstElement() match {
+                    case drr: DRResult     =>
+                    case fr: DRFieldResult =>
+                    case br: DRBaseResult  => 
+                    case (baseResult: DRBaseResult, (node: CGNode, instr: SSAFieldAccessInstruction)) =>
+                        val imeth = WalaEclipseUtil.cgnode2IMethod(jproj, node)
+                        if (imeth != null)
+                            JavaUI.revealInEditor(JavaUI.openInEditor(imeth), imeth: IJavaElement);
                 }
-                
+
         }
     }
-    
+
+    def getMenuListener(treeViewer: TreeViewer, mntmShowWitness: MenuItem, mntmSimmulateDpn: MenuItem): Listener = {
+        return new Listener {
+            def handleEvent(event: Event) {
+                treeViewer.getSelection() match {
+                    case ts: ITreeSelection =>
+                        ts.getFirstElement() match {
+                            case br: DRBaseResult =>
+                                mntmShowWitness.setEnabled(true)
+                                mntmSimmulateDpn.setEnabled(true)
+
+                            case (baseResult: DRBaseResult, (node: CGNode, instr: SSAFieldAccessInstruction)) =>
+                                mntmShowWitness.setEnabled(true)
+                                mntmSimmulateDpn.setEnabled(true)
+                            case _ =>
+                                mntmShowWitness.setEnabled(false)
+                                mntmSimmulateDpn.setEnabled(false)
+                        }
+                    case _ =>
+                        mntmShowWitness.setEnabled(false)
+                        mntmSimmulateDpn.setEnabled(false)
+
+                }
+
+            }
+        };
+    }
+
+    def getShowDPNListener(treeViewer: TreeViewer): SelectionListener = {
+        return new SelectionListener {
+            def widgetSelected(e: SelectionEvent) {
+                treeViewer.getSelection() match {
+                    case ts: ITreeSelection =>
+                        ts.getFirstElement() match {
+                            case br: DRBaseResult =>
+                                println("Starting DPN View")
+                                val dpn = br.detail._3.dpn
+                                println("DPN size: " + dpn.getTransitions.size)
+                                de.wwu.sdpn.core.gui.MonitorDPNView.show(dpn)
+                            case (br: DRBaseResult, (node: CGNode, instr: SSAFieldAccessInstruction)) =>
+                                println("Starting DPN View")
+                                val dpn = br.detail._3.dpn
+                                println("DPN size: " + dpn.getTransitions.size)
+                                de.wwu.sdpn.core.gui.MonitorDPNView.show(dpn)
+                            case _ =>
+                        }
+                    case _ =>
+
+                }
+            }
+
+            def widgetDefaultSelected(e: SelectionEvent) {}
+        }
+    }
+
+    def getShowWitnessListener(treeViewer: TreeViewer): SelectionListener = {
+        return new SelectionListener {
+            def widgetSelected(e: SelectionEvent) {
+                val witness = treeViewer.getSelection() match {
+                    case ts: ITreeSelection =>
+                        ts.getFirstElement() match {
+                            case br: DRBaseResult =>
+                                Some(br.detail._3.cg, br.detail._3.getWitness)
+                            case (br: DRBaseResult, (node: CGNode, instr: SSAFieldAccessInstruction)) =>
+                                Some(br.detail._3.cg, br.detail._3.getWitness)
+                            case _ => None
+                        }
+                    case _ => None
+                }
+                witness match {
+                    case Some((cg, Some(wt))) =>                        
+                        val decorator = (t: WitnessTree) => {
+                            val ss = t.state.ss
+                            val nr = ss.cg
+                            val node = cg.getNode(nr)
+                            val name = node.getMethod().getName()
+                            var cn = t.getClass().getCanonicalName()
+                            cn = cn.dropRight(4)
+                            cn = cn split ('.') last;
+                            "%s in  %s  at (%d,%d)".format(cn, name, ss.bb, ss.instr)
+                        }
+
+                        val display = PlatformUI.getWorkbench().getDisplay()
+                        display.asyncExec(new Runnable {
+                            def run {
+                                val shell = new Shell(display);
+                                shell.setText("Witness View");
+                                shell.setLayout(new FillLayout());
+                                shell.setSize(400, 800);
+                                new WTGraph(wt, shell, decorator, 0)
+                                shell.open();
+                            }
+                        })
+
+                    case _ =>
+                }
+            }
+
+            def widgetDefaultSelected(e: SelectionEvent) {}
+        }
+    }
 
 }

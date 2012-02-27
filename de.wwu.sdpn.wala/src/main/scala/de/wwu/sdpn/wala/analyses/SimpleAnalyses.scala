@@ -31,6 +31,8 @@ import de.wwu.sdpn.wala.util.ThreadSensContextSelector
 import de.wwu.sdpn.wala.util.WaitMap
 import de.wwu.sdpn.core.util.SubProgressMonitor
 import de.wwu.sdpn.core.result._
+import de.wwu.sdpn.core.ta.xsb.witness.WitnessTree
+import de.wwu.sdpn.core.ta.xsb.witness.FullWitnessParser
 
 object SimpleAnalyses {
     import ProgressMonitorUtil._
@@ -127,6 +129,18 @@ object SimpleAnalyses {
     }
 
     /**
+     * Run A witness TSR check based on the given DPN
+     */
+    def runWitnessTSRCheck(dpn: MDPN, confSet1: Set[StackSymbol], confSet2: Set[StackSymbol], lockSens: Boolean): Option[String] = {
+        val ss = dpn.getStackSymbols
+        require(confSet1.subsetOf(ss), "Some symbols of confSet1 are not contained in the DPN!")
+        require(confSet2.subsetOf(ss), "Some symbols of confSet2 are not contained in the DPN!")
+        val (td, bu) = TwoSetReachability.genAutomata(dpn, confSet1, confSet2, lockSens)
+        val check = new FullWitnessIntersectionEmptinessCheck(td, bu)
+        return runner.runFullWitnessCheck(check)
+    }
+
+    /**
      * Method to run a TwoSetReachability analysis and return the result of the
      * emptiness check.
      *
@@ -187,13 +201,13 @@ object SimpleAnalyses {
             if (isCanceled(pm)) throw new RuntimeException("Canceled")
             subTask(pm, "Running XSB based emptiness check")
             val pms = new SubProgressMonitor(pm, 3)
-            val possible = runner.runCheck(check, pms)
+            val empty = runner.runCheck(check, pms)
             return SimpleTSRResult(dpn: SimpleAnalyses.MDPN,
                 cg: CallGraph, pa: PointerAnalysis,
                 confSet1: Set[StackSymbol], confSet2: Set[StackSymbol],
                 sliceSet: Set[CGNode],
                 lockSens: Boolean,
-                if (possible) Positive else Negative)
+                if (empty) Negative else Positive)
         } finally {
             done(pm)
         }
@@ -437,5 +451,25 @@ case class SimpleTSRResult(dpn: SimpleAnalyses.MDPN,
                            confSet1: Set[StackSymbol], confSet2: Set[StackSymbol],
                            sliceSet: Set[CGNode],
                            lockSens: Boolean,
-                           resVal: ResultValue) extends BaseResult((), resVal)
+                           resVal: ResultValue) extends BaseResult((), resVal) {
+    lazy val getWitness: Option[WitnessTree] = {
+        if (resVal != Positive)
+            None
+        else {
+            val witnessOption = SimpleAnalyses.runWitnessTSRCheck(dpn, confSet1, confSet2, lockSens)
+            witnessOption match {
+                case None => None                
+                case Some(s) =>
+                    val pr = FullWitnessParser.parseTreeWithName(s)
+                    if (pr.successful) {
+                        Some(pr.get)
+                    }
+                    else
+                        None
+
+            }
+        }
+
+    }
+}
 

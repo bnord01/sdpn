@@ -13,6 +13,8 @@ object FullWitnessParser extends JavaTokenParsers {
   // The Parser 
   // format: OFF
   
+  def term: Parser[String] = "[1-9][0-9]*".r | "[a-z][a-zA-Z0-9_]*".r
+    
   
   def lnr = wholeNumber ^^ (_.toLong)
   def inr = wholeNumber ^^ (_.toInt)
@@ -86,6 +88,8 @@ object FullWitnessParser extends JavaTokenParsers {
     case "nil(t("~inr~","~stackSym~"))" => PNilTree(GlobalState(inr), stackSym) 
   }
   def retTree = "ret" ^^ { _ => PRetTree }
+  
+  def fullTreeWithName: Parser[WitnessTree] = term~"("~>fullTree<~")"
   // format: ON
 
   // Partial Trees without State
@@ -100,5 +104,6 @@ object FullWitnessParser extends JavaTokenParsers {
   case object PRetTree extends PTree
 
   def parseTree(str: String) = parseAll(fullTree, str)
+  def parseTreeWithName(str: String) = parseAll(fullTreeWithName, str)
 
 }

@@ -51,6 +51,7 @@ class WitnessIntersectionEmptinessCheck(ta1: ScriptTreeAutomata, ta2: ScriptTree
         outln("%%Emptiness check for the intersection of " + ta1.name + " and " + ta2.name);nl
         
         out("""
+:- retractall(name_witness(_,_,_)).
 :- dynamic name_witness/3.
 """.replace("name",name))
         

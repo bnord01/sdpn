@@ -95,14 +95,17 @@ class DataraceAnalysis(cg: CallGraph, pa: PointerAnalysis, ops: DRAOptions) {
                     val res = possibleRaceOnFieldDetailed(ik,atom)
                     res.value match {
                         case Positive =>
-                            mainResult.updateValue(path, Negative)
-                        case Negative =>	
                             mainResult.updateValue(path, Positive)
+                        case Negative =>	
+                            mainResult.updateValue(path, Negative)
                         case _ =>
                             mainResult.updateValue(path, ProcessingError)                            
                     }
                     val subResult = mainResult.lookUp(path).asInstanceOf[DRBaseResult]
-                    mainResult.updateDetail(path,(subResult.detail._1,subResult.detail._2,res))                    
+                    val old = subResult.detail 
+                    mainResult.updateDetail(path,(subResult.detail._1,subResult.detail._2,res))
+                    assert(mainResult.lookUp(path).asInstanceOf[DRBaseResult].detail != old, "Nothing changed")
+                    assert(mainResult.lookUp(path).asInstanceOf[DRBaseResult].detail._3 == res,"Changed wrong!")
                     pm worked 1
                     pm subTask ("Finished data race analyis " + current + " of " + instances + ".")
                     current += 1
