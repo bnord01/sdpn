@@ -101,11 +101,8 @@ class DataraceAnalysis(cg: CallGraph, pa: PointerAnalysis, ops: DRAOptions) {
                         case _ =>
                             mainResult.updateValue(path, ProcessingError)                            
                     }
-                    val subResult = mainResult.lookUp(path).asInstanceOf[DRBaseResult]
-                    val old = subResult.detail 
+                    val subResult = mainResult.lookUp(path).asInstanceOf[DRBaseResult]                    
                     mainResult.updateDetail(path,(subResult.detail._1,subResult.detail._2,res))
-                    assert(mainResult.lookUp(path).asInstanceOf[DRBaseResult].detail != old, "Nothing changed")
-                    assert(mainResult.lookUp(path).asInstanceOf[DRBaseResult].detail._3 == res,"Changed wrong!")
                     pm worked 1
                     pm subTask ("Finished data race analyis " + current + " of " + instances + ".")
                     current += 1
