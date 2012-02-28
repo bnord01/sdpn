@@ -184,6 +184,9 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
                             case (baseResult: DRBaseResult, (node: CGNode, instr: SSAFieldAccessInstruction)) =>
                                 mntmShowWitness.setEnabled(true)
                                 mntmSimmulateDpn.setEnabled(true)
+                            case fr:DRFieldResult if fr.subResults.size == 1 =>                                
+                                mntmShowWitness.setEnabled(true)
+                                mntmSimmulateDpn.setEnabled(true)
                             case _ =>
                                 mntmShowWitness.setEnabled(false)
                                 mntmSimmulateDpn.setEnabled(false)
@@ -214,6 +217,12 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
                                 val dpn = br.detail._3.dpn
                                 println("DPN size: " + dpn.getTransitions.size)
                                 de.wwu.sdpn.core.gui.MonitorDPNView.show(dpn)
+                            case fr:DRFieldResult if fr.subResults.size == 1 =>  
+                                val br = fr.subResults.values.first
+                                println("Starting DPN View")
+                                val dpn = br.detail._3.dpn
+                                println("DPN size: " + dpn.getTransitions.size)
+                                de.wwu.sdpn.core.gui.MonitorDPNView.show(dpn)
                             case _ =>
                         }
                     case _ =>
@@ -234,6 +243,9 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
                             case br: DRBaseResult =>
                                 Some(br.detail._3.cg, br.detail._3.getWitness)
                             case (br: DRBaseResult, (node: CGNode, instr: SSAFieldAccessInstruction)) =>
+                                Some(br.detail._3.cg, br.detail._3.getWitness)
+                            case fr:DRFieldResult if fr.subResults.size == 1 =>  
+                                val br = fr.subResults.values.first
                                 Some(br.detail._3.cg, br.detail._3.getWitness)
                             case _ => None
                         }
