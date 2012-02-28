@@ -31,7 +31,7 @@ import org.eclipse.swt.events.SelectionListener
 import org.eclipse.swt.events.SelectionEvent
 
 class WTGraph(tree: WitnessTree, parent: Composite, decorator: WitnessTree => String = _.toString, selectionListener: WitnessTree => Unit = _=>()) extends Graph(parent, 0) {
-    // Disabel moving of nodes
+    // Disable moving of nodes
     this.getLightweightSystem().setEventDispatcher(
         new SWTEventDispatcher() {
             override def dispatchMouseMoved(me: org.eclipse.swt.events.MouseEvent) {
