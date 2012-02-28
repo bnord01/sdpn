@@ -245,11 +245,19 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
                             val ss = t.state.ss
                             val nr = ss.cg
                             val node = cg.getNode(nr)
-                            val name = node.getMethod().getName()
+                            val name = node.getMethod().getDeclaringClass().getName().toString().drop(1).split("/").last + "." + node.getMethod().getName()
                             var cn = t.getClass().getCanonicalName()
                             cn = cn.dropRight(4)
                             cn = cn split ('.') last;
                             "%s in  %s  at (%d,%d)".format(cn, name, ss.bb, ss.instr)
+                        }
+                        
+                        val selectionListener = (t:WitnessTree) => {
+                            val num = t.state.ss.cg
+                            val cgnode = cg.getNode(num)
+                            val imeth = WalaEclipseUtil.cgnode2IMethod(jproj, cgnode)
+                            		if (imeth != null)
+                            JavaUI.revealInEditor(JavaUI.openInEditor(imeth), imeth: IJavaElement);
                         }
 
                         val display = PlatformUI.getWorkbench().getDisplay()
@@ -259,7 +267,7 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
                                 shell.setText("Witness View");
                                 shell.setLayout(new FillLayout());
                                 shell.setSize(400, 800);
-                                new WTGraph(wt, shell, decorator, 0)
+                                new WTGraph(wt, shell, decorator=decorator,selectionListener=selectionListener)
                                 shell.open();
                             }
                         })
