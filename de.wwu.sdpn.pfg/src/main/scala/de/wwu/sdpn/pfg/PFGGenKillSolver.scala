@@ -1,16 +1,7 @@
 package de.wwu.sdpn.pfg
 
-import com.ibm.wala.fixpoint.IVariable
-import com.ibm.wala.fixpoint.AbstractVariable
-import com.ibm.wala.fixedpoint.impl.DefaultFixedPointSolver
-import com.ibm.wala.fixpoint.UnaryStatement
-import com.ibm.wala.fixpoint.UnaryOperator
 import com.ibm.wala.fixpoint.FixedPointConstants._
 import lattices._
-import com.ibm.wala.fixpoint.AbstractOperator
-import com.ibm.wala.fixpoint.IFixedPointStatement
-import com.ibm.wala.util.graph.impl.NodeWithNumber
-import com.ibm.wala.fixpoint.AbstractStatement
 
 class PFGGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](pfg: ParFlowGraph[P, N, BA, R, E], trans: GenKillFunction[E, L]) {
 
