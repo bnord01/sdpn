@@ -12,74 +12,66 @@ import com.ibm.wala.fixpoint.IFixedPointStatement
 import com.ibm.wala.util.graph.impl.NodeWithNumber
 import com.ibm.wala.fixpoint.AbstractStatement
 
-class PFGGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](pfg: ParFlowGraph[P, N, BA, R, E], trans: GenKillFunction[E, L]) extends DefaultFixedPointSolver[PFGVar[L, N]] {
+class PFGGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](pfg: ParFlowGraph[P, N, BA, R, E], trans: GenKillFunction[E, L]) {
 
     type LV = LVar[L, N]
     type GKV = GKVar[L, N]
     type GV = PFGVar[L, N]
-    type GKOP = GenKillOperator[L, N]
-    val GKOP = GenKillOperator
-    type HOGKOP = HOGenKillOperator[L, N]
-    val HOGKOP = HOGenKillOperator
-    type HOGKOP2 = HOGenKillOperator2[L, N]
-    val HOGKOP2 = HOGenKillOperator2
-
-    import scala.collection.mutable.{ Map => MMap }
+    type GKStmt = GKStatement[L,N] 
+        
+    import scala.collection.mutable.{ Map => MMap, Set => MSet }
     val rvar: MMap[N, LVar[L, N]] = MMap()
     val svar: MMap[N, GKVar[L, N]] = MMap()
+    
+    private val dependendStatements:MMap[GV,MSet[GKStmt]] = MMap().withDefaultValue(MSet())
+    private val wl:MSet[GKStmt] = MSet()
 
     // Set up variables
-    override def initializeVariables {
+    def initializeVariables {
         for (node <- pfg.nodes) {
             rvar += node -> new LVar[L, N](node)
             svar += node -> new GKVar[L, N](node)
         }
     }
 
-    override def initializeWorkList {
-
+    def initializeWorkList {
+        import GKExpr._
+        // Set up statements for initial nodes
+        for(eNode <- pfg.entryNode.values) {
+            add ( svar(eNode) ⊒ ConstGKExpr[L,N](GenKill.id))
+        }
+            
+        
         // Set up statements for edges
         for (edge <- pfg.edges) {
             edge match {
                 case be: BaseEdge[P, N, BA, R] =>
                     val ssrc = svar(be.src)
                     val ssnk = svar(be.snk)
-                    newGKVStatement(ssnk, HOGKOP(trans(edge)), ssrc)
+                    add( ssnk ⊒ (ssrc beforeConst trans(edge)) )
                 case ce: CallEdge[P, N, BA, R] =>
                     for ((rval, snk) <- ce.returns) {
                         for (rnode <- pfg.retNodes(ce.proc)(rval)) {
                             val ssrc = svar(ce.src)
                             val ssnk = svar(snk)
                             val sret = svar(rnode)
-                            newGKV2Statement(ssnk, HOGKOP2(trans(edge)), ssrc, sret)
+                            add( ssnk ⊒ ( ssrc beforeConst trans(edge) before sret ))                            
                         }
                     }
                 case se: SpawnEdge[P, N, BA, R] =>
                     val ssrc = svar(se.src)
                     val ssnk = svar(se.snk)
-                    newGKVStatement(ssnk, HOGKOP(trans(edge)), ssrc)
+                    add( ssnk ⊒ ( ssrc beforeConst trans(edge) ) )
             }
         }
     }
 
-    def newRVStatement(lhs: LV, op: GKOP, rhs: LV) {
-        newStatement(lhs, op, rhs, true, false)
+    def add(st: GKStatement[L, N]) {
+        for(v <- st.getRHS()){
+            dependendStatements.getOrElseUpdate(v,MSet()) += st
+        }
+        wl += st
     }
-
-    def newGKVStatement(lhs: GKV, op: HOGKOP, rhs: GKV) {
-        newStatement(lhs, op, rhs, true, false)
-    }
-
-    def newGKV2Statement(lhs: GKV, op: HOGKOP2, rhs1: GKV, rhs2: GKV) {
-        newStatement(lhs, op, rhs1, rhs2, true, false)
-    }
-    
-    def addStatement(st: GKStatement[L,N]) {
-        
-    }
-
-    //TODO change this?
-    override def makeStmtRHS(size: Int): Array[PFGVar[L, N]] = new Array[PFGVar[L,N]](size)
 
     def printResults: String = {
         val buf = new StringBuffer
@@ -93,6 +85,24 @@ class PFGGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](pfg: Par
 
         buf.toString()
     }
+
+    def solve(canceled: => Boolean = false) {
+        initializeVariables
+        initializeWorkList
+        while(!wl.isEmpty){
+            if(canceled)
+                throw new RuntimeException("Canceled!")
+            val st = wl.first
+            wl -= st
+            val res = st.evaluate()
+            if(res == CHANGED || res == CHANGED_AND_FIXED)
+                for(s <- dependendStatements(st.getLHS()))
+                    wl += s
+        }
+
+    }
+    
+     
 
 }
 
@@ -117,20 +127,20 @@ trait GenKill[L] {
     }
 
 }
+object GenKill{
+    def id[L](implicit lat:Lattice[L]) = new GenKill[L]{
+        val gen = lat.bottom
+        val kill = lat.top
+    }
+}
+
+
 
 trait GenKillFunction[E, L] {
     def apply(edge: E): GenKill[L]
 }
 
-case class GenKillOperator[L: Lattice, N](e: GenKill[L]) extends UnaryOperator[PFGVar[L, N]] {
-    def evaluate(lhs: PFGVar[L, N], rhs: PFGVar[L, N]): Byte = {
-        require(lhs.isInstanceOf[LVar[L, N]], "GenKillOperator can only be applied to instances of LVar as LHS not: " + lhs)
-        require(rhs.isInstanceOf[LVar[L, N]], "GenKillOperator can only be applied to instances of LVar as RHS not: " + rhs)
-        val lh = lhs.asInstanceOf[LVar[L, N]]
-        val rh = rhs.asInstanceOf[LVar[L, N]]
-        evaluate(lh, rh)
-
-    }
+case class GenKillOperator[L: Lattice, N](e: GenKill[L]) {
     def evaluate(lhs: LVar[L, N], rhs: LVar[L, N]): Byte = {
         return lhs joinWith (e appliedTo rhs)
     }
@@ -139,14 +149,7 @@ case class GenKillOperator[L: Lattice, N](e: GenKill[L]) extends UnaryOperator[P
 /**
  * Implements S[lhs] ⊒ S[rhs];gk
  */
-case class HOGenKillOperator[L: Lattice, N](gk: GenKill[L]) extends UnaryOperator[PFGVar[L, N]] {
-    def evaluate(lhs: PFGVar[L, N], rhs: PFGVar[L, N]): Byte = {
-        require(lhs.isInstanceOf[GKVar[L, N]], "GenKillOperator can only be applied to instances of GKVar as LHS not: " + lhs)
-        require(rhs.isInstanceOf[GKVar[L, N]], "GenKillOperator can only be applied to instances of GKVar as RHS not: " + rhs)
-        val lh = lhs.asInstanceOf[GKVar[L, N]]
-        val rh = rhs.asInstanceOf[GKVar[L, N]]
-        evaluate(lh, rh)
-    }
+case class HOGenKillOperator[L: Lattice, N](gk: GenKill[L]) {
     def evaluate(lhs: GKVar[L, N], rhs: GKVar[L, N]): Byte = {
         if (lhs.isTop)
             return NOT_CHANGED_AND_FIXED
@@ -157,21 +160,7 @@ case class HOGenKillOperator[L: Lattice, N](gk: GenKill[L]) extends UnaryOperato
 /**
  * Implements S[lhs] ⊒ S[rhs1];e;S[rhs2]
  */
-case class HOGenKillOperator2[L: Lattice, N](e: GenKill[L]) extends AbstractOperator[PFGVar[L, N]] {
-    def evaluate(lhs: PFGVar[L, N], rhs: Array[PFGVar[L, N]]): Byte = {
-        require(lhs.isInstanceOf[GKVar[L, N]], "GenKillOperator can only be applied to instances of GKVar as LHS not: " + lhs)
-        require(rhs.length == 2, "Need exactly 2 RHS variables found: " + rhs.length)
-        val rh1 = rhs(0)
-        val rh2 = rhs(1)
-        require(rh1.isInstanceOf[GKVar[L, N]], "GenKillOperator can only be applied to instances of GKVar as RHS not: " + rh1)
-        require(rh2.isInstanceOf[GKVar[L, N]], "GenKillOperator can only be applied to instances of GKVar as RHS not: " + rh2)
-        val v = lhs.asInstanceOf[GKVar[L, N]]
-        val u = rh1.asInstanceOf[GKVar[L, N]]
-        val r = rh2.asInstanceOf[GKVar[L, N]]
-
-        evaluate(v, u, r)
-
-    }
+case class HOGenKillOperator2[L: Lattice, N](e: GenKill[L]) {
 
     def evaluate(lhs: GKVar[L, N], rhs1: GKVar[L, N], rhs2: GKVar[L, N]): Byte = {
         if (lhs.isTop)
@@ -181,16 +170,12 @@ case class HOGenKillOperator2[L: Lattice, N](e: GenKill[L]) extends AbstractOper
 
 }
 
-sealed abstract class PFGVar[L, N] extends AbstractVariable[PFGVar[L, N]] {
+sealed abstract class PFGVar[L, N] {
     def isTop: Boolean
 }
 sealed class LVar[L: Lattice, N](node: N) extends PFGVar[L, N] {
     var elem: L = implicitly[Lattice[L]].bottom
-    def copyState(src: PFGVar[L, N]) {
-        src match {
-            case rv: LVar[L, N] => elem = rv.elem
-        }
-    }
+
     def isTop = elem.isTop
 
     def joinWith(other: => L): Byte = {
@@ -220,11 +205,6 @@ sealed class GKVar[L: Lattice, N](node: N) extends PFGVar[L, N] with GenKill[L] 
     import lat._
     var gen: L = bottom
     var kill: L = bottom
-    def copyState(src: PFGVar[L, N]) {
-        src match {
-            case sv: GKVar[L, N] => gen = sv.gen; kill = sv.kill
-        }
-    }
 
     def isTop = gen.isTop
 
@@ -233,7 +213,7 @@ sealed class GKVar[L: Lattice, N](node: N) extends PFGVar[L, N] with GenKill[L] 
             return NOT_CHANGED_AND_FIXED
         val ugen = update.gen
         val ukill = update.kill
-        val newkill = kill ⊓ ukill
+        val newkill = kill ⊔ ukill
         val newgen = gen ⊔ ugen
         if (newgen > gen) {
             gen = newgen
@@ -244,15 +224,18 @@ sealed class GKVar[L: Lattice, N](node: N) extends PFGVar[L, N] with GenKill[L] 
             kill = newkill
             return CHANGED
         }
-        if (newkill < kill) {
+        if (kill < newkill) {
             kill = newkill
             return CHANGED
         }
         return NOT_CHANGED
     }
+
+    def ⊒(expr: GKExpr[L, N]) = new GKStatement(this, expr)
+
 }
 
-sealed class GKStatement[L: Lattice, N](lhs: GKVar[L, N], rhs: GKExpr[L, N]) extends AbstractStatement[PFGVar[L, N],Nothing] {
+sealed class GKStatement[L: Lattice, N](lhs: GKVar[L, N], rhs: GKExpr[L, N]) {
 
     /**
      * Evaluate this statement, setting a new value for the left-hand side. The
@@ -267,35 +250,36 @@ sealed class GKStatement[L: Lattice, N](lhs: GKVar[L, N], rhs: GKExpr[L, N]) ext
     def evaluate(): Byte = lhs joinWith (rhs.value)
     def getLHS(): PFGVar[L, N] = lhs
 
-    def getRHS(): Array[PFGVar[L, N]] = (lhs :: rhs.vars).toArray
+    def getRHS(): List[PFGVar[L, N]] = rhs.vars
 
     def hasVariable(v: PFGVar[L, N]): Boolean = lhs :: rhs.vars contains v
-    
+
     override val hashCode = GKStatement.nextHash
-    override def equals(other:Any) = this eq (other.asInstanceOf[AnyRef])
-    
-    def getOperator = throw new UnsupportedOperationException("GKStatments don't have an Operator!")
-    
+    override def equals(other: Any) = this eq (other.asInstanceOf[AnyRef])
+
 }
-object GKStatement{
+object GKStatement {
     private var curHash = 0
-    def nextHash = {curHash += 1; curHash}
+    def nextHash = { curHash += 1; curHash }
 }
 
 sealed trait GKExpr[L, N] {
     def vars: List[PFGVar[L, N]]
     def value: GenKill[L]
+
+    def before(other: GKExpr[L, N])(implicit lat: Lattice[L]) = GKAndThenExpr(this, other)
+    def beforeConst(other: GenKill[L])(implicit lat: Lattice[L]) = GKAndThenExpr(this, ConstGKExpr[L, N](other))
 }
 object GKExpr {
     implicit def gkVar2Expr[L, N](gkvar: GKVar[L, N]): GKExpr[L, N] = new GKExpr[L, N] { def vars = List(gkvar); def value = gkvar }
 }
 
-class GKAndThenExpr[L: Lattice, N](lh: GKExpr[L, N], rh: GKExpr[L, N]) extends GKExpr[L, N] {
+case class GKAndThenExpr[L: Lattice, N](lh: GKExpr[L, N], rh: GKExpr[L, N]) extends GKExpr[L, N] {
     def vars = lh.vars ::: rh.vars
     def value = lh.value andThen rh.value
 }
-class SaticGKExpr[L,N](gk:GenKill[L]) extends GKExpr[L,N]{
-    def vars:List[PFGVar[L,N]] = Nil
+case class ConstGKExpr[L, N](gk: GenKill[L]) extends GKExpr[L, N] {
+    def vars: List[PFGVar[L, N]] = Nil
     def value = gk
 }
 

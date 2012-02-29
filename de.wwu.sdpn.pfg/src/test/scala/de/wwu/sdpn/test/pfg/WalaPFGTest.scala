@@ -80,7 +80,7 @@ class WalaPFGTest {
         val fac = new PFGFactory(pa)
         val pfg = fac.getPFG
         val solver = new PFGGenKillSolver(pfg,GenKillMHP)
-        solver.solve(null)
+        solver.solve(false)
         
         println(solver.printResults)
         
