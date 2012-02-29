@@ -263,9 +263,12 @@ class PFGFactory(analysis: PreAnalysis) {
     private def createRule4Return(cgnode: CGNode, bbnr: Int) = {
         var map = tretNodes(cgnode)
         for (s <- List(N, E)) {
-            map += s -> (map(s) + Node(s, CFGPoint(cgnode, bbnr, 0)))            
+            val node = Node(s, CFGPoint(cgnode, bbnr, 0))
+            map += s -> (map(s) + node)
+            tnodes += node
         }
         tretNodes += cgnode -> map
+        
     }
     
     def addBaseEdge(src:Node, ba: BaseAction, snk:Node) {
