@@ -14,6 +14,7 @@ import de.wwu.sdpn.pfg.GenKillFunction
 import de.wwu.sdpn.pfg.GenKill
 import de.wwu.sdpn.pfg.PFGGenKillSolver
 import de.wwu.sdpn.pfg.wala.Edge
+import org.junit.Assert._
 
 object WalaPFGTest {
     var pa: PreAnalysis = null
@@ -21,6 +22,7 @@ object WalaPFGTest {
     def setUp {
         pa = MyPreAnalysis.getStd
     }
+    
 }
 
 class WalaPFGTest {
@@ -79,13 +81,122 @@ class WalaPFGTest {
         }
         val fac = new PFGFactory(pa)
         val pfg = fac.getPFG
-        val solver = new PFGGenKillSolver(pfg,GenKillMHP)
+        val solver = new PFGGenKillSolver(pfg, GenKillMHP)
         solver.solve(false)
-        
         println(solver.printResults)
-        
+
     }
 
+    @Test
+    def testSolver2 {
+        val mr = StringStuff.makeMethodReference("bnord.testapps.Main.p2()V")
+        val im = pa.cg.getNodes(mr)
+        val node = im.first
+        def genKill(edge: Edge) = {
+            de.wwu.sdpn.pfg.lattices.genkill.GenKill(node equals (edge.src.proc), false)
+        }
+        val fac = new PFGFactory(pa)
+        val pfg = fac.getPFG
+        val solver = new de.wwu.sdpn.pfg.genkill.PFGGenKillSolver(pfg, genKill _)
+        solver.solve(false)
+        
+
+        println(solver.printResults)
+
+    }
+
+    
+    @Test
+    def testBothSolvers {
+        
+        val mr = StringStuff.makeMethodReference("bnord.testapps.Main.p2()V")
+        val im = pa.cg.getNodes(mr)
+        val node = im.first
+        object GenKillMHP extends GenKillFunction[Edge, Boolean] {
+            def apply(edge: Edge) = {
+                new GenKill[Boolean] {
+                    val gen = node equals (edge.src.proc)
+                    val kill = false
+                }
+            }
+        }
+        val fac = new PFGFactory(pa)
+        val pfg = fac.getPFG
+        val solver1 = new PFGGenKillSolver(pfg, GenKillMHP)
+        solver1.solve(false)
+        
+        def genKill(edge: Edge) = {
+            de.wwu.sdpn.pfg.lattices.genkill.GenKill(node equals (edge.src.proc), false)
+        }        
+        
+        val solver2 = new de.wwu.sdpn.pfg.genkill.PFGGenKillSolver(pfg, genKill _)
+        solver2.solve(false)
+        
+        var diff = 0
+        for((k,v) <- solver2.S){
+            solver1.svar.get(k) match {
+                case None =>
+                    println("Original doesn't contain: ")
+                    println("    " + k -> v)
+                    diff += 1
+                case Some(v2) =>
+                    if(v.gen != v2.gen || v.kill != v2.kill) {
+                        println("Original differs : ")
+                        println("  Node:   " + k)
+                        println("  OValue: gen: " + v2.gen + " kill: " + v2.kill)
+                        println("  NValue: gen: " + v.gen + " kill: " + v.kill)
+                        diff += 1
+                    }
+                
+            }
+        }
+        assertEquals("Old and new constrait Systems differ",0,diff)
+        
+    }
+    
+    
+    
+    @Test
+    def testSolver2Times {
+        
+        val mr = StringStuff.makeMethodReference("bnord.testapps.Main.p2()V")
+        val im = pa.cg.getNodes(mr)
+        val node = im.first
+        val fac = new PFGFactory(pa)
+        val pfg = fac.getPFG
+        
+        def genKill(edge: Edge) = {
+            de.wwu.sdpn.pfg.lattices.genkill.GenKill(node equals (edge.src.proc), false)
+        }        
+        
+        val solver1 = new de.wwu.sdpn.pfg.genkill.PFGGenKillSolver(pfg, genKill _)
+        solver1.solve(false)
+        
+        val solver2 = new de.wwu.sdpn.pfg.genkill.PFGGenKillSolver(pfg, genKill _)
+        solver2.solve(false)
+        
+        var diff = 0
+        for((k,v) <- solver2.S){
+            solver1.S.get(k) match {
+                case None =>
+                    println("Original doesn't contain: ")
+                    println("    " + k -> v)
+                    diff += 1
+                case Some(v2) =>
+                    if(v.gen != v2.gen || v.kill != v2.kill) {
+                        println("Solvers differ : ")
+                        println("  Node:   " + k)
+                        println("  Run1: gen: " + v2.gen + " kill: " + v2.kill)
+                        println("  Run2: gen: " + v.gen + " kill: " + v.kill)
+                        diff += 1
+                    }
+                
+            }
+        }
+        assertEquals("Old and new constrait Systems differ",0,diff)
+        
+    }
+    
     def pfg2Dot(pfg: WalaPFG): String = {
         val bld = new StringBuilder()
         def pln(n: String) { bld.append(n + "\n") }

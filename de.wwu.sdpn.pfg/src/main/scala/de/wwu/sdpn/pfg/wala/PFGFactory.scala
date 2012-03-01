@@ -25,7 +25,7 @@ class PFGFactory(analysis: PreAnalysis) {
 
     private var tmainProc = entryNode
     private var tedges: Set[Edge] = Set()
-    private var tretNodes: Map[Proc, Map[State, Set[Node]]] = Map().withDefaultValue(Map().withDefaultValue(Set()))
+    private var tretNodes: Map[Proc, Map[State, Node]] = Map().withDefaultValue(Map())
     private var tnodes: Set[Node] = Set()
     private var tprocs: Set[Proc] = Set()
 
@@ -264,7 +264,8 @@ class PFGFactory(analysis: PreAnalysis) {
         var map = tretNodes(cgnode)
         for (s <- List(N, E)) {
             val node = Node(s, CFGPoint(cgnode, bbnr, 0))
-            map += s -> (map(s) + node)
+            assert(map.get(s) == None)
+            map += s -> node
             tnodes += node
         }
         tretNodes += cgnode -> map

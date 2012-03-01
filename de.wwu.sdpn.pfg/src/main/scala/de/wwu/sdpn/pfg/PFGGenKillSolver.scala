@@ -42,12 +42,12 @@ class PFGGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](pfg: Par
                     add( ssnk ⊒ (ssrc beforeConst trans(edge)) )
                 case ce: CallEdge[P, N, BA, R] =>
                     for ((rval, snk) <- ce.returns) {
-                        for (rnode <- pfg.retNodes(ce.proc)(rval)) {
-                            val ssrc = svar(ce.src)
+                        val rnode = pfg.retNodes(ce.proc)(rval)
+                        	val ssrc = svar(ce.src)
                             val ssnk = svar(snk)
                             val sret = svar(rnode)
                             add( ssnk ⊒ ( ssrc beforeConst trans(edge) before sret ))                            
-                        }
+                        
                     }
                 case se: SpawnEdge[P, N, BA, R] =>
                     val ssrc = svar(se.src)

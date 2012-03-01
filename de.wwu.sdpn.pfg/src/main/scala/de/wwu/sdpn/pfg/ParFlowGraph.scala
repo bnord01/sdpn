@@ -2,7 +2,7 @@ package de.wwu.sdpn.pfg
 
 trait ParFlowGraph[P,N,BA,R,E<:Edge[P,N,BA,R]] {
 	def edges : Set[E]
-	def retNodes : Map[P,Map[R,Set[N]]]
+	def retNodes : Map[P,Map[R,N]]
 	def nodes: Set[N]
 	def procs: Set[P]
 	def procOf : N => P

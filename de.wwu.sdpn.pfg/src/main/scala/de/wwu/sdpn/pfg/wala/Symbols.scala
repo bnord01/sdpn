@@ -35,5 +35,5 @@ case class CallAction(proc: CGNode) extends Action
 case class SpawnAction(proc: CGNode) extends Action
 sealed trait BaseAction extends Action
 case class SSAAction(instr: SSAInstruction) extends BaseAction
-case object Skip extends BaseAction with Action
+case object Skip extends BaseAction with Action 
 
