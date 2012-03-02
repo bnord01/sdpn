@@ -147,9 +147,9 @@ sealed trait GKExpr[L] {
     def value: GenKill[L]
 
     def andThen(other: GKExpr[L])(implicit lat: GenKillLattice[L]) = GKAndThenExpr(this, other)
-    def andThen(other: GenKill[L])(implicit lat: GenKillLattice[L]) = GKAndThenExpr(this, ConstGKExpr[L](other))
+    def andThen(other: GenKill[L])(implicit lat: GenKillLattice[L]) = GKAndThenExpr(this, GKConst[L](other))
     def before(other: GKExpr[L])(implicit lat: GenKillLattice[L]) = GKAndThenExpr(other,this)
-    def before(other: GenKill[L])(implicit lat: GenKillLattice[L]) = GKAndThenExpr(ConstGKExpr[L](other),this)
+    def before(other: GenKill[L])(implicit lat: GenKillLattice[L]) = GKAndThenExpr(GKConst[L](other),this)
     def before(other: LExpr[L])(implicit lat: GenKillLattice[L]) = LAppliedToExpr(this,other)
 }
 object GKExpr {
@@ -163,7 +163,12 @@ case class GKAndThenExpr[L: GenKillLattice](lh: GKExpr[L], rh: GKExpr[L]) extend
     def vars = lh.vars ::: rh.vars
     def value = lh.value andThen rh.value
 }
-case class ConstGKExpr[L](gk: GenKill[L]) extends GKExpr[L] {
+case class GKConst[L](gk: GenKill[L]) extends GKExpr[L] {
     def vars: List[PFGVar[L]] = Nil
     def value = gk
 }
+case class LConst[L](l: L) extends LExpr[L] {
+    def vars: List[PFGVar[L]] = Nil
+    def value = l
+}
+

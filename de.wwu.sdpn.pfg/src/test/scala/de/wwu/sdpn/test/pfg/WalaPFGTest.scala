@@ -15,6 +15,7 @@ import de.wwu.sdpn.pfg.GenKill
 import de.wwu.sdpn.pfg.PFGGenKillSolver
 import de.wwu.sdpn.pfg.wala.Edge
 import org.junit.Assert._
+import de.wwu.sdpn.pfg.genkill.PFGForwardGenKillSolver
 
 object WalaPFGTest {
     var pa: PreAnalysis = null
@@ -97,7 +98,7 @@ class WalaPFGTest {
         }
         val fac = new PFGFactory(pa)
         val pfg = fac.getPFG
-        val solver = new de.wwu.sdpn.pfg.genkill.PFGGenKillSolver(pfg, genKill _)
+        val solver = new PFGForwardGenKillSolver(pfg, genKill _)
         solver.solve(false)
         
 
@@ -106,7 +107,7 @@ class WalaPFGTest {
     }
 
     
-    @Test
+//    @Test
     def testBothSolvers {
         
         val mr = StringStuff.makeMethodReference("bnord.testapps.Main.p2()V")
@@ -129,7 +130,7 @@ class WalaPFGTest {
             de.wwu.sdpn.pfg.lattices.genkill.GenKill(node equals (edge.src.proc), false)
         }        
         
-        val solver2 = new de.wwu.sdpn.pfg.genkill.PFGGenKillSolver(pfg, genKill _)
+        val solver2 = new PFGForwardGenKillSolver(pfg, genKill _)
         solver2.solve(false)
         
         var diff = 0
@@ -169,10 +170,10 @@ class WalaPFGTest {
             de.wwu.sdpn.pfg.lattices.genkill.GenKill(node equals (edge.src.proc), false)
         }        
         
-        val solver1 = new de.wwu.sdpn.pfg.genkill.PFGGenKillSolver(pfg, genKill _)
+        val solver1 = new PFGForwardGenKillSolver(pfg, genKill _)
         solver1.solve(false)
         
-        val solver2 = new de.wwu.sdpn.pfg.genkill.PFGGenKillSolver(pfg, genKill _)
+        val solver2 = new PFGForwardGenKillSolver(pfg, genKill _)
         solver2.solve(false)
         
         var diff = 0
