@@ -13,6 +13,14 @@ class PFGForwardGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](p
 
     import scala.collection.mutable.{ Map => MMap, Set => MSet }
 
+    //    private val R: MMap[N, LVar[L]] = MMap()
+    //    private val S: MMap[N, GKVar[L]] = MMap()
+    //    private val LS: MMap[N, LVar[L]] = MMap()
+    //    private val SB: MMap[N, LVar[L]] = MMap()
+    //    private val L: MMap[N, LVar[L]] = MMap()
+    //    private val SP: MMap[N, LVar[L]] = MMap()
+    //    private val PI: MMap[N, LVar[L]] = MMap()
+
     val R: MMap[N, LVar[L]] = MMap()
     val S: MMap[N, GKVar[L]] = MMap()
     val LS: MMap[N, LVar[L]] = MMap()
@@ -34,7 +42,7 @@ class PFGForwardGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](p
             LS += node -> new LVar
             SB += node -> new LVar
             L += node -> new LVar
-            SP += node -> new LVar	
+            SP += node -> new LVar
             PI += node -> new LVar
         }
         import GKExpr._
@@ -52,9 +60,9 @@ class PFGForwardGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](p
             addStmts(
                 R(node) ⊒ (R(ep) andThen S(node)), // R.reach
                 LS(node) ⊒ lat.bottom // LS.init(2)    
-            //L(node) ⊒ (lat.bottom andThen LS(node))
+                //L(node) ⊒ (lat.bottom andThen LS(node))
                 ,
-                PI(node) ⊒ ( PI(ep) join SP(node) ) // PI.reach
+                PI(node) ⊒ (PI(ep) join SP(node)) // PI.reach
             )
             for (rnode <- retNodes(procOf(node)).values) {
                 addStmts( //L(node) ⊒ (SB(node) before L(rnode))
@@ -96,7 +104,6 @@ class PFGForwardGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](p
                         val rnode = retNodes(ce.proc)(rval)
                         addStmts(
                             S(snk) ⊒ (S(ce.src) andThen transfer(e) andThen S(rnode)), //S.call
-                            LS(ce.src) ⊒ (LConst(transfer(e).gen) join LS(entryNode(ce.proc))), // LS.call1
                             LS(ce.src) ⊒ (LConst(transfer(e).gen) join SB(rnode) join LS(snk)), // LS.call2 // modified
                             //SB(ce.src) ⊒ ( transfer(e) before SB(entryNode(ce.proc)) before SB(snk) ) // SB.call // fix this! only the appropriate sink!
                             SB(snk) ⊒ (SB(ce.src) join transfer(e).gen join SB(rnode)) //SB'.call
@@ -106,15 +113,16 @@ class PFGForwardGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](p
                             L(rnode) ⊒ L(snk) //L.ret     
                             ,
                             SP(snk) ⊒ (SP(ce.src) join SP(rnode)) //SP.call
-                            
-                            
+
                         )
 
                     }
                     val ep = pfg.entryNode(ce.proc)
                     addStmts(
                         R(ep) ⊒ (R(ce.src) andThen transfer(e)),
-                        L(ce.src) ⊒ (LConst(transfer(e).gen) join LS(ep))
+                        L(ce.src) ⊒ (LConst(transfer(e).gen) join LS(ep)) //L.call1
+                        ,
+                        LS(ce.src) ⊒ (LConst(transfer(e).gen) join LS(ep)) // LS.call1    
                         ,
                         PI(ep) ⊒ PI(ce.src) // PI.trans1
                     )
@@ -142,7 +150,10 @@ class PFGForwardGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](p
 
     }
 
-    def printResults: String = {
+    def result(n: N): L = R(n).elem ⊔ PI(n).elem
+    def resultPI(n: N): L = PI(n).elem
+
+    def printSResults: String = {
         val buf = new StringBuffer
         def outln(s: Any) = { buf.append(s.toString()); buf.append("\n") }
         def out(s: Any) = buf.append(s)
@@ -152,6 +163,17 @@ class PFGForwardGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](p
             outln(n)
         }
 
+        buf.toString()
+    }
+    def printResults: String = {
+        val buf = new StringBuffer
+        def outln(s: Any) = { buf.append(s.toString()); buf.append("\n") }
+        def out(s: Any) = buf.append(s)
+        for (n <- pfg.nodes) {
+            out(result(n))
+            out(" for : ")
+            outln(n)
+        }
         buf.toString()
     }
 

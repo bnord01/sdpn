@@ -16,6 +16,9 @@ import de.wwu.sdpn.pfg.PFGGenKillSolver
 import de.wwu.sdpn.pfg.wala.Edge
 import org.junit.Assert._
 import de.wwu.sdpn.pfg.genkill.PFGForwardGenKillSolver
+import de.wwu.sdpn.pfg.wala.Node
+import de.wwu.sdpn.pfg.wala.N
+import de.wwu.sdpn.pfg.wala.CFGPoint
 
 object WalaPFGTest {
     var pa: PreAnalysis = null
@@ -94,15 +97,43 @@ class WalaPFGTest {
         val im = pa.cg.getNodes(mr)
         val node = im.first
         def genKill(edge: Edge) = {
-            de.wwu.sdpn.pfg.lattices.genkill.GenKill(node equals (edge.src.proc), false)
+            de.wwu.sdpn.pfg.lattices.genkill.GenKill(Node(N,CFGPoint(node,0,0)) equals (edge.src), false)
         }
         val fac = new PFGFactory(pa)
         val pfg = fac.getPFG
         val solver = new PFGForwardGenKillSolver(pfg, genKill _)
         solver.solve(false)
         
-
         println(solver.printResults)
+        
+        for (n <- pfg.nodes){
+            if(solver.result(n))
+                println("MHP: " + n)                
+        }
+//        
+//        for (n <- pfg.nodes){
+//            if(solver.resultPI(n))
+//                println("PI: " + n)
+//        }
+//        
+//        for (n <- pfg.nodes){
+//            if(solver.LS(n).elem)
+//                println("LS: " + n)
+//        }
+//        for (n <- pfg.nodes){
+//            if(solver.L(n).elem)
+//                println("L: " + n)
+//        }
+//        for (n <- pfg.nodes){
+//            if(solver.SB(n).elem)
+//                println("SB: " + n)
+//        }
+//        for (n <- pfg.nodes){
+//            if(solver.SP(n).elem)
+//                println("SP: " + n)
+//        }
+        
+        
 
     }
 
@@ -134,24 +165,24 @@ class WalaPFGTest {
         solver2.solve(false)
         
         var diff = 0
-        for((k,v) <- solver2.S){
-            solver1.svar.get(k) match {
-                case None =>
-                    println("Original doesn't contain: ")
-                    println("    " + k -> v)
-                    diff += 1
-                case Some(v2) =>
-                    if(v.gen != v2.gen || v.kill != v2.kill) {
-                        println("Original differs : ")
-                        println("  Node:   " + k)
-                        println("  OValue: gen: " + v2.gen + " kill: " + v2.kill)
-                        println("  NValue: gen: " + v.gen + " kill: " + v.kill)
-                        diff += 1
-                    }
-                
-            }
-        }
-        assertEquals("Old and new constrait Systems differ",0,diff)
+//        for((k,v) <- solver2.S){
+//            solver1.svar.get(k) match {
+//                case None =>
+//                    println("Original doesn't contain: ")
+//                    println("    " + k -> v)
+//                    diff += 1
+//                case Some(v2) =>
+//                    if(v.gen != v2.gen || v.kill != v2.kill) {
+//                        println("Original differs : ")
+//                        println("  Node:   " + k)
+//                        println("  OValue: gen: " + v2.gen + " kill: " + v2.kill)
+//                        println("  NValue: gen: " + v.gen + " kill: " + v.kill)
+//                        diff += 1
+//                    }
+//                
+//            }
+//        }
+//        assertEquals("Old and new constrait Systems differ",0,diff)
         
     }
     
@@ -177,23 +208,19 @@ class WalaPFGTest {
         solver2.solve(false)
         
         var diff = 0
-        for((k,v) <- solver2.S){
-            solver1.S.get(k) match {
-                case None =>
-                    println("Original doesn't contain: ")
-                    println("    " + k -> v)
-                    diff += 1
-                case Some(v2) =>
-                    if(v.gen != v2.gen || v.kill != v2.kill) {
-                        println("Solvers differ : ")
-                        println("  Node:   " + k)
-                        println("  Run1: gen: " + v2.gen + " kill: " + v2.kill)
-                        println("  Run2: gen: " + v.gen + " kill: " + v.kill)
-                        diff += 1
-                    }
-                
+        for (node <- pfg.nodes) {
+            val r1 = solver1.result(node)
+            val r2 = solver2.result(node)
+            if(r1 != r2) {
+                diff += 1
+                println("Different results in solvers:")
+                println("  Node:   " + node)
+                        println("  Run1: "+ r1)
+                        println("  Run2: "+ r2)
             }
+            
         }
+        
         assertEquals("Old and new constrait Systems differ",0,diff)
         
     }
