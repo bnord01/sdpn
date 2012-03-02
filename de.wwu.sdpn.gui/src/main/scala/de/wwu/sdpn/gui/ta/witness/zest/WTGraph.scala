@@ -30,7 +30,7 @@ import org.eclipse.draw2d.SWTEventDispatcher
 import org.eclipse.swt.events.SelectionListener
 import org.eclipse.swt.events.SelectionEvent
 
-class WTGraph(tree: WitnessTree, parent: Composite, decorator: WitnessTree => String = _.toString, selectionListener: WitnessTree => Unit = _=>()) extends Graph(parent, 0) {
+class WTGraph(tree: WitnessTree, parent: Composite, decorator: WitnessTree => String = _.toString, selectionListener: WitnessTree => Unit = _ => ()) extends Graph(parent, 0) {
     // Disable moving of nodes
     this.getLightweightSystem().setEventDispatcher(
         new SWTEventDispatcher() {
@@ -38,16 +38,16 @@ class WTGraph(tree: WitnessTree, parent: Composite, decorator: WitnessTree => St
                 // Doing nothing
             }
         });
-    
-    this.addSelectionListener(new SelectionListener{
-        def widgetSelected(se:SelectionEvent) {
-            if (se != null && se.item != null) 
+
+    this.addSelectionListener(new SelectionListener {
+        def widgetSelected(se: SelectionEvent) {
+            if (se != null && se.item != null)
                 se.item.getData match {
-                case wt: WitnessTree => selectionListener(wt)
-                case _ => 
-            }
+                    case wt: WitnessTree => selectionListener(wt)
+                    case _               =>
+                }
         }
-        def widgetDefaultSelected(se:SelectionEvent) {
+        def widgetDefaultSelected(se: SelectionEvent) {
         }
     })
     setConnectionStyle(ZestStyles.CONNECTIONS_DIRECTED)
@@ -78,7 +78,7 @@ class WTGraph(tree: WitnessTree, parent: Composite, decorator: WitnessTree => St
                 val v1 = new GraphNode(this, SWT.None, t)
                 v1.setText(decorator(t))
                 if (!reentrant) {
-                    val color = new Color(this.getDisplay(), 255, 80, 80)
+                    val color = this.getDisplay().getSystemColor(SWT.COLOR_CYAN)
                     v1.setBackgroundColor(color)
                 }
                 val con = new GraphConnection(this, SWT.None, v1, v2)
@@ -101,7 +101,7 @@ class WTGraph(tree: WitnessTree, parent: Composite, decorator: WitnessTree => St
                 val v1 = new GraphNode(this, SWT.None, t)
                 v1.setText(decorator(t))
                 if (!reentrant) {
-                    val color = new Color(this.getDisplay(), 255, 80, 80)
+                    val color = this.getDisplay().getSystemColor(SWT.COLOR_CYAN)
                     v1.setBackgroundColor(color)
                 }
                 val conCall = new GraphConnection(this, SWT.None, v1, v2)
@@ -126,7 +126,8 @@ class WTGraph(tree: WitnessTree, parent: Composite, decorator: WitnessTree => St
             case NilTree(state, globalState, stackSymbol) =>
                 val v1 = new GraphNode(this, SWT.None, t)
                 v1.setText(decorator(t))
-                val color = this.getDisplay().getSystemColor(SWT.COLOR_CYAN)
+                val color = new Color(this.getDisplay(), 255, 100, 100)
+
                 v1.setBackgroundColor(color)
                 return v1
 

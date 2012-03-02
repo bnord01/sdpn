@@ -11,6 +11,21 @@ sealed trait WitnessTree {
   }
 }
 
+object WitnessTree{
+    def pruneBase(tree:WitnessTree) :WitnessTree = {
+        tree match {
+            case BaseTree(_,c) => pruneBase(c)
+            case Call1Tree(s,c) => Call1Tree(s,pruneBase(c))
+            case AcqTree(x,l,r,c) => AcqTree(x,l,r,pruneBase(c))
+            case Call2Tree(s,c1,c2) => Call2Tree(s,pruneBase(c1),pruneBase(c2))
+            case UseTree(s,l,r,c1,c2) => UseTree(s,l,r,pruneBase(c1),pruneBase(c2))
+            case SpawnTree(s,c1,c2) => SpawnTree(s,pruneBase(c1),pruneBase(c2))
+            case NilTree(s,g,s2) => NilTree(s,g,s2)
+            case RetTree(s) => RetTree(s)
+        }
+    }
+}
+
 case class BaseTree(state: State, child: WitnessTree) extends WitnessTree
 
 case class Call1Tree(state: State, child: WitnessTree) extends WitnessTree

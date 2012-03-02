@@ -28,6 +28,7 @@ public class DRAPrefPage extends FieldEditorPreferencePage implements
 		addField(new DirectoryFieldEditor(DRAPreferences.S_TEMP_DIR, "Temp dir", getFieldEditorParent()));
 		addField(new BooleanFieldEditor(DRAPreferences.B_MANUAL_JRE, "Use JRE Stubs", BooleanFieldEditor.DEFAULT, getFieldEditorParent()));
 		addField(new FileFieldEditor(DRAPreferences.S_JRE_PATH, "Stubs path", getFieldEditorParent()));
+		addField(new BooleanFieldEditor(DRAPreferences.B_PRUNE_WITNESS, "Prune generated witnesses", BooleanFieldEditor.DEFAULT, getFieldEditorParent()));
 	}
 
 	/**
