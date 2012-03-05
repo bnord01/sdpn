@@ -287,7 +287,7 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
                                 val shell = new Shell(display);
                                 shell.setText("Witness View");
                                 shell.setLayout(new FillLayout());
-                                shell.setSize(400, 800);
+                                shell.setSize(800, 400);
                                 new WTGraph(witnessTree, shell, decorator = decorator, selectionListener = selectionListener)
                                 shell.open();
                             }

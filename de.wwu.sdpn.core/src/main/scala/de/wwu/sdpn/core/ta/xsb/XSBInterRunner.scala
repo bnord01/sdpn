@@ -32,7 +32,7 @@ object XSBInterRunner {
     if (xsbProcess == null) {
       val proc = getXSBEngine(SDPNProps.get.xsbExe)
       xsbProcess = proc
-      ShutdownHookThread({println("DESTROY XSB");proc.shutdown()})
+      ShutdownHookThread({proc.shutdown()})
     }
     xsbProcess
   }
