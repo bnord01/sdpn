@@ -25,6 +25,9 @@ import DefUseUtil._
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import com.ibm.wala.ipa.callgraph.CallGraph
 import de.wwu.sdpn.pfg.lattices.genkill.GenKill
+import de.wwu.sdpn.pfg.lattices.TopMap
+import de.wwu.sdpn.pfg.lattices.BottomMap
+import de.wwu.sdpn.pfg.lattices.Lattice
 
 object WalaPFGTest {
     var pa: PreAnalysis = null
@@ -41,6 +44,14 @@ class WalaPFGTest {
         import de.wwu.sdpn.wala.analyses.SDPNTestProps
         val cp = SDPNTestProps.get.classPath
         val mc = "Lbnord/unittests/defuse/Test01"
+        val preAnalysis = MyPreAnalysis.getStd(cp, mc)
+        val pfg = (new PFGFactory(preAnalysis)).getPFG
+        (pfg, preAnalysis.pa, preAnalysis.cg)
+    }
+    def pfgTestPrintln01: (WalaPFG, PointerAnalysis, CallGraph) = {
+        import de.wwu.sdpn.wala.analyses.SDPNTestProps
+        val cp = SDPNTestProps.get.classPath
+        val mc = "Lbnord/unittests/defuse/TestPrintln01"
         val preAnalysis = MyPreAnalysis.getStd(cp, mc)
         val pfg = (new PFGFactory(preAnalysis)).getPFG
         (pfg, preAnalysis.pa, preAnalysis.cg)
@@ -148,23 +159,6 @@ class WalaPFGTest {
     @Test
     def testDefUseSolver {
         val (pfg, pa, cg) = pfgTest01
-        import de.wwu.sdpn.pfg.lattices._
-        import de.wwu.sdpn.pfg.lattices.genkill.GenKill
-
-        val lat = implicitly[Lattice[LMap[FieldReference, LMap[CFGPoint, Boolean]]]]
-        def genKill(edge: Edge): GenKill[LMap[FieldReference, LMap[CFGPoint, Boolean]]] = {
-            edge match {
-                case BaseEdge(Node(_, src @ CFGPoint(cgnode, _, _)), SSAAction(act: SSAPutInstruction), Node(N, _)) =>
-                    val field = act.getDeclaredField()
-                    GenKill(
-                        BottomMap[FieldReference, LMap[CFGPoint, Boolean]](Map(field -> BottomMap(Map(src -> true)))),
-                        TopMap[FieldReference, LMap[CFGPoint, Boolean]](Map(field -> BottomMap(Map(src -> true))))
-                    )
-
-                case _ => GenKill(lat.bottom, lat.top)
-            }
-
-        }
 
         val solver = new PFGForwardGenKillSolver(pfg, genKill _)
         solver.solve(false)
@@ -174,6 +168,34 @@ class WalaPFGTest {
         val result = solver.results
         println(printRes(result))
         checkResult(result)
+    }
+    
+    @Test
+    def testDefUseSolver2 {
+        val (pfg, pa, cg) = pfgTestPrintln01
+
+        val solver = new PFGForwardGenKillSolver(pfg, genKill _)
+        solver.solve(false)
+
+        //        println(solver.printResults)
+        println("---------------------- Results Def/Use ----------------------")
+        val result = solver.results
+        checkResult(result)
+    }
+
+    def genKill(edge: Edge): GenKill[LMap[FieldReference, LMap[CFGPoint, Boolean]]] = {
+        val lat = implicitly[Lattice[LMap[FieldReference, LMap[CFGPoint, Boolean]]]]
+        edge match {
+            case BaseEdge(Node(_, src @ CFGPoint(cgnode, _, _)), SSAAction(act: SSAPutInstruction), Node(N, _)) =>
+                val field = act.getDeclaredField()
+                GenKill(
+                    BottomMap[FieldReference, LMap[CFGPoint, Boolean]](Map(field -> BottomMap(Map(src -> true)))),
+                    TopMap[FieldReference, LMap[CFGPoint, Boolean]](Map(field -> BottomMap(Map(src -> true))))
+                )
+
+            case _ => GenKill(lat.bottom, lat.top)
+        }
+
     }
 
     def pfg2Dot(pfg: WalaPFG): String = {
