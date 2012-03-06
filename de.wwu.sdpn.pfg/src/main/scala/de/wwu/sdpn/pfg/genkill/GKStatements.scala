@@ -4,7 +4,6 @@ import de.wwu.sdpn.pfg.fixedpoint._
 import de.wwu.sdpn.pfg.lattices.genkill.GenKill
 import de.wwu.sdpn.pfg.lattices.genkill._
 
-//todo implement hash code and equals for variables?
 sealed abstract class PFGVar[L] {
     def isTop: Boolean
 }
@@ -37,6 +36,7 @@ sealed class LVar[L: Lattice] extends PFGVar[L] {
 
     override val hashCode = PFGVar.nextHash
     override def equals(other: Any) = this eq (other.asInstanceOf[AnyRef])
+    override def toString: String = "LVar(" + elem + ")"
 
 }
 /**
@@ -65,23 +65,6 @@ sealed class GKVar[L: GenKillLattice: Lattice] extends PFGVar[L] {
         } else {
             return NotChanged
         }
-        //        val ugen = update.gen
-        //        val ukill = update.kill
-        //        val newkill = kill ⊔ ukill
-        //        val newgen = gen ⊔ ugen
-        //        if (newgen > gen) {
-        //           if (newgen.isTop) {
-        //               elem = GenKill(newgen,lat.bottom)
-        //               return ChangedAndFixed
-        //            }
-        //           elem = GenKill(newgen,newkill)
-        //           return Changed
-        //        }
-        //        if (kill < newkill) {
-        //            elem = GenKill(gen,newkill)
-        //            return Changed
-        //        }
-        //        return NotChanged
     }
 
     def ⊒(expr: GKExpr[L]) = new GKStatement(this, expr)
@@ -89,14 +72,14 @@ sealed class GKVar[L: GenKillLattice: Lattice] extends PFGVar[L] {
 
     override val hashCode = PFGVar.nextHash
     override def equals(other: Any) = this eq (other.asInstanceOf[AnyRef])
-
+    override def toString: String = "GKVar(" + elem + ")"
 }
 
 sealed trait LGKStatement[L] extends Statement[PFGVar[L]]
 
 sealed class LStatement[L: Lattice](lh: LVar[L], rh: LExpr[L]) extends LGKStatement[L] {
 
-    def evaluate(): ChangeInfo =  lh joinWith (rh.value)
+    def evaluate(): ChangeInfo = lh joinWith (rh.value)
     def lhs: PFGVar[L] = lh
 
     lazy val rhs: List[PFGVar[L]] = rh.vars
@@ -106,17 +89,19 @@ sealed class LStatement[L: Lattice](lh: LVar[L], rh: LExpr[L]) extends LGKStatem
     override val hashCode = GKStatement.nextHash
     override def equals(other: Any) = this eq (other.asInstanceOf[AnyRef])
 
+    override def toString: String = lh + " ⊑ " + rh
+
 }
 
-sealed class DebuggingLStatement[L: Lattice](lh: LVar[L], rh: LExpr[L]) extends LStatement[L](lh,rh) {
+sealed class DebuggingLStatement[L: Lattice](lh: LVar[L], rh: LExpr[L]) extends LStatement[L](lh, rh) {
     override def evaluate(): ChangeInfo = {
-       val oldLH = lh.elem
-            System.err.println("Evaluating: " + rh)
-            System.err.println("RH: " + rh.value)
-            System.err.println("Old LHS: " + oldLH)
-            val res = lh joinWith (rh.value)
-            System.err.println("New LHS: " + lh.elem)         
-            res
+        val oldLH = lh.elem
+        System.err.println("Evaluating: " + rh)
+        System.err.println("RH: " + rh.value)
+        System.err.println("Old LHS: " + oldLH)
+        val res = lh joinWith (rh.value)
+        System.err.println("New LHS: " + lh.elem)
+        res
     }
 
 }
@@ -133,20 +118,21 @@ sealed class GKStatement[L: Lattice](lh: GKVar[L], rh: GKExpr[L]) extends LGKSta
     override val hashCode = GKStatement.nextHash
     override def equals(other: Any) = this eq (other.asInstanceOf[AnyRef])
 
+    override def toString: String = lh + " ⊒ " + rh
+
 }
-sealed class DebuggingGKStatement[L: Lattice](lh: GKVar[L], rh: GKExpr[L]) extends GKStatement[L](lh,rh) {
+sealed class DebuggingGKStatement[L: Lattice](lh: GKVar[L], rh: GKExpr[L]) extends GKStatement[L](lh, rh) {
     override def evaluate(): ChangeInfo = {
-       val oldLH = lh.elem
-            System.err.println("Evaluating: " + rh)
-            System.err.println("RH: " + rh.value)
-            System.err.println("Old LHS: " + oldLH)
-            val res = lh joinWith (rh.value)
-            System.err.println("New LHS: " + lh.elem)         
-            res
+        val oldLH = lh.elem
+        System.err.println("Evaluating: " + rh)
+        System.err.println("RH: " + rh.value)
+        System.err.println("Old LHS: " + oldLH)
+        val res = lh joinWith (rh.value)
+        System.err.println("New LHS: " + lh.elem)
+        res
     }
 
 }
-
 
 object GKStatement {
     private var curHash = 0

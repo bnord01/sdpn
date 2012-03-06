@@ -29,7 +29,7 @@ class MapLattice[N, L: Lattice] extends Lattice[LMap[N, L]] {
         if (e1.isInstanceOf[BottomMap[_, _]] || e2.isInstanceOf[BottomMap[_, _]]) {
             var m: Map[N, L] = Map()
             for (x <- e1.elems.keySet ++ e2.elems.keySet) {
-                val v = e1(x) ⊔ e2(x)
+                val v = e1(x) ⊓ e2(x)
                 if (!v.isBottom)
                     m += x -> v
             }
@@ -37,7 +37,7 @@ class MapLattice[N, L: Lattice] extends Lattice[LMap[N, L]] {
         } else {
             var m: Map[N, L] = Map()
             for (x <- e1.elems.keySet ++ e2.elems.keySet) {
-                val v = e1(x) ⊔ e2(x)
+                val v = e1(x) ⊓ e2(x)
                 if (!v.isTop)
                     m += x -> v
             }

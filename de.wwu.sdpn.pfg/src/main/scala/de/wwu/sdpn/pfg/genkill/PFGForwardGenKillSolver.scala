@@ -13,21 +13,21 @@ class PFGForwardGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](p
 
     import scala.collection.mutable.{ Map => MMap, Set => MSet }
 
-    //    private val R: MMap[N, LVar[L]] = MMap()
-    //    private val S: MMap[N, GKVar[L]] = MMap()
-    //    private val LS: MMap[N, LVar[L]] = MMap()
-    //    private val SB: MMap[N, LVar[L]] = MMap()
-    //    private val L: MMap[N, LVar[L]] = MMap()
-    //    private val SP: MMap[N, LVar[L]] = MMap()
-    //    private val PI: MMap[N, LVar[L]] = MMap()
+    private val R: MMap[N, LVar[L]] = MMap()
+    private val S: MMap[N, GKVar[L]] = MMap()
+    private val LS: MMap[N, LVar[L]] = MMap()
+    private val SB: MMap[N, LVar[L]] = MMap()
+    private val L: MMap[N, LVar[L]] = MMap()
+    private val SP: MMap[N, LVar[L]] = MMap()
+    private val PI: MMap[N, LVar[L]] = MMap()
 
-    val R: MMap[N, LVar[L]] = MMap()
-    val S: MMap[N, GKVar[L]] = MMap()
-    val LS: MMap[N, LVar[L]] = MMap()
-    val SB: MMap[N, LVar[L]] = MMap()
-    val L: MMap[N, LVar[L]] = MMap()
-    val SP: MMap[N, LVar[L]] = MMap()
-    val PI: MMap[N, LVar[L]] = MMap()
+    //    val R: MMap[N, LVar[L]] = MMap()
+    //    val S: MMap[N, GKVar[L]] = MMap()
+    //    val LS: MMap[N, LVar[L]] = MMap()
+    //    val SB: MMap[N, LVar[L]] = MMap()
+    //    val L: MMap[N, LVar[L]] = MMap()
+    //    val SP: MMap[N, LVar[L]] = MMap()
+    //    val PI: MMap[N, LVar[L]] = MMap()
 
     implicit val gklat = implicitly[GenKillLattice[L]]
     val lat = implicitly[Lattice[L]]
@@ -152,6 +152,8 @@ class PFGForwardGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](p
 
     def result(n: N): L = R(n).elem ⊔ PI(n).elem
     def resultPI(n: N): L = PI(n).elem
+
+    def results: Map[N, L] = Map() ++ (for (n <- pfg.nodes) yield n -> (R(n).elem ⊔ PI(n).elem))
 
     def printSResults: String = {
         val buf = new StringBuffer

@@ -10,9 +10,6 @@ import de.wwu.sdpn.pfg.wala.SpawnEdge
 import de.wwu.sdpn.pfg.wala.CallEdge
 import com.ibm.wala.util.strings.StringStuff
 import scala.collection.JavaConversions._
-import de.wwu.sdpn.pfg.GenKillFunction
-import de.wwu.sdpn.pfg.GenKill
-import de.wwu.sdpn.pfg.PFGGenKillSolver
 import de.wwu.sdpn.pfg.wala.Edge
 import org.junit.Assert._
 import de.wwu.sdpn.pfg.genkill.PFGForwardGenKillSolver
@@ -24,6 +21,10 @@ import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 import de.wwu.sdpn.pfg.wala.SSAAction
 import com.ibm.wala.ssa.SSAPutInstruction
 import com.ibm.wala.types.FieldReference
+import DefUseUtil._
+import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
+import com.ibm.wala.ipa.callgraph.CallGraph
+import de.wwu.sdpn.pfg.lattices.genkill.GenKill
 
 object WalaPFGTest {
     var pa: PreAnalysis = null
@@ -35,6 +36,16 @@ object WalaPFGTest {
 }
 
 class WalaPFGTest {
+
+    def pfgTest01: (WalaPFG, PointerAnalysis, CallGraph) = {
+        import de.wwu.sdpn.wala.analyses.SDPNTestProps
+        val cp = SDPNTestProps.get.classPath
+        val mc = "Lbnord/unittests/defuse/Test01"
+        val preAnalysis = MyPreAnalysis.getStd(cp, mc)
+        val pfg = (new PFGFactory(preAnalysis)).getPFG
+        (pfg, preAnalysis.pa, preAnalysis.cg)
+    }
+
     import WalaPFGTest._
 
     @Test
@@ -80,29 +91,8 @@ class WalaPFGTest {
         val mr = StringStuff.makeMethodReference("bnord.testapps.Main.p2()V")
         val im = pa.cg.getNodes(mr)
         val node = im.first
-        object GenKillMHP extends GenKillFunction[Edge, Boolean] {
-            def apply(edge: Edge) = {
-                new GenKill[Boolean] {
-                    val gen = node equals (edge.src.proc)
-                    val kill = false
-                }
-            }
-        }
-        val fac = new PFGFactory(pa)
-        val pfg = fac.getPFG
-        val solver = new PFGGenKillSolver(pfg, GenKillMHP)
-        solver.solve(false)
-        println(solver.printResults)
-
-    }
-
-    @Test
-    def testSolver2 {
-        val mr = StringStuff.makeMethodReference("bnord.testapps.Main.p2()V")
-        val im = pa.cg.getNodes(mr)
-        val node = im.first
         def genKill(edge: Edge) = {
-            de.wwu.sdpn.pfg.lattices.genkill.GenKill(Node(N, CFGPoint(node, 0, 0)) equals (edge.src), false)
+            GenKill(Node(N, CFGPoint(node, 0, 0)) equals (edge.src), false)
         }
         val fac = new PFGFactory(pa)
         val pfg = fac.getPFG
@@ -115,76 +105,6 @@ class WalaPFGTest {
             if (solver.result(n))
                 println("MHP: " + n)
         }
-        //        
-        //        for (n <- pfg.nodes){
-        //            if(solver.resultPI(n))
-        //                println("PI: " + n)
-        //        }
-        //        
-        //        for (n <- pfg.nodes){
-        //            if(solver.LS(n).elem)
-        //                println("LS: " + n)
-        //        }
-        //        for (n <- pfg.nodes){
-        //            if(solver.L(n).elem)
-        //                println("L: " + n)
-        //        }
-        //        for (n <- pfg.nodes){
-        //            if(solver.SB(n).elem)
-        //                println("SB: " + n)
-        //        }
-        //        for (n <- pfg.nodes){
-        //            if(solver.SP(n).elem)
-        //                println("SP: " + n)
-        //        }
-
-    }
-
-    //    @Test
-    def testBothSolvers {
-
-        val mr = StringStuff.makeMethodReference("bnord.testapps.Main.p2()V")
-        val im = pa.cg.getNodes(mr)
-        val node = im.first
-        object GenKillMHP extends GenKillFunction[Edge, Boolean] {
-            def apply(edge: Edge) = {
-                new GenKill[Boolean] {
-                    val gen = node equals (edge.src.proc)
-                    val kill = false
-                }
-            }
-        }
-        val fac = new PFGFactory(pa)
-        val pfg = fac.getPFG
-        val solver1 = new PFGGenKillSolver(pfg, GenKillMHP)
-        solver1.solve(false)
-
-        def genKill(edge: Edge) = {
-            de.wwu.sdpn.pfg.lattices.genkill.GenKill(node equals (edge.src.proc), false)
-        }
-
-        val solver2 = new PFGForwardGenKillSolver(pfg, genKill _)
-        solver2.solve(false)
-
-        var diff = 0
-        //        for((k,v) <- solver2.S){
-        //            solver1.svar.get(k) match {
-        //                case None =>
-        //                    println("Original doesn't contain: ")
-        //                    println("    " + k -> v)
-        //                    diff += 1
-        //                case Some(v2) =>
-        //                    if(v.gen != v2.gen || v.kill != v2.kill) {
-        //                        println("Original differs : ")
-        //                        println("  Node:   " + k)
-        //                        println("  OValue: gen: " + v2.gen + " kill: " + v2.kill)
-        //                        println("  NValue: gen: " + v.gen + " kill: " + v.kill)
-        //                        diff += 1
-        //                    }
-        //                
-        //            }
-        //        }
-        //        assertEquals("Old and new constrait Systems differ",0,diff)
 
     }
 
@@ -198,7 +118,7 @@ class WalaPFGTest {
         val pfg = fac.getPFG
 
         def genKill(edge: Edge) = {
-            de.wwu.sdpn.pfg.lattices.genkill.GenKill(node equals (edge.src.proc), false)
+            GenKill(node equals (edge.src.proc), false)
         }
 
         val solver1 = new PFGForwardGenKillSolver(pfg, genKill _)
@@ -227,10 +147,7 @@ class WalaPFGTest {
 
     @Test
     def testDefUseSolver {
-        val mr = StringStuff.makeMethodReference("bnord.testapps.Main.p2()V")
-        val im = pa.cg.getNodes(mr)
-        val pointerAnalysis = pa.pa
-        val node = im.first
+        val (pfg, pa, cg) = pfgTest01
         import de.wwu.sdpn.pfg.lattices._
         import de.wwu.sdpn.pfg.lattices.genkill.GenKill
 
@@ -248,17 +165,15 @@ class WalaPFGTest {
             }
 
         }
-        val fac = new PFGFactory(pa)
-        val pfg = fac.getPFG
+
         val solver = new PFGForwardGenKillSolver(pfg, genKill _)
         solver.solve(false)
 
-        println(solver.printResults)
-
-//        for (n <- pfg.nodes) {
-//            if (solver.result(n))
-//                println("MHP: " + n)
-//        }
+        //        println(solver.printResults)
+        println("---------------------- Results Def/Use ----------------------")
+        val result = solver.results
+        println(printRes(result))
+        checkResult(result)
     }
 
     def pfg2Dot(pfg: WalaPFG): String = {

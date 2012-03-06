@@ -1,8 +1,8 @@
 package de.wwu.sdpn.test.pfg
 import org.junit._
 import org.junit.Assert._
-
 import de.wwu.sdpn.pfg.lattices._
+import de.wwu.sdpn.pfg.lattices.genkill.GenKill
 
 class MapLatticeTest {
 
@@ -44,5 +44,32 @@ class MapLatticeTest {
         assertEquals(true,(x ⊔ y)(2))
         assertEquals(false,(x ⊔ y)(3))
     }
+     
+     @Test
+     def testAndThen1 {
+         val x:GenKill[LMap[Int,LMap[Int,Boolean]]] = GenKill(BottomMap(Map()),TopMap(Map()))
+         val y:GenKill[LMap[Int,LMap[Int,Boolean]]] = GenKill(BottomMap(Map()),TopMap(Map()))
+         assertEquals(x, x andThen y)        
+     }
+     @Test
+     def testAndThen2 {
+         val x:GenKill[LMap[Int,LMap[Int,Boolean]]] = GenKill(BottomMap(Map()),TopMap(Map()))
+         val y:GenKill[LMap[Int,LMap[Int,Boolean]]] = GenKill(BottomMap(Map(1 -> BottomMap(Map(1 -> true)))),TopMap(Map()))
+         assertEquals(y, x andThen y)        
+     }
+     
+     @Test
+     def testAndThen3 {
+         val x:GenKill[LMap[Int,LMap[Int,Boolean]]] = GenKill(BottomMap(Map()),TopMap(Map()))
+         val y:GenKill[LMap[Int,LMap[Int,Boolean]]] = GenKill(BottomMap(Map(1 -> BottomMap(Map(1 -> true)))),TopMap(Map()))
+         assertEquals(y, y andThen x)        
+     }
+     
+     @Test
+     def testMeet1 {
+         val x:GenKill[LMap[Int,LMap[Int,Boolean]]] = GenKill(BottomMap(Map()),TopMap(Map()))
+         val y:GenKill[LMap[Int,LMap[Int,Boolean]]] = GenKill(BottomMap(Map(1 -> BottomMap(Map(1 -> true)))),TopMap(Map()))
+         assertEquals(y.gen, y.gen ⊓ x.kill)        
+     }
 
 }
