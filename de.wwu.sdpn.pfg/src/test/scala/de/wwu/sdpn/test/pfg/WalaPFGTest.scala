@@ -28,6 +28,7 @@ import de.wwu.sdpn.pfg.lattices.genkill.GenKill
 import de.wwu.sdpn.pfg.lattices.TopMap
 import de.wwu.sdpn.pfg.lattices.BottomMap
 import de.wwu.sdpn.pfg.lattices.Lattice
+import de.wwu.sdpn.pfg.wala.E
 
 object WalaPFGTest {
     var pa: PreAnalysis = null
@@ -169,16 +170,37 @@ class WalaPFGTest {
         println(printRes(result))
         checkResult(result)
     }
-    
-    @Test
+
+    //    @Test // This takes about 20 seconds.
     def testDefUseSolver2 {
         val (pfg, pa, cg) = pfgTestPrintln01
 
         val solver = new PFGForwardGenKillSolver(pfg, genKill _)
         solver.solve(false)
 
-        //        println(solver.printResults)
-        println("---------------------- Results Def/Use ----------------------")
+        val result = solver.results
+        checkResult(result)
+    }
+
+    @Test
+    def testDefUseSolver3 {
+        val (pfg, pa, cg) = pfgTest01
+
+        val solver = new PFGForwardGenKillSolver(pfg, getGenKill(cg, pa) _)
+        solver.solve(false)
+
+        val result = solver.results
+        println(printRes(result))
+        checkResult(result)
+    }
+    
+//    @Test //This takes about 2 minutes
+    def testDefUseSolver4 {
+        val (pfg, pa, cg) = pfgTestPrintln01
+
+        val solver = new PFGForwardGenKillSolver(pfg, getGenKill(cg, pa) _)
+        solver.solve(false)
+
         val result = solver.results
         checkResult(result)
     }
@@ -191,6 +213,38 @@ class WalaPFGTest {
                 GenKill(
                     BottomMap[FieldReference, LMap[CFGPoint, Boolean]](Map(field -> BottomMap(Map(src -> true)))),
                     TopMap[FieldReference, LMap[CFGPoint, Boolean]](Map(field -> BottomMap(Map(src -> true))))
+                )
+
+            case _ => GenKill(lat.bottom, lat.top)
+        }
+
+    }
+
+    def getGenKill(cg: CallGraph, pa: PointerAnalysis)(edge: Edge): GenKill[LMap[(InstanceKey, FieldReference), LMap[CFGPoint, Boolean]]] = {
+        val lat = implicitly[Lattice[LMap[(InstanceKey, FieldReference), LMap[CFGPoint, Boolean]]]]
+        val hm = pa.getHeapModel()
+        edge match {
+            case BaseEdge(Node(_, src @ CFGPoint(cgnode, _, _)), SSAAction(act: SSAPutInstruction), Node(nstate, _)) =>
+                val field = act.getDeclaredField()                
+                val iks: Iterable[InstanceKey] =
+                    if (act.isStatic()) {
+                        val declClass = act.getDeclaredField().getDeclaringClass()
+                        val ik = hm.getInstanceKeyForClassObject(declClass)
+                        Set(ik)
+                    } else {
+                        val refNr = act.getRef()
+                        val pk = hm.getPointerKeyForLocal(cgnode, refNr)
+                        pa.getPointsToSet(pk)
+                    }
+
+                val defs = Map() ++ (for (ik <- iks) yield ((ik, field) -> BottomMap(Map(src -> true))))
+                val kill = nstate match {
+                    case N => TopMap[(InstanceKey, FieldReference), LMap[CFGPoint, Boolean]](defs)
+                    case E => lat.top
+                }
+                GenKill(
+                    BottomMap[(InstanceKey, FieldReference), LMap[CFGPoint, Boolean]](defs),
+                    kill
                 )
 
             case _ => GenKill(lat.bottom, lat.top)
