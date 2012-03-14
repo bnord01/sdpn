@@ -72,7 +72,7 @@
 			<!-- http://www.declarativa.com/interprolog/ -->
 			<groupId>com.declarativa</groupId>
 			<artifactId>interprolog</artifactId>
-			<version>2.1.2a</version>
+			<version>2.1.2a4</version>
 			<!-- <scope>system</scope> -->
 			<!-- <systemPath>${project.basedir}/lib/interprolog.jar</systemPath> -->
 		</dependency>
