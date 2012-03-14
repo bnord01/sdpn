@@ -8,5 +8,6 @@ public class DRAPreferences {
 	public static final String S_TEMP_DIR = "temp_dir";
 	public static final String S_XSB_EXE = "xsb_exe";
 	public static final String B_PRUNE_WITNESS = "prune_witness";
+	public static final String B_DONT_USE_INTERPROLOG = "dont_use_interprolog";
 
 }

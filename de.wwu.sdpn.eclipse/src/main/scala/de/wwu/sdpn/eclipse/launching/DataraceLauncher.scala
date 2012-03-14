@@ -15,6 +15,7 @@ import de.wwu.sdpn.core.result.Negative
 import org.eclipse.core.runtime.SubProgressMonitor
 import de.wwu.sdpn.eclipse.DRAPreferences
 import de.wwu.sdpn.core.analyses.SDPNProps
+import de.wwu.sdpn.wala.analyses.SimpleAnalyses
 
 object DataraceLauncher {
 
@@ -41,6 +42,10 @@ object DataraceLauncher {
                 proj.getPackageFragmentRoots().filter(x => java_lib_names(x.getElementName())).first.getPath().toFile().toString()
             }
 
+            val useIPL = !Activator.getDefault().getPreferenceStore().getBoolean(DRAPreferences.B_DONT_USE_INTERPROLOG);
+            
+            SimpleAnalyses.useInterprolog(useIPL)
+            
             println("Running data race analysis with parameters")
             println("Class Path: " + cp)
             println("JRELib: " + jrelib)

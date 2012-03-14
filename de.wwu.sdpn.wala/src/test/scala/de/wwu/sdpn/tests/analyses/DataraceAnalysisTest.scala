@@ -21,6 +21,10 @@ import de.wwu.sdpn.core.result._
 import junit.framework.JUnit4TestAdapter
 import de.wwu.sdpn.core.ta.xsb.XSBInterRunner
 
+import org.junit.runners.Parameterized.Parameters
+import org.junit.runners.Parameterized
+import org.junit.runner.RunWith
+
 object DataraceAnalysisTest {
 
     var stuff: Map[Int, (CallGraph, PointerAnalysis, IClassHierarchy)] = Map()
@@ -38,6 +42,13 @@ object DataraceAnalysisTest {
         stuff = null
         XSBInterRunner.shutdown();
     }
+    @Parameters
+    def data(): java.util.List[Array[Object]] = {
+        val list = new java.util.ArrayList[Array[Object]]()
+        list.add(Array[Object](true: java.lang.Boolean))
+        list.add(Array[Object](false: java.lang.Boolean))
+        return list
+    }
 
 //    /**
 //     * test suite for JUnit3 and SBT compatibility
@@ -45,7 +56,9 @@ object DataraceAnalysisTest {
 //    def suite(): junit.framework.Test = new JUnit4TestAdapter(classOf[DataraceAnalysisTest])
 }
 
-class DataraceAnalysisTest {
+@RunWith(classOf[Parameterized])
+class DataraceAnalysisTest (useIPL: Boolean) {
+    SimpleAnalyses.useInterprolog(useIPL)
     import DataraceAnalysisTest.stuff
 
     @Test

@@ -33,10 +33,28 @@ import de.wwu.sdpn.core.util.SubProgressMonitor
 import de.wwu.sdpn.core.result._
 import de.wwu.sdpn.core.ta.xsb.witness.WitnessTree
 import de.wwu.sdpn.core.ta.xsb.witness.FullWitnessParser
+import de.wwu.sdpn.core.ta.xsb.XSBRunner
+import de.wwu.sdpn.core.ta.xsb.XSBCommandRunner
 
 object SimpleAnalyses {
     import ProgressMonitorUtil._
-    val runner = XSBInterRunner
+    
+    @volatile
+    private var useIPL = true
+    
+    def useInterprolog(tf:Boolean) {
+        useIPL = tf
+    }
+
+    //    private var runner: XSBRunner = XSBInterRunner
+    //
+    //    def useInterprolog(useIP: Boolean) {
+    //        if (useIP)
+    //            runner = XSBInterRunner
+    //        else
+    //            runner = XSBCommandRunner
+    //    }
+
     type MDPN = MonitorDPN[GlobalState, StackSymbol, DPNAction, InstanceKey]
 
     /**
@@ -82,7 +100,7 @@ object SimpleAnalyses {
         require(confSet.subsetOf(ss), "Some symbols of confSet are not contained in the DPN!")
         val (td, bu) = SingleSetReachability.genAutomata(dpn, confSet, lockSens)
         val check = SingleSetReachability.genCheck(td, bu)
-        return runner.runCheck(check, pm)
+        return runCheck(check, pm)
     }
 
     def runStdLibSSRCheck(cg: CallGraph,
@@ -95,7 +113,7 @@ object SimpleAnalyses {
         require(confSet.subsetOf(ss), "Some symbols of confSet are not contained in the DPN!")
         val (td, bu) = SingleSetReachability.genStdLibAutomata(dpn, confSet)
         val check = SingleSetReachability.genCheck(td, bu)
-        return runner.runCheck(check, pm)
+        return runCheck(check, pm)
     }
 
     /**
@@ -125,7 +143,7 @@ object SimpleAnalyses {
         require(confSet2.subsetOf(ss), "Some symbols of confSet2 are not contained in the DPN!")
         val (td, bu) = TwoSetReachability.genAutomata(dpn, confSet1, confSet2, lockSens)
         val check = new FullWitnessIntersectionEmptinessCheck(td, bu)
-        return runner.runFullWitnessCheck(check)
+        return runFullWitnessCheck(check)
     }
 
     /**
@@ -137,7 +155,7 @@ object SimpleAnalyses {
         require(confSet2.subsetOf(ss), "Some symbols of confSet2 are not contained in the DPN!")
         val (td, bu) = TwoSetReachability.genAutomata(dpn, confSet1, confSet2, lockSens)
         val check = new FullWitnessIntersectionEmptinessCheck(td, bu)
-        return runner.runFullWitnessCheck(check)
+        return runFullWitnessCheck(check)
     }
 
     /**
@@ -174,7 +192,7 @@ object SimpleAnalyses {
             if (isCanceled(pm)) throw new RuntimeException("Canceled")
             subTask(pm, "Running XSB based emptiness check")
             val pms = new SubProgressMonitor(pm, 3)
-            return runner.runCheck(check, pms)
+            return runCheck(check, pms)
         } finally {
             done(pm)
         }
@@ -201,7 +219,7 @@ object SimpleAnalyses {
             if (isCanceled(pm)) throw new RuntimeException("Canceled")
             subTask(pm, "Running XSB based emptiness check")
             val pms = new SubProgressMonitor(pm, 3)
-            val empty = runner.runCheck(check, pms)
+            val empty = runCheck(check, pms)
             return SimpleTSRResult(dpn: SimpleAnalyses.MDPN,
                 cg: CallGraph, pa: PointerAnalysis,
                 confSet1: Set[StackSymbol], confSet2: Set[StackSymbol],
@@ -252,7 +270,7 @@ object SimpleAnalyses {
         require(confSet.subsetOf(ss), "Some symbols of confSet are not contained in the DPN!")
         val (td, bu) = SingleSetReachability.genAutomata(dpn, confSet, lockSens)
         val check = SingleSetReachability.genCheck(td, bu)
-        return runner.runCheck(check)
+        return runCheck(check)
     }
 
     /**
@@ -283,7 +301,7 @@ object SimpleAnalyses {
         require(confSet2.subsetOf(ss), "Some symbols of confSet2 are not contained in the DPN!")
         val (td, bu) = TwoSetReachability.genAutomata(dpn, confSet1, confSet2, lockSens)
         val check = new FullWitnessIntersectionEmptinessCheck(td, bu)
-        return runner.runFullWitnessCheck(check)
+        return runFullWitnessCheck(check)
     }
 
     /**
@@ -314,7 +332,7 @@ object SimpleAnalyses {
         require(confSet2.subsetOf(ss), "Some symbols of confSet2 are not contained in the DPN!")
         val (td, bu) = TwoSetReachability.genAutomata(dpn, confSet1, confSet2, lockSens)
         val check = new IntersectionEmptinessCheck(td, bu)
-        return runner.runCheck(check)
+        return runCheck(check)
     }
 
     /**
@@ -443,6 +461,59 @@ object SimpleAnalyses {
      * ClassLoaderReference.Application.equals(x.getConcreteType().getClassLoader().getReference()) holds.
      */
     def filterByClassLoader(iks: Set[InstanceKey]) = iks.filter(appIKFilter)
+    
+    
+    
+    /**
+     * Helper method to avoid Crash in scala compiler.
+     * Dispatches to XSBInterRunner or XSBCommandRunner depending on the value of useIPL
+     */
+    private def runCheck(check: IntersectionEmptinessCheck, pm: IProgressMonitor): Boolean = {
+        if (useIPL)
+            XSBInterRunner.runCheck(check, pm)
+        else
+            XSBCommandRunner.runCheck(check, pm)
+    }
+    /**
+     * Helper method to avoid Crash in scala compiler.
+     * Dispatches to XSBInterRunner or XSBCommandRunner depending on the value of useIPL
+     */
+    private def runCheck(check: IntersectionEmptinessCheck): Boolean = {
+        if (useIPL)
+            XSBInterRunner.runCheck(check)
+        else
+            XSBCommandRunner.runCheck(check)
+    }
+
+    /**
+     * Helper method to avoid Crash in scala compiler.
+     * Dispatches to XSBInterRunner or XSBCommandRunner depending on the value of useIPL
+     */
+    private def runFullWitnessCheck(check: FullWitnessIntersectionEmptinessCheck, pm: IProgressMonitor): Option[String] = {
+        if (useIPL)
+            XSBInterRunner.runFullWitnessCheck(check, pm)
+        else
+            XSBCommandRunner.runFullWitnessCheck(check, pm)
+    }
+    /**
+     * Helper method to avoid Crash in scala compiler.
+     * Dispatches to XSBInterRunner or XSBCommandRunner depending on the value of useIPL
+     */
+    private def runFullWitnessCheck(check: FullWitnessIntersectionEmptinessCheck): Option[String] = {
+        if (useIPL)
+            XSBInterRunner.runFullWitnessCheck(check)
+        else
+            XSBCommandRunner.runFullWitnessCheck(check)
+    }
+
+    /**
+     * Helper method to avoid Crash in scala compiler.
+     * Dispatches to XSBInterRunner or XSBCommandRunner depending on the value of useIPL
+     */
+    private def shutdown() {
+        if(useIPL)
+        	XSBInterRunner.shutdown()
+    }
 
 }
 
@@ -458,13 +529,12 @@ case class SimpleTSRResult(dpn: SimpleAnalyses.MDPN,
         else {
             val witnessOption = SimpleAnalyses.runWitnessTSRCheck(dpn, confSet1, confSet2, lockSens)
             witnessOption match {
-                case None => None                
+                case None => None
                 case Some(s) =>
-                    val pr = FullWitnessParser.parseTreeWithName(s)
+                    val pr = FullWitnessParser.parseTree(s)
                     if (pr.successful) {
                         Some(pr.get)
-                    }
-                    else
+                    } else
                         None
 
             }

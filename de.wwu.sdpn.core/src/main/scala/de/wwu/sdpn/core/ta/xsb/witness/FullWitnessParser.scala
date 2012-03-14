@@ -90,6 +90,8 @@ object FullWitnessParser extends JavaTokenParsers {
   def retTree = "ret" ^^ { _ => PRetTree }
   
   def fullTreeWithName: Parser[WitnessTree] = term~"("~>fullTree<~")"
+  
+  def anyFullTree: Parser[WitnessTree] = fullTree | fullTreeWithName
   // format: ON
 
   // Partial Trees without State
@@ -103,7 +105,7 @@ object FullWitnessParser extends JavaTokenParsers {
   case class PSpawnTree(spawned: WitnessTree, next: WitnessTree) extends PTree
   case object PRetTree extends PTree
 
-  def parseTree(str: String) = parseAll(fullTree, str)
-  def parseTreeWithName(str: String) = parseAll(fullTreeWithName, str)
+  def parseTree(str: String) = parseAll(anyFullTree, str)
+  //def parseTreeWithName(str: String) = parseAll(fullTreeWithName, str)
 
 }

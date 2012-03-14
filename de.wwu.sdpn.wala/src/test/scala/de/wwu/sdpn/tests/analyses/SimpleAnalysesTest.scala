@@ -15,6 +15,9 @@ import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
 import de.wwu.sdpn.core.util.EPMWrapper
 import junit.framework.JUnit4TestAdapter
 import de.wwu.sdpn.core.ta.xsb.XSBInterRunner
+import org.junit.runners.Parameterized.Parameters
+import org.junit.runners.Parameterized
+import org.junit.runner.RunWith
 
 object SimpleAnalysesTest {
 
@@ -34,13 +37,22 @@ object SimpleAnalysesTest {
         stuff = null
         XSBInterRunner.shutdown();
     }
+    @Parameters
+    def data(): java.util.List[Array[Object]] = {
+        val list = new java.util.ArrayList[Array[Object]]()
+        list.add(Array[Object](true: java.lang.Boolean))
+        list.add(Array[Object](false: java.lang.Boolean))
+        return list
+    }
 
-//    /**
-//     * test suite for JUnit3 and SBT compatibility
-//     */
-//    def suite(): junit.framework.Test = new JUnit4TestAdapter(classOf[SimpleAnalysesTest])
+    //    /**
+    //     * test suite for JUnit3 and SBT compatibility
+    //     */
+    //    def suite(): junit.framework.Test = new JUnit4TestAdapter(classOf[SimpleAnalysesTest])
 }
-class SimpleAnalysesTest {
+@RunWith(classOf[Parameterized])
+class SimpleAnalysesTest(useIPL: Boolean) {
+    SimpleAnalyses.useInterprolog(useIPL)
     import SimpleAnalysesTest.stuff
     @Test
     def testPrintCGandStackSymbols() {

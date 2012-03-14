@@ -24,7 +24,7 @@ import scala.sys.ShutdownHookThread
  *
  * @author Benedikt Nordhoff
  */
-object XSBInterRunner {
+object XSBInterRunner extends XSBRunner {
   private def debug = SDPNProps.get.debug
   import ProgressMonitorUtil._
   private var xsbProcess: PrologEngine = null
@@ -42,7 +42,7 @@ object XSBInterRunner {
     new File(tempDir.getAbsolutePath() + File.separator + "check.P")
   }
 
-  def runCheck(check: IntersectionEmptinessCheck, pm: IProgressMonitor = null): Boolean = {
+  override def runCheck(check: IntersectionEmptinessCheck, pm: IProgressMonitor): Boolean = {
     try {
       beginTask(pm, "Running XSB-based emptiness check", 5)
       val out = new PrintWriter(new BufferedWriter(new FileWriter(tempFile)));
@@ -65,8 +65,11 @@ object XSBInterRunner {
       done(pm)
     }
   }
+  override def runCheck(check: IntersectionEmptinessCheck): Boolean = runCheck(check,null)
+  
+  override def runFullWitnessCheck(check: FullWitnessIntersectionEmptinessCheck): Option[String] = runFullWitnessCheck(check,null)
 
-  def runFullWitnessCheck(check: FullWitnessIntersectionEmptinessCheck, pm: IProgressMonitor = null): Option[String] = {
+  override def runFullWitnessCheck(check: FullWitnessIntersectionEmptinessCheck, pm: IProgressMonitor): Option[String] = {
     try {
       beginTask(pm, "Running XSB-based emptiness check", 5)
       val out = new PrintWriter(new BufferedWriter(new FileWriter(tempFile)));
