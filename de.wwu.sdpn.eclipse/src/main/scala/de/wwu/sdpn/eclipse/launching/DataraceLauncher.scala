@@ -123,9 +123,10 @@ object DataraceLauncher {
     def loadAndSetSDPNPrefs() {
         val xsb = Activator.getDefault().getPreferenceStore().getString(DRAPreferences.S_XSB_EXE);
         val tmpDir = Activator.getDefault().getPreferenceStore().getString(DRAPreferences.S_TEMP_DIR);
+        val debug = Activator.getDefault().getPreferenceStore().getBoolean(DRAPreferences.B_DEBUG);
         println(xsb);
         println(tmpDir);
-        SDPNProps.set(SDPNProps(xsb, tmpDir, false))
+        SDPNProps.set(SDPNProps(xsb, tmpDir, debug))
     }
 
 }

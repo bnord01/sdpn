@@ -48,7 +48,7 @@ name_acq(_,c(_,_,_,_),c(_,_,_,_)) :- fail.
 name_use(_,c(_,_,_,_),c(_,_,_,_),c(_,_,_,_)) :- fail.
 name_ret(_) :- fail.
 name_base(_,_) :- fail.
-name_spawn(_,_) :- fail.
+name_spawn(_,_,_) :- fail.
 name_call1(_,_) :- fail.
 name_call2(_,_,_) :- fail.
 """.replace("name", name))

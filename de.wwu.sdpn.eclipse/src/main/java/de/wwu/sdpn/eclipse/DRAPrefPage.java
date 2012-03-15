@@ -30,6 +30,7 @@ public class DRAPrefPage extends FieldEditorPreferencePage implements
 		addField(new FileFieldEditor(DRAPreferences.S_JRE_PATH, "Stubs path", getFieldEditorParent()));
 		addField(new BooleanFieldEditor(DRAPreferences.B_PRUNE_WITNESS, "Prune generated witnesses", BooleanFieldEditor.DEFAULT, getFieldEditorParent()));
 		addField(new BooleanFieldEditor(DRAPreferences.B_DONT_USE_INTERPROLOG, "Don't use Interprolog for communication with XSB", BooleanFieldEditor.DEFAULT, getFieldEditorParent()));
+		addField(new BooleanFieldEditor(DRAPreferences.B_DEBUG, "Print debug output.", BooleanFieldEditor.DEFAULT, getFieldEditorParent()));
 	}
 
 	/**
