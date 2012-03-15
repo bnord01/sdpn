@@ -228,17 +228,33 @@ object XSBCommandRunner extends XSBRunner {
                     var line = "Start"
                     while (line != null) {
                         line = in.readLine
-                        if (debug && line != null) println(line)
-                        if ((name + " is empty!").equals(line)) {
+                        if (debug && line != null) 
+                            println(line)
+                        if ((name + " is empty!") equals line) {
+                            //Set result and wakeup main thread.
                             retVal = None
                             ready = true
                             mainThread.interrupt()
-                        } else if ((name + " is not empty!").equals(line)) {
+                        } else if ((name + " is not empty!") equals line) {
                             line = in.readLine
-                            if (debug) println(line)
-                            assert("witness:".equals(line))
+                            
+                            //Skip a possible blank line on windows machines.
+                            if("" equals line)
+                                line = in.readLine
+                                
+                            if (debug) println(line)                            
+                            assert("witness:" equals line, "Expected 'witness:' but got: " + line)
+                            
                             line = in.readLine
-                            if (debug) println(line)
+                            
+                            //Skip another possible blank line on windows machines.
+                            if("" equals line)
+                                line = in.readLine
+                            if (debug) println(line)     
+                            
+                            assert(!("" equals line) && line != null, "Expected witness but got: " + line)
+                            
+                            //Set result and wakeup main thread.
                             retVal = Some(line)
                             ready = true
                             mainThread.interrupt()
