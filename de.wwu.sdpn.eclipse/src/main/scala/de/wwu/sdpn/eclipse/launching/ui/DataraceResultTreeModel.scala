@@ -39,6 +39,10 @@ import org.eclipse.swt.widgets.Shell
 import org.eclipse.swt.layout.FillLayout
 import de.wwu.sdpn.eclipse.Activator
 import de.wwu.sdpn.eclipse.DRAPreferences
+import org.eclipse.core.runtime.IStatus
+import org.eclipse.core.runtime.IProgressMonitor
+import org.eclipse.core.runtime.jobs.Job
+import org.eclipse.core.runtime.Status
 
 class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITreeContentProvider with ILabelProvider with IDoubleClickListener {
 
@@ -239,62 +243,71 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
     def getShowWitnessListener(treeViewer: TreeViewer): SelectionListener = {
         return new SelectionListener {
             def widgetSelected(e: SelectionEvent) {
-                val witness = treeViewer.getSelection() match {
-                    case ts: ITreeSelection =>
-                        ts.getFirstElement() match {
-                            case br: DRBaseResult =>
-                                Some(br.detail._3.cg, br.detail._3.getWitness)
-                            case (br: DRBaseResult, (node: CGNode, instr: SSAFieldAccessInstruction)) =>
-                                Some(br.detail._3.cg, br.detail._3.getWitness)
-                            case fr: DRFieldResult if fr.subResults.size == 1 =>
-                                val br = fr.subResults.values.first
-                                Some(br.detail._3.cg, br.detail._3.getWitness)
+                val selection = treeViewer.getSelection()
+                val ijob = new Job("Generating Witness") {
+                    override def run(pm: IProgressMonitor): IStatus = {
+                        val witness = selection match {
+                            case ts: ITreeSelection =>
+                                ts.getFirstElement() match {
+                                    case br: DRBaseResult =>
+                                        Some(br.detail._3.cg, br.detail._3.getWitness)
+                                    case (br: DRBaseResult, (node: CGNode, instr: SSAFieldAccessInstruction)) =>
+                                        Some(br.detail._3.cg, br.detail._3.getWitness)
+                                    case fr: DRFieldResult if fr.subResults.size == 1 =>
+                                        val br = fr.subResults.values.first
+                                        Some(br.detail._3.cg, br.detail._3.getWitness)
+                                    case _ => None
+                                }
                             case _ => None
                         }
-                    case _ => None
-                }
-                witness match {
-                    case Some((cg, Some(wt))) =>
-                        val doPrune = Activator.getDefault().getPreferenceStore().getBoolean(DRAPreferences.B_PRUNE_WITNESS);
+                        witness match {
+                            case Some((cg, Some(wt))) =>
+                                val doPrune = Activator.getDefault().getPreferenceStore().getBoolean(DRAPreferences.B_PRUNE_WITNESS);
 
-                        val decorator = (t: WitnessTree) => {
-                            val ss = t.state.ss
-                            val nr = ss.cg
-                            val node = cg.getNode(nr)
-                            val name = node.getMethod().getDeclaringClass().getName().toString().drop(1).split("/").last + "." + node.getMethod().getName()
-                            var cn = t.getClass().getCanonicalName()
-                            cn = cn.dropRight(4)
-                            cn = cn split ('.') last;
-                            if (doPrune)
-                                "%s in  %s".format(cn, name, ss.bb, ss.instr)
-                            else
-                                "%s in  %s  at (%d,%d)".format(cn, name, ss.bb, ss.instr)
+                                val decorator = (t: WitnessTree) => {
+                                    val ss = t.state.ss
+                                    val nr = ss.cg
+                                    val node = cg.getNode(nr)
+                                    val name = node.getMethod().getDeclaringClass().getName().toString().drop(1).split("/").last + "." + node.getMethod().getName()
+                                    var cn = t.getClass().getCanonicalName()
+                                    cn = cn.dropRight(4)
+                                    cn = cn split ('.') last;
+                                    if (doPrune)
+                                        "%s in  %s".format(cn, name, ss.bb, ss.instr)
+                                    else
+                                        "%s in  %s  at (%d,%d)".format(cn, name, ss.bb, ss.instr)
+                                }
+
+                                val selectionListener = (t: WitnessTree) => {
+                                    val num = t.state.ss.cg
+                                    val cgnode = cg.getNode(num)
+                                    val imeth = WalaEclipseUtil.cgnode2IMethod(jproj, cgnode)
+                                    if (imeth != null)
+                                        JavaUI.revealInEditor(JavaUI.openInEditor(imeth), imeth: IJavaElement);
+                                }
+
+                                val witnessTree = if (doPrune) WitnessTree.pruneBase(wt) else wt
+
+                                val display = PlatformUI.getWorkbench().getDisplay()
+                                display.asyncExec(new Runnable {
+                                    def run {
+                                        val shell = new Shell(display);
+                                        shell.setText("Witness View");
+                                        shell.setLayout(new FillLayout());
+                                        shell.setSize(800, 400);
+                                        new WTGraph(witnessTree, shell, decorator = decorator, selectionListener = selectionListener)
+                                        shell.open();
+                                    }
+                                })
+
+                            case _ =>
                         }
+                        return Status.OK_STATUS
+                    }
 
-                        val selectionListener = (t: WitnessTree) => {
-                            val num = t.state.ss.cg
-                            val cgnode = cg.getNode(num)
-                            val imeth = WalaEclipseUtil.cgnode2IMethod(jproj, cgnode)
-                            if (imeth != null)
-                                JavaUI.revealInEditor(JavaUI.openInEditor(imeth), imeth: IJavaElement);
-                        }
-
-                        val witnessTree = if (doPrune) WitnessTree.pruneBase(wt) else wt
-
-                        val display = PlatformUI.getWorkbench().getDisplay()
-                        display.asyncExec(new Runnable {
-                            def run {
-                                val shell = new Shell(display);
-                                shell.setText("Witness View");
-                                shell.setLayout(new FillLayout());
-                                shell.setSize(800, 400);
-                                new WTGraph(witnessTree, shell, decorator = decorator, selectionListener = selectionListener)
-                                shell.open();
-                            }
-                        })
-
-                    case _ =>
                 }
+                ijob.setUser(true)
+                ijob.schedule()
             }
 
             def widgetDefaultSelected(e: SelectionEvent) {}

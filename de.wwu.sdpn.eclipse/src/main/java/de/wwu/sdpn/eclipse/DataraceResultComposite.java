@@ -1,33 +1,20 @@
 package de.wwu.sdpn.eclipse;
 
-import org.eclipse.swt.widgets.Composite;
-import swing2swt.layout.BorderLayout;
-import org.eclipse.swt.SWT;
-import swing2swt.layout.FlowLayout;
-import org.eclipse.swt.widgets.Label;
-import org.eclipse.swt.custom.SashForm;
-import org.eclipse.swt.widgets.Tree;
 import org.eclipse.jface.viewers.TreeViewer;
-
-import de.wwu.sdpn.eclipse.launching.ui.DataraceResultTreeModel;
-import de.wwu.sdpn.core.result.ResultValue;
-
-import org.eclipse.swt.widgets.Text;
-import org.eclipse.jface.viewers.IDoubleClickListener;
-import org.eclipse.jface.viewers.DoubleClickEvent;
-import org.eclipse.jface.viewers.ITreeSelection;
-import org.eclipse.swt.widgets.Event;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.SashForm;
+import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
-import org.eclipse.swt.widgets.TabFolder;
-import org.eclipse.swt.widgets.TabItem;
 import org.eclipse.swt.widgets.Menu;
 import org.eclipse.swt.widgets.MenuItem;
-import org.eclipse.swt.widgets.TreeItem;
-import org.eclipse.swt.layout.RowLayout;
-import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.events.SelectionListener;
+import org.eclipse.swt.widgets.Tree;
+
+import swing2swt.layout.BorderLayout;
+import swing2swt.layout.FlowLayout;
+import de.wwu.sdpn.core.result.ResultValue;
+import de.wwu.sdpn.eclipse.launching.ui.DataraceResultTreeModel;
 
 public class DataraceResultComposite extends Composite {
 

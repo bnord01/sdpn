@@ -1,21 +1,22 @@
 package de.wwu.sdpn.eclipse.launching
 import org.eclipse.core.runtime.IProgressMonitor
 import org.eclipse.core.runtime.NullProgressMonitor
-import org.eclipse.jdt.core.IJavaProject
-import org.eclipse.ui.PlatformUI
-import de.wwu.sdpn.eclipse.launching.ui.DataraceResultTreeModel
-import de.wwu.sdpn.eclipse.DataraceResultDialog
-import de.wwu.sdpn.wala.analyses.datarace.DataraceAnalysis
-import de.wwu.sdpn.wala.util.WalaUtil
-import de.wwu.sdpn.eclipse.Activator
-import de.wwu.sdpn.eclipse.DataraceResultViewPart
-import de.wwu.sdpn.core.result.Positive
-import org.eclipse.jface.dialogs.MessageDialog
-import de.wwu.sdpn.core.result.Negative
 import org.eclipse.core.runtime.SubProgressMonitor
-import de.wwu.sdpn.eclipse.DRAPreferences
+import org.eclipse.jdt.core.IJavaProject
+import org.eclipse.jface.dialogs.MessageDialog
+import org.eclipse.swt.widgets.Shell
+import org.eclipse.ui.PlatformUI
+
 import de.wwu.sdpn.core.analyses.SDPNProps
+import de.wwu.sdpn.core.result.Negative
+import de.wwu.sdpn.core.result.Positive
+import de.wwu.sdpn.eclipse.launching.ui.DataraceResultTreeModel
+import de.wwu.sdpn.eclipse.Activator
+import de.wwu.sdpn.eclipse.DRAPreferences
+import de.wwu.sdpn.eclipse.DataraceResultViewPart
+import de.wwu.sdpn.wala.analyses.datarace.DataraceAnalysis
 import de.wwu.sdpn.wala.analyses.SimpleAnalyses
+import de.wwu.sdpn.wala.util.WalaUtil
 
 object DataraceLauncher {
 
@@ -75,7 +76,6 @@ object DataraceLauncher {
 
             println("Data race possible: " + result.value)
 
-            //      val shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell()
             val display = PlatformUI.getWorkbench().getDisplay()
 
             Activator.getDefault().setLastDataraceResult(new DataraceResultTreeModel(proj, result))
@@ -93,19 +93,14 @@ object DataraceLauncher {
             result.value match {
                 case Positive =>
                     guiDo(
-                        MessageDialog.openWarning(display.getActiveShell(), "Race found!", "There might be a race in your program\nSee result view."))
+                        MessageDialog.openWarning(new Shell(display), "Race found!", "There might be a race in your program\nSee result view."))
                 case Negative =>
                     guiDo(
-                        MessageDialog.openInformation(display.getActiveShell(), "No race found", "There is no race in your program"))
+                        MessageDialog.openInformation(new Shell(display), "No race found", "There is no race in your program"))
                 case _ =>
                     guiDo(
-                        MessageDialog.openError(display.getActiveShell(), "Something stupid", "I don't understand this result:\n" + result.toString()))
+                        MessageDialog.openError(new Shell(display), "Something stupid", "I don't understand this result:\n" + result.toString()))
             }
-            //            display.asyncExec(task( {
-            //                    val rv = new DataraceResultDialog(display.getActiveShell(),new ResultTreeModel(result))
-            //                    rv.open()
-            //            		}
-            //                    ))
 
         } finally {
             pm done
