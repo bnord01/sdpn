@@ -14,8 +14,8 @@ import org.eclipse.jdt.ui.JavaUI
 import org.eclipse.jface.viewers.ISelection
 import org.eclipse.jface.viewers.ITreeSelection
 import org.eclipse.ui.IEditorPart
-
 import de.wwu.sdpn.eclipse.launching.DataraceLauncher
+import org.eclipse.ui.PlatformUI
 
 class DataraceLaunchShortcut extends ILaunchShortcut {
 
@@ -70,6 +70,7 @@ class DataraceLaunchShortcut extends ILaunchShortcut {
     private def task(body: => Unit): Runnable = new Runnable { override def run() { body } }
 
     def runAnalysis(project: IJavaProject, mc: String) {
+        PlatformUI.getWorkbench().saveAllEditors(true);            
         val ijob = new Job("Data Race Analysis") {
             override def run(pm: IProgressMonitor): IStatus = {
                 DataraceLauncher.runDataRaceAnalysisOnClass(project, mc, pm)
