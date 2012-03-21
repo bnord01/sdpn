@@ -154,6 +154,8 @@ class PFGForwardGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](p
     def resultPI(n: N): L = PI(n).elem
 
     def results: Map[N, L] = Map() ++ (for (n <- pfg.nodes) yield n -> (R(n).elem ⊔ PI(n).elem))
+    
+    def resultsPI: Map[N, L] = Map() ++ (for (n <- pfg.nodes) yield n -> (PI(n).elem))
 
     def printSResults: String = {
         val buf = new StringBuffer

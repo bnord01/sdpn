@@ -12,18 +12,19 @@ import com.ibm.wala.ssa.SSAInstruction
 import com.ibm.wala.util.graph.traverse.BFSIterator
 import de.wwu.sdpn.wala.util.PreAnalysis
 import de.wwu.sdpn.pfg.ParFlowGraph
+import com.ibm.wala.ipa.callgraph.CallGraph
 
 /**
  * Factory to create a MonitorDPN using the given PreAnalysis
  *
  * @author Benedikt Nordhoff
  */
-class PFGFactory(analysis: PreAnalysis) {
-    import analysis._
+class PFGFactory(cg: CallGraph, isInteresting: CGNode => Boolean = _ => true, entryNodeOption: Option[CGNode] = None) {
 
     type Proc = CGNode
 
-    private var tmainProc = entryNode
+    private val entryNode = entryNodeOption getOrElse (cg getFakeRootNode)
+    private var tmainProc: Proc = entryNode
     private var tedges: Set[Edge] = Set()
     private var tretNodes: Map[Proc, Map[State, Node]] = Map().withDefaultValue(Map())
     private var tnodes: Set[Node] = Set()
@@ -32,6 +33,12 @@ class PFGFactory(analysis: PreAnalysis) {
     private var tentryNode: Map[Proc, Node] = Map()
 
     def procOf: Node => Proc = _.proc
+
+    def isThreadStart(cgnode: CGNode) = {
+        cgnode != null &&
+            cgnode.getMethod != null &&
+            "java.lang.Thread.start()V".equals(cgnode.getMethod.getSignature)
+    }
 
     private lazy val pfg: WalaPFG = {
         genPFG;
@@ -269,24 +276,66 @@ class PFGFactory(analysis: PreAnalysis) {
             tnodes += node
         }
         tretNodes += cgnode -> map
-        
+
     }
-    
-    def addBaseEdge(src:Node, ba: BaseAction, snk:Node) {
-        tedges += BaseEdge(src,ba,snk)
+
+    def addBaseEdge(src: Node, ba: BaseAction, snk: Node) {
+        tedges += BaseEdge(src, ba, snk)
         tnodes += src
         tnodes += snk
     }
 
-	def addCallEdge(src:Node, proc: CGNode, returns:Map[State,Node]) {
-	    tedges += CallEdge(src,proc,returns)
+    def addCallEdge(src: Node, proc: CGNode, returns: Map[State, Node]) {
+        tedges += CallEdge(src, proc, returns)
         tnodes += src
-        tnodes ++= returns.values 
-	}
-	def addSpawnEdge(src:Node, proc: CGNode, snk:Node) {
-	    tedges += SpawnEdge(src,proc,snk)
+        tnodes ++= returns.values
+    }
+    def addSpawnEdge(src: Node, proc: CGNode, snk: Node) {
+        tedges += SpawnEdge(src, proc, snk)
         tnodes += src
         tnodes += snk
-	}
+    }
 
+}
+
+object PFGFactory {
+    def getPFG(cg: CallGraph, isInteresting: CGNode => Boolean = _ => true, entryNodeOption: Option[CGNode] = None): WalaPFG = {
+        new PFGFactory(cg, isInteresting, entryNodeOption).getPFG
+    }
+
+    def getPFG(pa: PreAnalysis): WalaPFG = {
+        new PFGFactory(pa.cg, pa.isInteresting, Some(pa.entryNode)).getPFG
+    }
+
+    /**
+     * Obtains the CFGPoint representing the point just ''before'' the
+     * instruction corresponding to the given instructionIndex.
+     *
+     * @param node A CGNode
+     * @param instructionIndex An index of an instruction within the array node.getIR.getInstructions
+     * @return A corresponding stack symbol
+     */
+    def getCFGPoint4NodeAndIndex(node: CGNode, instructionIndex: Int): CFGPoint = {
+        val ir = node.getIR
+        val cfg = ir.getControlFlowGraph
+
+        val bb = cfg.getBlockForInstruction(instructionIndex)
+        //val bb = cfg.filter(x => x.getFirstInstructionIndex <= instructionIndex && instructionIndex <= x.getLastInstructionIndex).first
+
+        var index = 0
+        for (instr <- bb.iteratePhis()) {
+            index += 1
+        }
+        if (bb.isCatchBlock())
+            index += 1
+        val start = bb.getFirstInstructionIndex
+
+        val instrArr = ir.getInstructions
+        for (i <- start until instructionIndex) {
+            if (instrArr(i) != null) {
+                index += 1
+            }
+        }
+        return CFGPoint(node, bb.getNumber, index)
+    }
 }

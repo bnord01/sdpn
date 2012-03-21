@@ -9,6 +9,9 @@ import de.wwu.sdpn.pfg.BaseEdge
 import de.wwu.sdpn.pfg.CallEdge
 import de.wwu.sdpn.pfg.SpawnEdge
 
+/**
+ * This isn't finished!
+ */
 class PFGBackwardGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](pfg: ParFlowGraph[P, N, BA, R, E], transfer: E => GenKill[L]) extends BasicFixedpointSolver[PFGVar[L]] {
 
     import scala.collection.mutable.{ Map => MMap, Set => MSet }

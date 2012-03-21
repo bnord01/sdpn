@@ -46,7 +46,7 @@ class WalaPFGTest {
         val cp = SDPNTestProps.get.classPath
         val mc = "Lbnord/unittests/defuse/Test01"
         val preAnalysis = MyPreAnalysis.getStd(cp, mc)
-        val pfg = (new PFGFactory(preAnalysis)).getPFG
+        val pfg = PFGFactory.getPFG(preAnalysis)
         (pfg, preAnalysis.pa, preAnalysis.cg)
     }
     def pfgTestPrintln01: (WalaPFG, PointerAnalysis, CallGraph) = {
@@ -54,7 +54,7 @@ class WalaPFGTest {
         val cp = SDPNTestProps.get.classPath
         val mc = "Lbnord/unittests/defuse/TestPrintln01"
         val preAnalysis = MyPreAnalysis.getStd(cp, mc)
-        val pfg = (new PFGFactory(preAnalysis)).getPFG
+        val pfg = PFGFactory.getPFG(preAnalysis)
         (pfg, preAnalysis.pa, preAnalysis.cg)
     }
 
@@ -62,8 +62,7 @@ class WalaPFGTest {
 
     @Test
     def testFactory1 {
-        val fac = new PFGFactory(pa)
-        val pfg = fac.getPFG
+        val pfg = PFGFactory.getPFG(pa)
         println("Number of Edges: " + pfg.edges.size)
         println("Number of Nodes: " + pfg.nodes.size)
         import pfg._
@@ -106,8 +105,7 @@ class WalaPFGTest {
         def genKill(edge: Edge) = {
             GenKill(Node(N, CFGPoint(node, 0, 0)) equals (edge.src), false)
         }
-        val fac = new PFGFactory(pa)
-        val pfg = fac.getPFG
+        val pfg = PFGFactory.getPFG(pa)
         val solver = new PFGForwardGenKillSolver(pfg, genKill _)
         solver.solve(false)
 
@@ -126,8 +124,7 @@ class WalaPFGTest {
         val mr = StringStuff.makeMethodReference("bnord.testapps.Main.p2()V")
         val im = pa.cg.getNodes(mr)
         val node = im.first
-        val fac = new PFGFactory(pa)
-        val pfg = fac.getPFG
+        val pfg = PFGFactory.getPFG(pa)
 
         def genKill(edge: Edge) = {
             GenKill(node equals (edge.src.proc), false)
