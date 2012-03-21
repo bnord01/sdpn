@@ -1,5 +1,5 @@
 package de.wwu.sdpn.pfg.wala
-import scala.collection.JavaConversions.iterableAsScalaIterable
+import scala.collection.JavaConversions._
 import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import com.ibm.wala.ipa.callgraph.CallGraph
@@ -16,6 +16,7 @@ import de.wwu.sdpn.pfg.lattices.TopMap
 import de.wwu.sdpn.wala.util.UniqueInstanceLocator
 import com.ibm.wala.ipa.callgraph.CGNode
 import com.ibm.wala.ssa.SSAGetInstruction
+import com.ibm.wala.ssa.SSAFieldAccessInstruction
 
 /**
  * We calculate def/use dependencies on wala parallel flow graphs.
@@ -28,39 +29,69 @@ class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true) 
 
     private var p_result: Map[Node, LMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]]] = null
 
-    private lazy val uniqueInstances: Set[InstanceKey] = if (interpretKill) UniqueInstanceLocator.instances(cg, pa) else Set()
+    private lazy val isUnique: Set[InstanceKey] = if (interpretKill) UniqueInstanceLocator.instances(cg, pa) else Set()
 
     private lazy val pfg = PFGFactory.getPFG(cg)
 
-    private lazy val solver = new PFGForwardGenKillSolver(pfg, getGenKill(pa, uniqueInstances))
+    private lazy val solver = new PFGForwardGenKillSolver(pfg, getGenKill)
 
-    def solve(canceled: => Boolean) {
+    private lazy val hm = pa.getHeapModel()
+
+    def solve(canceled: => Boolean = false) {
         solver.solve(canceled)
         p_result = solver.results
     }
 
-    def result = {assert(p_result != null, "Constraint system not solved yet! Call DefUse.solve first!");p_result}
-    
-    def flowPossible(srcNode:CGNode, srcIdx:Int, snkNode:CGNode,snkIdx:Int) : Boolean = {        
-        val srcPnt = PFGFactory.getCFGPoint4NodeAndIndex(srcNode,srcIdx)
-        val snkPnt = PFGFactory.getCFGPoint4NodeAndIndex(snkNode,snkIdx)
-        
+    def result = { assert(p_result != null, "Constraint system not solved yet! Call DefUse.solve first!"); p_result }
+
+    def flowPossible(srcNode: CGNode, srcIdx: Int, snkNode: CGNode, snkIdx: Int): Boolean = {
+        val srcPnt = PFGFactory.getCFGPoint4NodeAndIndex(srcNode, srcIdx)
+        val snkPnt = PFGFactory.getCFGPoint4NodeAndIndex(snkNode, snkIdx)
+
         val srcInstr = srcNode.getIR().getInstructions()(srcIdx)
         val snkInstr = snkNode.getIR().getInstructions()(snkIdx)
-        
-        (srcInstr,snkInstr) match {
-            case (put:SSAPutInstruction,get:SSAGetInstruction) =>
-                // TODO continue here!
-            case _ => throw new IllegalArgumentException("Instructions (src,snk) not corresponding to put and get: " + (srcInstr,snkInstr))
-        }
-        
-        for (node <- List(Node(N,snkPnt),Node(E,snkPnt))) {
-            // TODO continue here!
-        }
-        
-        return true
-    }
 
+        (srcInstr, snkInstr) match {
+            case (put: SSAPutInstruction, get: SSAGetInstruction) =>
+                val field = put.getDeclaredField()
+                val putIks = getIKS4FieldInstr(srcNode, put)
+                val getIks = getIKS4FieldInstr(snkNode, get)
+                val iks = putIks intersect getIks
+
+                if (iks.isEmpty) {
+                    System.err.println("Field put and get instruktions share no common instance key: " + (put, get) + " iks: " + (putIks, getIks))
+                    return false
+                }
+
+                if (field.getName() != get.getDeclaredField().getName()) {
+                	System.err.println("Field names don't match: " + (put,get))
+                    return false
+                }
+
+                
+                for (node <- List(Node(N, snkPnt), Node(E, snkPnt))) {
+                    for (ik <- iks) {
+                        for ((edge, true) <- result(node)((ik, field)).elems) {
+                            if (edge.src.proc == srcNode) {
+                                edge match {
+                                    case BaseEdge(_, SSAAction(instr), _) =>
+                                        if (instr.iindex == put.iindex)
+                                            return true
+                                    case _ =>
+                                }
+
+                            }
+                        }
+                    }
+                }
+
+            // TODO continue here!
+            case _ => throw new IllegalArgumentException("Instructions (src,snk) not corresponding to put and get: " + (srcInstr, snkInstr))
+        }
+
+        return false
+    }
+    
     /**
      * Provides the gen/kill transfer for an edge in a WalaPFG
      * This is supposed to be partially applied and handed to the gen/kill solver.
@@ -69,22 +100,12 @@ class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true) 
      * @param isUnique a predicate use to identify unique instance keys on which killings are interpreted
      * @param edge an edge of a WalaPFG which corresponds to the given pointer analysis
      */
-    def getGenKill(pa: PointerAnalysis, isUnique: InstanceKey => Boolean = _ => false)(edge: Edge): GenKill[LMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]]] = {
+    def getGenKill(edge: Edge): GenKill[LMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]]] = {
         val lat = implicitly[Lattice[LMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]]]]
-        val hm = pa.getHeapModel()
         edge match {
-            case be@BaseEdge(Node(_, src @ CFGPoint(cgnode, _, _)), SSAAction(act: SSAPutInstruction), Node(nstate, _)) =>
-                val field = act.getDeclaredField()
-                val iks: Iterable[InstanceKey] =
-                    if (act.isStatic()) {
-                        val declClass = act.getDeclaredField().getDeclaringClass()
-                        val ik = hm.getInstanceKeyForClassObject(declClass)
-                        Set(ik)
-                    } else {
-                        val refNr = act.getRef()
-                        val pk = hm.getPointerKeyForLocal(cgnode, refNr)
-                        pa.getPointsToSet(pk)
-                    }
+            case be @ BaseEdge(Node(_, src @ CFGPoint(cgnode, _, _)), SSAAction(put: SSAPutInstruction), Node(nstate, _)) =>
+                val field = put.getDeclaredField()
+                val iks = getIKS4FieldInstr(cgnode, put)
 
                 val defs = Map() ++ (for (ik <- iks) yield ((ik, field) -> BottomMap(Map(be -> true))))
                 val kill = nstate match {
@@ -100,7 +121,20 @@ class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true) 
         }
 
     }
-    
+
+    private def getIKS4FieldInstr(cgnode: CGNode, instr: SSAFieldAccessInstruction): Set[InstanceKey] = {
+        val field = instr.getDeclaredField()
+        if (instr.isStatic()) {
+            val declClass = instr.getDeclaredField().getDeclaringClass()
+            val ik = hm.getInstanceKeyForClassObject(declClass)
+            Set(ik)
+        } else {
+            val refNr = instr.getRef()
+            val pk = hm.getPointerKeyForLocal(cgnode, refNr)
+            Set() ++ pa.getPointsToSet(pk)
+        }
+    }
+
     def printResults: String = {
         val buf = new StringBuffer
         def outln(s: Any) = { buf.append(s.toString()); buf.append("\n") }
