@@ -52,17 +52,23 @@ case class NilTree(state: State, globalState: GlobalState, stackSymbol: StackSym
 
 case class RetTree(state: State) extends WitnessTree
 
-case class State(g: GlobalState, ss: StackSymbol, gf: GlobalState, term: Boolean, conflictState: CState) {
+sealed trait State {
+    def g:GlobalState
+    def ss: StackSymbol
+    def gf:GlobalState
+    def term:Boolean
+} 
+case class SimpleState(g: GlobalState, ss: StackSymbol, gf: GlobalState, term: Boolean, conflictState: CState) extends State {
   def this(cf: CFState, cstate: CState) = this(cf.g, cf.ss, cf.gf, cf.term, cstate)
 }
 
 case class CFState(g: GlobalState, ss: StackSymbol, gf: GlobalState, term: Boolean)
 
-case class LSState(g0: GlobalState,
-  ss0: StackSymbol,
-  gf0: GlobalState,
-  term0: Boolean,
-  lockSet: Long, as: AcquisitionStructure, conflictState0: CState) extends State(g0, ss0, gf0, term0, conflictState0) {
+case class LSState(g: GlobalState,
+  ss: StackSymbol,
+  gf: GlobalState,
+  term: Boolean,
+  lockSet: Long, as: AcquisitionStructure, conflictState: CState) extends State {
   def this(cf: CFState, lockSet: Long, as: AcquisitionStructure, cstate: CState) = this(cf.g, cf.ss, cf.gf, cf.term, lockSet, as, cstate)
 }
 

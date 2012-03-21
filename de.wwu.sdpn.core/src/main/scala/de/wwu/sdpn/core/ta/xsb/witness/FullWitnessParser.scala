@@ -26,13 +26,13 @@ object FullWitnessParser extends JavaTokenParsers {
     (
         "c("~cfState~","~conflictState~")" ^^ {
     		case "c("~cfState~","~cState~")" =>
-    			new State(cfState, cState)
+    			new SimpleState(cfState, cState)
         }
     | 
     
     	"c(i("~cfState~","~lnr~"),i("~acqStruct~","~conflictState~"))" ^^ {
     		case "c(i("~cfState~","~lnr~"),i("~acqStruct~","~conflictState~"))" =>
-    			new LSState(cfState, lnr, acqStruct, conflictState)
+    			 new LSState(cfState, lnr, acqStruct, conflictState)
         }
     )
     

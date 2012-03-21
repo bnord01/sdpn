@@ -50,7 +50,7 @@ object MonitorMatcher {
                                 eSucc(bb).flatMap(getExits(_, counter))
                         else {
                             val index = findMIIndex(bb)
-                            return eSucc(bb).flatMap(getExits(_, counter)) + ((bb,index))
+                            return eSucc(bb).flatMap(getExits(_, counter)) += ((bb,index))
                         }
                             
                     }

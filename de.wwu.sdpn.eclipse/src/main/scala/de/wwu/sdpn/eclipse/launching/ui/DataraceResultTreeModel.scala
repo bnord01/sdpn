@@ -224,7 +224,7 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
                                 println("DPN size: " + dpn.getTransitions.size)
                                 de.wwu.sdpn.core.gui.MonitorDPNView.show(dpn)
                             case fr: DRFieldResult if fr.subResults.size == 1 =>
-                                val br = fr.subResults.values.first
+                                val br = fr.subResults.values.head
                                 println("Starting DPN View")
                                 val dpn = br.detail._3.dpn
                                 println("DPN size: " + dpn.getTransitions.size)
@@ -254,7 +254,7 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
                                     case (br: DRBaseResult, (node: CGNode, instr: SSAFieldAccessInstruction)) =>
                                         Some(br.detail._3.cg, br.detail._3.getWitness)
                                     case fr: DRFieldResult if fr.subResults.size == 1 =>
-                                        val br = fr.subResults.values.first
+                                        val br = fr.subResults.values.head
                                         Some(br.detail._3.cg, br.detail._3.getWitness)
                                     case _ => None
                                 }

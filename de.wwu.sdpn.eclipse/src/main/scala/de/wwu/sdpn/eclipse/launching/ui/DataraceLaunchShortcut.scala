@@ -35,7 +35,7 @@ class DataraceLaunchShortcut extends ILaunchShortcut {
                     case cu: ICompilationUnit =>
                         val classes = cu.getTypes().filter(hasMain(_))
                         assert(classes.size == 1, "Didn't find exactly one class with main method in compilation Unit, invoke on class instead!")
-                        mainClass = classes.first
+                        mainClass = classes.head
                     case it: IType =>
                         mainClass = it
                     case im: IMethod =>
@@ -60,7 +60,7 @@ class DataraceLaunchShortcut extends ILaunchShortcut {
             case cu: ICompilationUnit =>
                 val classes = cu.getTypes().filter(hasMain(_))
                 assert(classes.size == 1, "Didn't find exactly one class with main method in compilation Unit, invoke on class instead!")
-                val mc = classes.first
+                val mc = classes.head
                 runAnalysis(mc.getJavaProject(), mc.getFullyQualifiedName())
 
         }

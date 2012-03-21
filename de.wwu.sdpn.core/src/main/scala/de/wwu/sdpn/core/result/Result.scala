@@ -19,7 +19,8 @@ case class BaseResult[D](var detail: D, var value: ResultValue) extends Result[D
     }
     def updateDetail[DT](path: List[_], newValue: DT) {
         require(path == Nil, "Can't update result at path: " + path + " in BaseResult.")
-        newValue match {
+        
+        (newValue: @unchecked) match {
             case d: D =>
                 detail = d
             case _ => throw new IllegalArgumentException("Can't update detail! Incompatible Types!")
@@ -35,13 +36,13 @@ case class BaseResult[D](var detail: D, var value: ResultValue) extends Result[D
 }
 abstract case class ComposedResult[D, SK, SR <: Result[SD, SSK, SSR], SD, SSK, SSR](var detail: D, subResults: Map[SK, SR]) extends Result[D, SK, SR] {
     def updateValue(path: List[_], newValue: ResultValue) {
-        path match {
+        (path: @unchecked) match {
             case (car: SK) :: cdr => subResults(car).updateValue(cdr, newValue)
             case Nil              => throw new IllegalArgumentException("Can't update composed result with Nil path.")
         }
     }
     def updateDetail[DT](path: List[_], newValue: DT) {
-        path match {
+        (path: @unchecked) match {
             case (car: SK) :: cdr => subResults(car).updateDetail(cdr, newValue)
             case Nil =>
                 newValue match {

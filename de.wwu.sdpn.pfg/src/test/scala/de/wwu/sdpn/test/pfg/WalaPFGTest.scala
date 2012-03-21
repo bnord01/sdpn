@@ -94,14 +94,14 @@ class WalaPFGTest {
         val mr = StringStuff.makeMethodReference("bnord.testapps.Main.p2()V")
         val im = pa.cg.getNodes(mr)
         assert(im.size() == 1)
-        println(im.first.getIR())
+        println(im.head.getIR())
     }
 
     @Test
     def testSolver1 {
         val mr = StringStuff.makeMethodReference("bnord.testapps.Main.p2()V")
         val im = pa.cg.getNodes(mr)
-        val node = im.first
+        val node = im.head
         def genKill(edge: Edge) = {
             GenKill(Node(N, CFGPoint(node, 0, 0)) equals (edge.src), false)
         }
@@ -123,7 +123,7 @@ class WalaPFGTest {
 
         val mr = StringStuff.makeMethodReference("bnord.testapps.Main.p2()V")
         val im = pa.cg.getNodes(mr)
-        val node = im.first
+        val node = im.head
         val pfg = PFGFactory.getPFG(pa)
 
         def genKill(edge: Edge) = {

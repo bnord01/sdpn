@@ -18,32 +18,32 @@ import java.io.InputStreamReader
 import java.io.FileReader
 /**
  * This is a parser for a textual representation of a DPN and a reachability check.
- * 
- * It can be used from the command line with the name of a file, containing the textual 
- * representation, as an argument.  
+ *
+ * It can be used from the command line with the name of a file, containing the textual
+ * representation, as an argument.
  * The program then prints `true` resp. `false` to stdout if
  * the conflict is reachable resp. not reachable.
- *    
+ *
  * Moreover, if the option `--explore`  is given as the first argument ,
  * a viewer is started which simulates the DPN instead.
- * 
+ *
  * The file given as argument should contain a tsr_task as defined by the following grammar.
- * 
- * Names are optional and are only used when exploring the DPN.  
- * In later versions they may be used to represent a generated witness.    
- * 
- * ==Grammar in EBNF==  
+ *
+ * Names are optional and are only used when exploring the DPN.
+ * In later versions they may be used to represent a generated witness.
+ *
+ * ==Grammar in EBNF==
  * The parser uses the following grammar which is in EBNF except for the rules for `term` and `name`.
- *  
- * `term` is a natural number or a combination of lower and upper case alpha numerical 
+ *
+ * `term` is a natural number or a combination of lower and upper case alpha numerical
  * symbols and _ which starts with a lower case letter.
- * 
- * `name` can be any string literal enclosed in `"` as accepted java. 
- * 
+ *
+ * `name` can be any string literal enclosed in `"` as accepted java.
+ *
  * When using the optional `nolocks` keyword in the task definition a lock insensitive analysis is performed.
- * 
- * In all lists commas are optional.  
- * 
+ *
+ * In all lists commas are optional.
+ *
  * {{{
  * term           ::= [1-9][0-9]* | [a-z][a-zA-Z0-9_]*
  * name           ::= STRINGLITERAL "..."
@@ -76,11 +76,11 @@ import java.io.FileReader
  *
  * tsr_task       ::= dpn tsr_conflict_def
  * }}}
- * 
+ *
  * ==Example==
  * The following is an example of a simple TSRTask which can be passed to the parser and prints the result `false`.
  * It uses numbers as terms.
- * 
+ *
  * {{{
  * dpn{
  *    controls {1:"Normal"}
@@ -89,20 +89,20 @@ import java.io.FileReader
  *        2:"Before monitor enter"
  *        3:"Inside Monitor, Spawning (1,1)"
  *        4: "Just spawned, now returning to 10"
- *        10:"Monitor return point. Going to Start"           
+ *        10:"Monitor return point. Going to Start"
  *    }
  *    actions {
- *        1:"base" 
+ *        1:"base"
  *        2:"Entering monitor"
  *        3:"Spawning"
  *        4:"Leaving monitor"
  *        5:"Resuming to start"
- *    }            
+ *    }
  *    locks {
  *        1:"Lock number one"
  *    }
  *
- *    initial(1,1) 
+ *    initial(1,1)
  *
  *    rules {
  *        (1,1) --1--> (1,2)
@@ -115,9 +115,9 @@ import java.io.FileReader
  *
  * conflict between {4} and {4}
  * }}}
- * 
+ *
  * @author Benedikt Nordhoff
- * 
+ *
  */
 object DPNParser extends JavaTokenParsers {
 
@@ -140,7 +140,7 @@ object DPNParser extends JavaTokenParsers {
             val pres = parseDPN(rdr)
             if (pres.successful) {
                 val dpn = pres.get._1
-                MonitorDPNView.show(dpn,true)
+                MonitorDPNView.show(dpn, true)
             } else {
                 println("Parsing error!")
                 println(pres)
@@ -172,7 +172,7 @@ object DPNParser extends JavaTokenParsers {
     def name: Parser[String] = stringLiteral ^^(x => x.substring(1,x.length - 1))
     def controlDef: Parser[(String, Control)] = term ~ ":" ~ name ^^ { case term ~ ":" ~ name => term -> Control(term, name) }
     def stackDef: Parser[(String, Stack)] = term ~ ":" ~ name ^^ { case term ~ ":" ~ name => term -> Stack(term, name) }
-    def actionDef: Parser[(String, Action)] = term ~ ":" ~ name ^^ { case term ~ ":" ~ name => term -> Action(term, name) }
+    def actionDef: Parser[(String, BaseAction)] = term ~ ":" ~ name ^^ { case term ~ ":" ~ name => term -> BaseAction(term, name) }
     def lockDef: Parser[(String, Lock)] = term ~ ":" ~ name ^^ { case term ~ ":" ~ name => term -> Lock(term, name) }
     def controls : Parser[Naming] = 
         "controls"~>"{"~>repsep(controlDef,opt(","))<~"}" ^^ {x => defaultNaming.copy(cname=(cdef ++ x))}
@@ -187,7 +187,7 @@ object DPNParser extends JavaTokenParsers {
     def control(implicit n: Naming) : Parser[Control] = term ^^ {n cname _}
     def stack(implicit n: Naming) : Parser[Stack] = term ^^ {n sname _}
     def lock(implicit n: Naming) : Parser[Lock] = term ^^ {n lname _}
-    def action(implicit n: Naming) : Parser[Action] = term ^^ {n aname _}
+    def action(implicit n: Naming) : Parser[BaseAction] = term ^^ {n aname _}
     
     def initial(implicit n:Naming) : Parser[(Control,Stack)] = "initial"~>"("~control~","~stack~")"^^{case "("~control~","~stack~")" => (control,stack)}
     
@@ -239,14 +239,14 @@ object DPNParser extends JavaTokenParsers {
 
     val cdef = Map[String, Control]().withDefault(x => Control(x, x))
     val sdef = Map[String, Stack]().withDefault(x => Stack(x, x))
-    val adef = Map[String, Action]().withDefault(x => Action(x, x))
+    val adef = Map[String, BaseAction]().withDefault(x => BaseAction(x, x))
     val ldef = Map[String, Lock]().withDefault(x => Lock(x, x))
 
     val defaultNaming = Naming(cdef, sdef, adef, ldef)
 
 }
 
-case class Naming(cname: Map[String, Control], sname: Map[String, Stack], aname: Map[String, Action], lname: Map[String, Lock]) {
+case class Naming(cname: Map[String, Control], sname: Map[String, Stack], aname: Map[String, BaseAction], lname: Map[String, Lock]) {
     def laname(a: String, l: String) = LockAction(aname(a), lname(l))
     def +(other: Naming): Naming = {
         other match {
@@ -255,12 +255,18 @@ case class Naming(cname: Map[String, Control], sname: Map[String, Stack], aname:
     }
 }
 
-sealed abstract case class NamedTerm(term: String, name: String) extends HasTermRepresentation {
-    def toTerm = term
+sealed trait NamedTerm extends HasTermRepresentation {
+    def term: String
+    def name: String
+    override def toTerm = term
     override def toString = name
 }
-case class Control(term0: String, name0: String) extends NamedTerm(term0, name0)
-case class Stack(term0: String, name0: String) extends NamedTerm(term0, name0)
-case class Action(term0: String, name0: String) extends NamedTerm(term0, name0)
-case class Lock(term0: String, name0: String) extends NamedTerm(term0, name0)
-case class LockAction(action: Action, lock: Lock) extends Action(action.term, action.name + "-" + lock.name)
+case class Control(term: String, name: String) extends NamedTerm
+case class Stack(term: String, name: String) extends NamedTerm
+sealed trait Action extends NamedTerm
+case class BaseAction(term: String, name: String) extends Action
+case class Lock(term: String, name: String) extends NamedTerm
+case class LockAction(action: BaseAction, lock: Lock) extends Action {
+    val term = action.term
+    val name = action.name + "-" + lock.name
+}

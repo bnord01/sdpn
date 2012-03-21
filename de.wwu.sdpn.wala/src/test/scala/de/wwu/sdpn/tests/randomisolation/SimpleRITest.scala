@@ -32,12 +32,12 @@ object SimpleRITest {
             val mr = StringStuff.makeMethodReference("bnord.unittests.randomisolation.BSP0" + i + ".excludeMe()V")
             val nodes = cg.getNodes(mr)
             assert(nodes.size == 1, "Found " + nodes.size + " nodes representing the excludeMe-Method, expected 1.")
-            val node = nodes.first
+            val node = nodes.head
             val vn = node.getIR.getSymbolTable().getParameter(0)
             val pk = pa.getHeapModel.getPointerKeyForLocal(node, vn)
             val iks = pa.getPointsToSet(pk)
             assert(iks.size == 1, "Found " + iks.size + " instancekeys representing the this pointer of the excludeMe-Method, expected 1.")
-            stuff += i -> (cg, pa, mr, iks.first)
+            stuff += i -> (cg, pa, mr, iks.head)
         }
     }
 
@@ -69,7 +69,7 @@ class SimpleRITest {
     def runCheck(nr: Int, expectedResult: Boolean) {
         val (cg, pa, mr, ik) = stuff(nr)
         val sliceSet = cg.getNodes(mr)
-        val cgnode = sliceSet.first
+        val cgnode = sliceSet.head
         val mdpn = SimpleAnalyses.getMDPN(cg, pa, sliceSet, false)
         val ridpn = new RIDPN(mdpn, ik, "0", pa)
 
@@ -95,7 +95,7 @@ class SimpleRITest {
     def testStdLibCheck() {
         val (cg, pa, mr, ik) = stuff(1)
         val sliceSet = cg.getNodes(mr)
-        val cgnode = sliceSet.first
+        val cgnode = sliceSet.head
         val mdpn = SimpleAnalyses.getMDPN(cg, pa, sliceSet, false)
         val ridpn = new RIDPN(mdpn, ik, "0", pa)
 

@@ -40,7 +40,7 @@ object DataraceLauncher {
                 Activator.getDefault().getPreferenceStore().getString(DRAPreferences.S_JRE_PATH);
             } else {
                 com.ibm.wala.ipa.callgraph.impl.Util.setNativeSpec("natives.xml");
-                proj.getPackageFragmentRoots().filter(x => java_lib_names(x.getElementName())).first.getPath().toFile().toString()
+                proj.getPackageFragmentRoots().filter(x => java_lib_names(x.getElementName())).head.getPath().toFile().toString()
             }
 
             val useIPL = !Activator.getDefault().getPreferenceStore().getBoolean(DRAPreferences.B_DONT_USE_INTERPROLOG);

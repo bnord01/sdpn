@@ -53,7 +53,7 @@ class DPN4IFCTest {
         val im = mrr("bnord.unittests.dpn4ifc.BSP01.p2()V", cha)
         val nodes = cg.getNodes(im.getReference())
         assert(nodes.size == 1)
-        val node = nodes.first
+        val node = nodes.head
         val expResult = StackSymbol(node, 2, 0)
         val realResult = dia.getSS4NodeAndIndex(node, 5)
         println(realResult)
@@ -68,13 +68,13 @@ class DPN4IFCTest {
         var im = mrr("bnord.unittests.dpn4ifc.BSP01.p2()V", cha)
         var nodes = cg.getNodes(im.getReference())
         assert(nodes.size == 1)
-        var node = nodes.first
+        var node = nodes.head
         val writePos = StackSymbol(node, 2, 0)
 
         im = mrr("bnord.unittests.dpn4ifc.BSP01.p1()V", cha)
         nodes = cg.getNodes(im.getReference())
         assert(nodes.size == 1)
-        node = nodes.first
+        node = nodes.head
         val readPos = StackSymbol(node, 5, 0)
         dia.init(ProgressMonitorDelegate.createProgressMonitorDelegate((new PrintingPM())))
         val res = dia.mayHappenSuccessively(writePos, readPos, ProgressMonitorDelegate.createProgressMonitorDelegate(new PrintingPM()))
@@ -89,13 +89,13 @@ class DPN4IFCTest {
         var im = mrr("bnord.unittests.dpn4ifc.BSP02.p2()V", cha)
         var nodes = cg.getNodes(im.getReference())
         assert(nodes.size == 1)
-        var node = nodes.first
+        var node = nodes.head
         val writePos = StackSymbol(node, 2, 0)
 
         im = mrr("bnord.unittests.dpn4ifc.BSP02.p1()V", cha)
         nodes = cg.getNodes(im.getReference())
         assert(nodes.size == 1)
-        node = nodes.first
+        node = nodes.head
         val readPos = StackSymbol(node, 9, 0)
         dia.init(ProgressMonitorDelegate.createProgressMonitorDelegate((new PrintingPM())))
         val res = dia.mayHappenSuccessively(writePos, readPos, ProgressMonitorDelegate.createProgressMonitorDelegate(new PrintingPM()))
@@ -110,14 +110,14 @@ class DPN4IFCTest {
         var im = mrr("bnord.unittests.dpn4ifc.BSP03.p2()V", cha)
         var nodes = cg.getNodes(im.getReference())
         assert(nodes.size == 1, "Expected 1 node but got: " + nodes.size)
-        var node = nodes.first
+        var node = nodes.head
         println(node.getIR)
         val writePos = StackSymbol(node, 1, 0)
 
         im = mrr("bnord.unittests.dpn4ifc.BSP03.p1()V", cha)
         nodes = cg.getNodes(im.getReference())
         assert(nodes.size == 1)
-        node = nodes.first
+        node = nodes.head
         println(node.getIR)
         val readPos = StackSymbol(node, 2, 0)
         dia.init(ProgressMonitorDelegate.createProgressMonitorDelegate((new PrintingPM())))
@@ -134,13 +134,13 @@ class DPN4IFCTest {
         var im = mrr("bnord.unittests.dpn4ifc.BSP01.p2()V", cha)
         var nodes = cg.getNodes(im.getReference())
         assert(nodes.size == 1)
-        var node = nodes.first
+        var node = nodes.head
         val writePos = StackSymbol(node, 2, 0)
 
         im = mrr("bnord.unittests.dpn4ifc.BSP01.p1()V", cha)
         nodes = cg.getNodes(im.getReference())
         assert(nodes.size == 1)
-        node = nodes.first
+        node = nodes.head
         val readPos = StackSymbol(node, 5, 0)
         dia.init(ProgressMonitorDelegate.createProgressMonitorDelegate((new PrintingPM())))
         val res = dia.mayHappenInParallel(writePos, readPos, ProgressMonitorDelegate.createProgressMonitorDelegate(new PrintingPM()))
@@ -155,13 +155,13 @@ class DPN4IFCTest {
         var im = mrr("bnord.unittests.dpn4ifc.BSP01.p2()V", cha)
         var nodes = cg.getNodes(im.getReference())
         assert(nodes.size == 1)
-        var node = nodes.first
+        var node = nodes.head
         val beforeWritePos = StackSymbol(node, 0, 0)
 
         im = mrr("bnord.unittests.dpn4ifc.BSP01.p1()V", cha)
         nodes = cg.getNodes(im.getReference())
         assert(nodes.size == 1)
-        node = nodes.first
+        node = nodes.head
         val readPos = StackSymbol(node, 5, 0)
         dia.init(ProgressMonitorDelegate.createProgressMonitorDelegate((new PrintingPM())))
         val res = dia.mayHappenInParallel(beforeWritePos, readPos, ProgressMonitorDelegate.createProgressMonitorDelegate(new PrintingPM()))
