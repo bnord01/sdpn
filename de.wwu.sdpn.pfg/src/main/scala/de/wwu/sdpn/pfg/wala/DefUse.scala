@@ -64,25 +64,26 @@ class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true) 
                 }
 
                 if (field.getName() != get.getDeclaredField().getName()) {
-                	System.err.println("Field names don't match: " + (put,get))
+                    System.err.println("Field names don't match: " + (put, get))
                     return false
                 }
 
-                
-                for (node <- List(Node(N, snkPnt), Node(E, snkPnt))) {
-                    for (ik <- iks) {
-                        for ((edge, true) <- result(node)((ik, field)).elems) {
-                            if (edge.src.proc == srcNode) {
-                                edge match {
-                                    case BaseEdge(_, SSAAction(instr), _) =>
-                                        if (instr.iindex == put.iindex)
-                                            return true
-                                    case _ =>
-                                }
-
-                            }
+                for {
+                    node <- List(Node(N, snkPnt), Node(E, snkPnt));
+                    ik <- iks;
+                    res <- result.get(node);
+                    (edge, true) <- res((ik, field)).elems
+                } {
+                    if (edge.src.proc == srcNode) {
+                        edge match {
+                            case BaseEdge(_, SSAAction(instr), _) =>
+                                if (instr.iindex == put.iindex)
+                                    return true
+                            case _ =>
                         }
+
                     }
+
                 }
 
             // TODO continue here!
@@ -91,7 +92,7 @@ class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true) 
 
         return false
     }
-    
+
     /**
      * Provides the gen/kill transfer for an edge in a WalaPFG
      * This is supposed to be partially applied and handed to the gen/kill solver.
@@ -146,6 +147,7 @@ class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true) 
         }
         buf.toString()
     }
+    def getNumberOfStatements = solver.getNumberOfStatements
 
 }
 

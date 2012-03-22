@@ -9,6 +9,7 @@ abstract class BasicFixedpointSolver[T] extends FixedpointSolver[T] {
     private val dependendStatements: MMap[T, MSet[Statement[T]]] = MMap().withDefaultValue(MSet())
     private var wl: List[Statement[T]] = Nil
     private val ws: MSet[Statement[T]] = MSet()
+    private var nbrOfStmts = 0
 
     override def solve(canceled: => Boolean = false) {
         initialize()
@@ -41,6 +42,7 @@ abstract class BasicFixedpointSolver[T] extends FixedpointSolver[T] {
 
     override def addStmts(stmts: Statement[T]*) {
         for (stmt <- stmts) {
+            nbrOfStmts += 1
             for (v <- stmt.rhs) {
                 dependendStatements.getOrElseUpdate(v, MSet()) += stmt
             }
@@ -50,10 +52,13 @@ abstract class BasicFixedpointSolver[T] extends FixedpointSolver[T] {
     }
 
     def addStmt(stmt: Statement[T]) {
+        nbrOfStmts += 1
         for (v <- stmt.rhs) {
             dependendStatements.getOrElseUpdate(v, MSet()) += stmt
         }
         ws += stmt
         wl = stmt :: wl
     }
+    
+    def getNumberOfStatements = nbrOfStmts    
 }

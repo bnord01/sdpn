@@ -71,12 +71,8 @@ class PFGFactory(cg: CallGraph, isInteresting: CGNode => Boolean = _ => true, en
             for (node <- bfsi if isInteresting(node)) {
                 tprocs += node
                 tentryNode += node -> Node(N, CFGPoint(node, 0, 0))
-                if (isThreadStart(node)) {
-                    // handle ThreadStart as CFG isn't consitent with CG.
-                    createRules4ThreadStart(node)
-                } else {
-                    createRules4CGNode(node)
-                }
+
+                createRules4CGNode(node)
             }
             isGenerated = true
         }
@@ -192,6 +188,15 @@ class PFGFactory(cg: CallGraph, isInteresting: CGNode => Boolean = _ => true, en
                         //        NState, StackSymbol(cgnode, bbnr1, index1),
                         //        SkipAction(SSAAction(action)),
                         //        EState, StackSymbol(cgnode, bbnr2, index2))
+                    } else if (isThreadStart(target)) {
+                        addSpawnEdge(
+                            Node(N, CFGPoint(cgnode, bbnr1, index1)),
+                            target,
+                            Node(N, CFGPoint(cgnode, bbnr2, index2)))
+                        addSpawnEdge(
+                            Node(N, CFGPoint(cgnode, bbnr1, index1)),
+                            target,
+                            Node(E, CFGPoint(cgnode, bbnr2, index2)))
                     } else {
                         addCallEdge(
                             Node(N, CFGPoint(cgnode, bbnr1, index1)),
@@ -223,43 +228,7 @@ class PFGFactory(cg: CallGraph, isInteresting: CGNode => Boolean = _ => true, en
         }
     }
 
-    /**
-     * Create rules for thread start.
-     * This creates a SpawnRule where we model the Thread.start() method as.
-     * (0,0) --- target.run() ---> (1,0) --- return ---> ()
-     * @param cgnode Spawning Thread.start() node.
-     */
-    private def createRules4ThreadStart(cgnode: CGNode) = {
-        assert(isThreadStart(cgnode))
-        //TODO Only spawn Runnable.run() here not exception.init if using jSDG stubs.
-        for (target <- cg.getSuccNodes(cgnode)) {
-            createRule4Spawn(cgnode, target)
-        }
-        createRule4Return(cgnode, 1)
-    }
-
-    /**
-     * Create a SpawnRule where cgnode spawns target.
-     * cgnode should to refer to a Thread.start() as we
-     * the rule transfers the spawning cgnode from
-     * (0,0) ---> (1,0).
-     */
-    private def createRule4Spawn(cgnode: CGNode, target: CGNode) = {
-        addSpawnEdge(
-            Node(N, CFGPoint(cgnode, 0, 0)),
-            target,
-            Node(N, CFGPoint(cgnode, 1, 0)))
-        //Not sure if this is necessary: Spawn and Exception maybe add a Flag.
-        addSpawnEdge(
-            Node(N, CFGPoint(cgnode, 0, 0)),
-            target,
-            Node(E, CFGPoint(cgnode, 1, 0)))
-        addBaseEdge(
-            Node(N, CFGPoint(cgnode, 0, 0)),
-            Skip,
-            Node(E, CFGPoint(cgnode, 1, 0)))
-    }
-
+    
     /**
      * Create rule for method return.
      * (context,method,bbnr,0) ---Return---> ()
