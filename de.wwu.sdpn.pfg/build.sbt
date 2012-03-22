@@ -1,8 +1,8 @@
-name := "sDPN Parallel Flow Graphs"
+name := "sdpn.pfg"
 
 version := "1.0"
 
-organization := "bnord"
+organization := "de.wwu"
 
 scalaVersion := "2.9.1"
 
@@ -10,8 +10,12 @@ parallelExecution in Test := false
 
 resolvers += "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/.m2/repository"
 
-//libraryDependencies += "org.scala-lang" % "scala-swing" % "2.9.1"
+publishTo := Some(Resolver.file("file",  new File(Path.userHome.absolutePath+"/.m2/repository")))
 
 libraryDependencies += "org.eclipse.core" % "runtime" % "[3.5.0,)"
+
+libraryDependencies += "de.wwu" %% "sdpn.core" % "1.0"
+
+libraryDependencies += "de.wwu" %% "sdpn.wala" % "1.0"
 
 libraryDependencies += "com.novocode" % "junit-interface" % "0.8" % "test"
