@@ -17,13 +17,13 @@ class BasicFixedpointSolver[T] extends FixedpointSolver[T] {
             wl = wl.tail
             ws -= st
             st.evaluate() match {
-                case Changed =>
+                case Changed 			=>
                     for (s <- dependendStatements(st.lhs))
                         if (!ws(s)) {
                             ws += s
                             wl = s :: wl
                         }
-                case ChangedAndFixed =>
+                case ChangedAndFixed 	=>
                     for (s <- dependendStatements(st.lhs))
                         if (!ws(s)) {
                             ws += s
@@ -32,7 +32,7 @@ class BasicFixedpointSolver[T] extends FixedpointSolver[T] {
                 case NotChanged         =>
                 // Do nothing
                 case NotChangedAndFixed =>
-                //Do Nothig
+                //Do nothing
             }
         }
     }
@@ -56,6 +56,6 @@ class BasicFixedpointSolver[T] extends FixedpointSolver[T] {
         ws += stmt
         wl = stmt :: wl
     }
-    
-    def getNumberOfStatements = nbrOfStmts    
+
+    def getNumberOfStatements = nbrOfStmts
 }
