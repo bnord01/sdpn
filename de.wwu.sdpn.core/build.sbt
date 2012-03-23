@@ -6,6 +6,10 @@ organization := "de.wwu"
 
 scalaVersion := "2.9.1"
 
+fork in (Test,run) := true
+
+javaOptions in (Test,run) += "-Xmx2G"
+
 resolvers += "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/.m2/repository"
 
 libraryDependencies += "org.scala-lang" % "scala-swing" % "2.9.1"
