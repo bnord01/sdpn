@@ -4,7 +4,7 @@ import de.wwu.sdpn.pfg.lattices.BottomMap
 import de.wwu.sdpn.pfg.lattices.TopMap
 import org.junit.Assert._
 
-object DefUseUtil {
+object DefUseTestUtil {
     
     def printRes[A,B,C](res:Map[A,LMap[B,LMap[C,Boolean]]]): String = {
         (for((n,r) <- res) yield "At " + n  +" : \n"+ printSingleRes(r)).mkString("\n\n") 

@@ -6,7 +6,9 @@ import com.ibm.wala.ipa.callgraph.CallGraph
 import com.ibm.wala.ssa.SSAPutInstruction
 import com.ibm.wala.types.FieldReference
 import de.wwu.sdpn.pfg.genkill.PFGForwardGenKillSolver
+import de.wwu.sdpn.pfg.fixedpoint.BasicFixedpointSolver
 import de.wwu.sdpn.pfg.lattices.genkill.GenKill
+import de.wwu.sdpn.pfg.genkill.PFGVar
 import de.wwu.sdpn.pfg.lattices.BooleanLattice
 import de.wwu.sdpn.pfg.lattices.getMapLattice
 import de.wwu.sdpn.pfg.lattices.BottomMap

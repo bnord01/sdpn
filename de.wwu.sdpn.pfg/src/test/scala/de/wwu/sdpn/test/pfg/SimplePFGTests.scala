@@ -7,7 +7,7 @@ import de.wwu.sdpn.pfg.lattices.BottomMap
 import de.wwu.sdpn.pfg.lattices.LMap
 import de.wwu.sdpn.pfg.lattices.TopMap
 import de.wwu.sdpn.pfg.lattices.Lattice
-import DefUseUtil._
+import DefUseTestUtil._
 
 class BasicPFGTests {
 

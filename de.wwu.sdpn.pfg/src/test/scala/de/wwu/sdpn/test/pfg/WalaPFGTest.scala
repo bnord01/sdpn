@@ -21,7 +21,7 @@ import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 import de.wwu.sdpn.pfg.wala.SSAAction
 import com.ibm.wala.ssa.SSAPutInstruction
 import com.ibm.wala.types.FieldReference
-import DefUseUtil._
+import DefUseTestUtil._
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import com.ibm.wala.ipa.callgraph.CallGraph
 import de.wwu.sdpn.pfg.lattices.genkill.GenKill
@@ -106,7 +106,7 @@ class WalaPFGTest {
             GenKill(Node(N, CFGPoint(node, 0, 0)) equals (edge.src), false)
         }
         val pfg = PFGFactory.getPFG(pa)
-        val solver = new PFGForwardGenKillSolver(pfg, genKill _)
+        val solver = new PFGForwardGenKillSolver(pfg, genKill _) 
         solver.solve(false)
 
         println(solver.printResults)

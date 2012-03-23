@@ -1,8 +1,6 @@
 package de.wwu.sdpn.pfg.fixedpoint
 
-abstract class BasicFixedpointSolver[T] extends FixedpointSolver[T] {
-
-    protected def initialize(): Unit
+class BasicFixedpointSolver[T] extends FixedpointSolver[T] {
 
     import scala.collection.mutable.{ Map => MMap, Set => MSet }
 
@@ -12,7 +10,6 @@ abstract class BasicFixedpointSolver[T] extends FixedpointSolver[T] {
     private var nbrOfStmts = 0
 
     override def solve(canceled: => Boolean = false) {
-        initialize()
         while (!ws.isEmpty) {
             if (canceled)
                 throw new RuntimeException("Canceled!")

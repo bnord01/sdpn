@@ -21,7 +21,7 @@ import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 import de.wwu.sdpn.pfg.wala.SSAAction
 import com.ibm.wala.ssa.SSAPutInstruction
 import com.ibm.wala.types.FieldReference
-import DefUseUtil._
+import DefUseTestUtil._
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import com.ibm.wala.ipa.callgraph.CallGraph
 import de.wwu.sdpn.pfg.lattices.genkill.GenKill

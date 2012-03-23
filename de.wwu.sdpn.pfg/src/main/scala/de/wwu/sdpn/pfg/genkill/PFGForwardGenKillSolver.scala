@@ -8,10 +8,18 @@ import de.wwu.sdpn.pfg.Edge
 import de.wwu.sdpn.pfg.BaseEdge
 import de.wwu.sdpn.pfg.CallEdge
 import de.wwu.sdpn.pfg.SpawnEdge
+import de.wwu.sdpn.pfg.fixedpoint.FixedpointSolver
 
-class PFGForwardGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](pfg: ParFlowGraph[P, N, BA, R, E], transfer: E => GenKill[L]) extends BasicFixedpointSolver[PFGVar[L]] {
+class PFGForwardGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](
+        pfg: ParFlowGraph[P, N, BA, R, E],
+        transfer: E => GenKill[L],
+        flowSolver: Option[FixedpointSolver[PFGVar[L]]] = None) {
 
     import scala.collection.mutable.{ Map => MMap, Set => MSet }
+
+    private val solver = flowSolver.getOrElse(new BasicFixedpointSolver[PFGVar[L]])
+
+    import solver.addStmts
 
     private val R: MMap[N, LVar[L]] = MMap()
     private val S: MMap[N, GKVar[L]] = MMap()
@@ -50,7 +58,7 @@ class PFGForwardGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](p
 
         //Set up statements for main procedure
         val emain = pfg.entryNode(pfg.mainProc)
-        addStmt(
+        addStmts(
             R(emain) ⊒ lat.bottom // R.init
         )
 
@@ -150,11 +158,17 @@ class PFGForwardGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](p
 
     }
 
+    def solve(canceled: => Boolean) {
+        initialize()
+        solver.solve(canceled)
+
+    }
+
     def result(n: N): L = R(n).elem ⊔ PI(n).elem
     def resultPI(n: N): L = PI(n).elem
 
     def results: Map[N, L] = Map() ++ (for (n <- pfg.nodes) yield n -> (R(n).elem ⊔ PI(n).elem))
-    
+
     def resultsPI: Map[N, L] = Map() ++ (for (n <- pfg.nodes) yield n -> (PI(n).elem))
 
     def printSResults: String = {
@@ -181,4 +195,5 @@ class PFGForwardGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](p
         buf.toString()
     }
 
+    def getNumberOfStatements = solver.getNumberOfStatements
 }
