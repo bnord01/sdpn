@@ -19,6 +19,8 @@ import de.wwu.sdpn.wala.util.UniqueInstanceLocator
 import com.ibm.wala.ipa.callgraph.CGNode
 import com.ibm.wala.ssa.SSAGetInstruction
 import com.ibm.wala.ssa.SSAFieldAccessInstruction
+import de.wwu.sdpn.pfg.fixedpoint.ConcurrentFixedpointSolver
+import com.ibm.wala.types.ClassLoaderReference
 
 /**
  * We calculate def/use dependencies on wala parallel flow graphs.
@@ -27,7 +29,7 @@ import com.ibm.wala.ssa.SSAFieldAccessInstruction
  * which defs (represented by BaseEdges (which contain a SSAPutInstruction)) may flow there.
  *
  */
-class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true) {
+class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true, multiThread: Boolean = false, onlyApplication:Boolean=true) {
 
     private var p_result: Map[Node, LMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]]] = null
 
@@ -35,7 +37,10 @@ class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true) 
 
     private lazy val pfg = PFGFactory.getPFG(cg)
 
-    private lazy val solver = new PFGForwardGenKillSolver(pfg, getGenKill)
+    private lazy val solver = if(multiThread)
+        new PFGForwardGenKillSolver(pfg, getGenKill,Some(new ConcurrentFixedpointSolver[PFGVar[LMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]]]]()))
+    else 
+        new PFGForwardGenKillSolver(pfg, getGenKill)
 
     private lazy val hm = pa.getHeapModel()
 
@@ -56,6 +61,8 @@ class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true) 
         (srcInstr, snkInstr) match {
             case (put: SSAPutInstruction, get: SSAGetInstruction) =>
                 val field = put.getDeclaredField()
+                if(onlyApplication && field.getDeclaringClass().getClassLoader() != ClassLoaderReference.Application)
+                    return true;
                 val putIks = getIKS4FieldInstr(srcNode, put)
                 val getIks = getIKS4FieldInstr(snkNode, get)
                 val iks = putIks intersect getIks
@@ -108,6 +115,10 @@ class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true) 
         edge match {
             case be @ BaseEdge(Node(_, src @ CFGPoint(cgnode, _, _)), SSAAction(put: SSAPutInstruction), Node(nstate, _)) =>
                 val field = put.getDeclaredField()
+                
+                if(onlyApplication && field.getDeclaringClass().getClassLoader() != ClassLoaderReference.Application)
+                    return GenKill(lat.bottom, lat.top)
+                    
                 val iks = getIKS4FieldInstr(cgnode, put)
 
                 val defs = Map() ++ (for (ik <- iks) yield ((ik, field) -> BottomMap(Map(be -> true))))

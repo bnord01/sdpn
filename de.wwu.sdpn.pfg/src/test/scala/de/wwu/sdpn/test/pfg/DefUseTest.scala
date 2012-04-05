@@ -45,7 +45,7 @@ class DefUseTest {
         val mc = "Lbnord/unittests/defuse/" + className
         val preAnalysis = MyPreAnalysis.getStd(cp, mc)
         val (cg, pa) = (preAnalysis.cg, preAnalysis.pa)
-        val du = new DefUse(cg, pa)
+        val du = new DefUse(cg, pa,multiThread=false)
         val startSolve = now
         val timeInit = startSolve - start
         printf("Time wala + init: %d.%03ds%n", timeInit/1000 ,timeInit%1000)
@@ -102,9 +102,27 @@ class DefUseTest {
         runDUTest("Test04",3)
     }
     
-//    @Test // This hasn't finished yet
+    @Test
+    def defUseTest05 {
+        runDUTest("Test05",1)
+    }
+    @Test
+    def defUseTest06 {
+        runDUTest("Test06",3)
+    }
+    @Test
+    def defUseTest07 {
+        runDUTest("Test07",3)
+    }
+    @Test
+    def defUseAlarmClock {
+        runDUTest("AlarmClock",99)
+    }
+    
+    
+    @Test // This hasn't finished yet
     def defUseTestPrintln01 {
-        runDUTest("TestPrintln01",0)
+        runDUTest("TestPrintln01",1)
     }
 
 }

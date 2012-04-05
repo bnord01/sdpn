@@ -13,11 +13,12 @@ object PFGVar {
 }
 
 sealed class LVar[L: Lattice] extends PFGVar[L] {
+    @volatile
     var elem: L = implicitly[Lattice[L]].bottom
 
     def isTop = elem.isTop
 
-    def joinWith(other: => L): ChangeInfo = {
+    def joinWith(other: => L): ChangeInfo = synchronized {
         if (isTop)
             return NotChangedAndFixed
         val newelem = elem ⊔ other
@@ -46,13 +47,14 @@ sealed class LVar[L: Lattice] extends PFGVar[L] {
 sealed class GKVar[L: GenKillLattice: Lattice] extends PFGVar[L] {
     val lat = implicitly[Lattice[L]]
     val gklat = implicitly[GenKillLattice[L]]
+    @volatile
     var elem: GenKill[L] = gklat.bottom
     def gen: L = elem.gen
     def kill: L = elem.kill
 
     def isTop = elem.isTop
 
-    def joinWith(update: => GenKill[L]): ChangeInfo = {
+    def joinWith(update: => GenKill[L]): ChangeInfo = synchronized {
         if (isTop)
             return NotChangedAndFixed
         val newelem = elem ⊔ update
