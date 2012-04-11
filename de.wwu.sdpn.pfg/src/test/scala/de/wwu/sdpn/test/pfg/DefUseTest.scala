@@ -32,6 +32,7 @@ import de.wwu.sdpn.pfg.wala.E
 import de.wwu.sdpn.pfg.wala.DefUse
 import de.wwu.sdpn.wala.util.DefUseUtil
 import com.ibm.wala.types.ClassLoaderReference
+import de.wwu.sdpn.pfg.fixedpoint._
 
 class DefUseTest {
 
@@ -45,7 +46,7 @@ class DefUseTest {
         val mc = "Lbnord/unittests/defuse/" + className
         val preAnalysis = MyPreAnalysis.getStd(cp, mc)
         val (cg, pa) = (preAnalysis.cg, preAnalysis.pa)
-        val du = new DefUse(cg, pa,multiThread=false)
+        val du = new DefUse(cg, pa)
         val startSolve = now
         val timeInit = startSolve - start
         printf("Time wala + init: %d.%03ds%n", timeInit/1000 ,timeInit%1000)

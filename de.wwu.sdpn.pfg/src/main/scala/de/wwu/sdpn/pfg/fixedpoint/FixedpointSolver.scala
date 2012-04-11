@@ -7,3 +7,7 @@ trait FixedpointSolver[T] {
     
     def getNumberOfStatements:Int
 }
+
+trait FixedpointSolverFactory {
+    def createSolver[T]:FixedpointSolver[T]
+}

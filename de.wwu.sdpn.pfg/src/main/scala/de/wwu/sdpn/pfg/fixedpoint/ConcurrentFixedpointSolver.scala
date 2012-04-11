@@ -63,3 +63,6 @@ class ConcurrentFixedpointSolver[T] extends FixedpointSolver[T] {
 
     def getNumberOfStatements = nbrOfStmts
 }
+object ConcurrentFixedpointSolverFactory extends FixedpointSolverFactory {
+    def createSolver[T] = new ConcurrentFixedpointSolver[T]
+}

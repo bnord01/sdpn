@@ -21,6 +21,7 @@ import com.ibm.wala.ssa.SSAGetInstruction
 import com.ibm.wala.ssa.SSAFieldAccessInstruction
 import de.wwu.sdpn.pfg.fixedpoint.ConcurrentFixedpointSolver
 import com.ibm.wala.types.ClassLoaderReference
+import de.wwu.sdpn.pfg.fixedpoint.FixedpointSolverFactory
 
 /**
  * We calculate def/use dependencies on wala parallel flow graphs.
@@ -29,7 +30,7 @@ import com.ibm.wala.types.ClassLoaderReference
  * which defs (represented by BaseEdges (which contain a SSAPutInstruction)) may flow there.
  *
  */
-class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true, multiThread: Boolean = false, onlyApplication:Boolean=true) {
+class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true, solverFactory: FixedpointSolverFactory = null, onlyApplication:Boolean=true) {
 
     private var p_result: Map[Node, LMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]]] = null
 
@@ -37,10 +38,10 @@ class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true, 
 
     private lazy val pfg = PFGFactory.getPFG(cg)
 
-    private lazy val solver = if(multiThread)
-        new PFGForwardGenKillSolver(pfg, getGenKill,Some(new ConcurrentFixedpointSolver[PFGVar[LMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]]]]()))
+    private lazy val solver = if(solverFactory == null)
+    	new PFGForwardGenKillSolver(pfg, getGenKill)
     else 
-        new PFGForwardGenKillSolver(pfg, getGenKill)
+        new PFGForwardGenKillSolver(pfg, getGenKill,Some(solverFactory.createSolver[PFGVar[LMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]]]]))
 
     private lazy val hm = pa.getHeapModel()
 

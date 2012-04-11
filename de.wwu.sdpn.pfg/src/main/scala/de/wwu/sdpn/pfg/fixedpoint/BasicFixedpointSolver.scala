@@ -59,3 +59,7 @@ class BasicFixedpointSolver[T] extends FixedpointSolver[T] {
 
     def getNumberOfStatements = nbrOfStmts
 }
+
+object BasicFixedpointSolverFactory extends FixedpointSolverFactory {
+    def createSolver[T] = new BasicFixedpointSolver[T]
+}

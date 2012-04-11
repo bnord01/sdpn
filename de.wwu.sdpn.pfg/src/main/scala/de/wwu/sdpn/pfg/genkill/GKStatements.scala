@@ -37,7 +37,7 @@ sealed class LVar[L: Lattice] extends PFGVar[L] {
 
     override val hashCode = PFGVar.nextHash
     override def equals(other: Any) = this eq (other.asInstanceOf[AnyRef])
-    override def toString: String = "LVar(" + elem + ")"
+    override def toString: String = "LVar"+hashCode+"(" + elem + ")"
 
 }
 /**
@@ -74,7 +74,7 @@ sealed class GKVar[L: GenKillLattice: Lattice] extends PFGVar[L] {
 
     override val hashCode = PFGVar.nextHash
     override def equals(other: Any) = this eq (other.asInstanceOf[AnyRef])
-    override def toString: String = "GKVar(" + elem + ")"
+    override def toString: String = "GKVar" + hashCode + "(" + elem + ")"
 }
 
 sealed trait LGKStatement[L] extends Statement[PFGVar[L]]
