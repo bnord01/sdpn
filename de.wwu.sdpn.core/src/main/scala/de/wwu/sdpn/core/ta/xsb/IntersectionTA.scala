@@ -5,11 +5,11 @@ package de.wwu.sdpn.core.ta.xsb
  * 
  * @author Benedikt Nordhoff
  */
-class IntersectionTA(ta1: ScriptTreeAutomata, ta2: ScriptTreeAutomata) extends ScriptTreeAutomata {
+class IntersectionTA(ta1: ScriptTreeAutomata, ta2: ScriptTreeAutomata, name0 :String = null) extends ScriptTreeAutomata {
     require(ta1.name != ta2.name)
     require(ta1.stateSize == 1)
     require(ta2.stateSize == 1)
-    val name = "inter_" + ta1.name + "_" + ta2.name
+    val name = if(name0 == null) "inter_" + ta1.name + "_" + ta2.name else name0
     require(ta1.alphabet == ta2.alphabet)
     val alphabet = ta1.alphabet
     val stateSize = 1

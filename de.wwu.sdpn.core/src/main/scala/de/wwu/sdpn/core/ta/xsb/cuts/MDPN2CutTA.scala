@@ -20,7 +20,7 @@ import de.wwu.sdpn.core.dpn.monitor.DPNRule
  *
  * @author b_nord01
  */
-class MDPN2CutTA[GlobalState<%HTR, StackSymbol<%HTR, DPNAction, Lock](dpn: MonitorDPN[GlobalState, StackSymbol, DPNAction, Lock], val name: String = "cflow", annotator: DPNAnnotater[GlobalState, StackSymbol, DPNAction] = null) extends CutLockTreeAutomataAlphabet {
+class MDPN2CutTA[GlobalState<%HTR, StackSymbol<%HTR, DPNAction, Lock](dpn: MonitorDPN[GlobalState, StackSymbol, DPNAction, Lock], val name: String = "cflow", annotater: DPNAnnotater[GlobalState, StackSymbol, DPNAction] = null) extends CutLockTreeAutomataAlphabet {
 
   val lockMap: Map[Lock, Int] = {
     var m = Map[Lock, Int]()
@@ -139,10 +139,10 @@ name_use(_,c(_,_,_,_),c(_,_,_,_),c(_,_,_,_)) :- fail.
   }
 
   def annotateRule(rule: DPNRule[GlobalState, StackSymbol, DPNAction]): String = {
-    if (annotator == null)
+    if (annotater == null)
       "0"
     else
-      annotator.annotateRule(rule).toString
+      annotater.annotateRule(rule).toString
   }
 
   def stack(s: StackSymbol) = s.toTerm
