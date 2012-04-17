@@ -100,6 +100,9 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
             ClassLoaderReference.Application.equals(x.getConcreteType().getClassLoader().getReference())
         case _ => false
     }
+    
+    protected def isConstantKey: InstanceKey => Boolean = _.isInstanceOf[ConstantKey[_]]
+    
 
     /**
      * Should locations of used locks be factored in when pruning the call graph for DPN generation.
@@ -380,7 +383,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
         beginTask(pm, "Running DPN-based interference check", 5)
         try {
             subTask(pm, "Identifying fields")
-            val writePos = getSS4NodeAndIndex(writeNode, writeIdx)
+            val writePos = getSS4NodeAndIndex(writeNode, writeIdx,true)
             val readPos = getSS4NodeAndIndex(readNode, readIdx)
 
             val wi = writeNode.getIR().getInstructions()(writeIdx)
@@ -406,8 +409,9 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
                 //no shared instance keys means no flow possible!
                 return false;
 
-            val uniqueInterObs = interObs intersect uniqueInstances
+            val uniqueInterObs = interObs filter(key => uniqueInstances(key) || isConstantKey(key))
             if ((interObs size) > 1 || (uniqueInterObs isEmpty)) {
+                System.err.println("Running weak check. %n interObs: %s %n uniqueInterObs: %s".format(interObs,uniqueInterObs))
                 val pm1 = new SubProgressMonitor(pm, 4)
                 // There may be multiple instances which correspond to this interference we can't interpret any killing definitions
                 return mayHappenSuccessively(writePos, readPos, pm1)
@@ -551,15 +555,27 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
      */
     def getSS4Node(node: CGNode) = StackSymbol(node, 0, 0)
 
+    
     /**
      * Obtains the StackSymbol representing the point just ''before'' the
-     * instruction corresponding to the given instructionIndex.
+     * instruction corresponding to the given instructionIndex or ''after'' if ''afterInstruction'' is true.
      *
      * @param node A CGNode
      * @param instructionIndex An index of an instruction within the array node.getIR.getInstructions
      * @return A corresponding stack symbol
      */
-    def getSS4NodeAndIndex(node: CGNode, instructionIndex: Int): StackSymbol = {
+    def getSS4NodeAndIndex(node: CGNode, instructionIndex: Int): StackSymbol = getSS4NodeAndIndex(node,instructionIndex,false)
+        
+    
+    /**
+     * Obtains the StackSymbol representing the point just ''before'' the
+     * instruction corresponding to the given instructionIndex or ''after'' if ''afterInstruction'' is true.
+     *
+     * @param node A CGNode
+     * @param instructionIndex An index of an instruction within the array node.getIR.getInstructions
+     * @return A corresponding stack symbol
+     */
+    def getSS4NodeAndIndex(node: CGNode, instructionIndex: Int,afterInstruction:Boolean): StackSymbol = {
         val ir = node.getIR
         val cfg = ir.getControlFlowGraph
 
@@ -580,6 +596,8 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
                 index += 1
             }
         }
+        if(afterInstruction)
+            index += 1
         return StackSymbol(node, bb.getNumber, index)
     }
 
