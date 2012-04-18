@@ -21,7 +21,7 @@ class EPMWrapper(delegate: Any) extends IProgressMonitor {
     epmc.getMethod("done").invoke(delegate)
   }
 
-  def internalWorked(work: Double): Unit = {
+  def worked(work: Double): Unit = {
     val meth = epmc.getMethod("internalWorked",java.lang.Double.TYPE)
     meth.invoke(delegate,work:java.lang.Double)
   }
@@ -34,11 +34,6 @@ class EPMWrapper(delegate: Any) extends IProgressMonitor {
   def setCanceled(value: Boolean): Unit = {
     val meth = epmc.getMethod("setCanceled",java.lang.Boolean.TYPE)
     meth.invoke(delegate,value:java.lang.Boolean)
-  }
-
-  def setTaskName(name: String): Unit = {
-    val meth = epmc.getMethod("setTaskName",classOf[java.lang.String])
-    meth.invoke(delegate,name)
   }
 
   def subTask(name: String): Unit = {
