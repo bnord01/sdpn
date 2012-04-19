@@ -36,7 +36,7 @@ object SDPNTestProps{
      * Read the default properties from the {{sdpn.test.properties}} file found on the class path
      */
     lazy val get: SDPNTestProps = {
-        val f = FileProvider.getFile("sdpn.test.properties")
+        val f = (new FileProvider()).getFile("sdpn.test.properties")
         val fin = new BufferedInputStream(new FileInputStream(f))
         val p = new Properties()
         p.load(fin)       

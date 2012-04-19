@@ -32,21 +32,21 @@ object WalaUtil {
       val entryPathname = token.nextToken();
       entryType match {
         case "classFile" =>
-          val cf = FileProvider.getFile(entryPathname, javaLoader);
+          val cf = (new FileProvider()).getFile(entryPathname, javaLoader);
           scope.addClassFileToScope(walaLoader, cf);
         case "sourceFile" =>
-          val sf = FileProvider.getFile(entryPathname, javaLoader);
+          val sf = (new FileProvider()).getFile(entryPathname, javaLoader);
           scope.addSourceFileToScope(walaLoader, sf, entryPathname);
         case "binaryDir" =>
-          val bd = FileProvider.getFile(entryPathname, javaLoader);
+          val bd = (new FileProvider()).getFile(entryPathname, javaLoader);
           assert(bd.isDirectory(), "Specified binary dir isn't a directory: " + entryPathname)
           scope.addToScope(walaLoader, new BinaryDirectoryTreeModule(bd));
         case "sourceDir" =>
-          val sd = FileProvider.getFile(entryPathname, javaLoader);
+          val sd = (new FileProvider()).getFile(entryPathname, javaLoader);
           assert(sd.isDirectory(), "Specified source dir isn't a directory: " + entryPathname)
           scope.addToScope(walaLoader, new SourceDirectoryTreeModule(sd));
         case "jarFile" =>
-          val M = FileProvider.getJarFileModule(entryPathname,
+          val M = (new FileProvider()).getJarFileModule(entryPathname,
             javaLoader);
           scope.addToScope(walaLoader, M);
         case "stdlib" =>
