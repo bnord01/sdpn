@@ -348,7 +348,7 @@ object SimpleAnalyses {
 
         val scope = AnalysisScopeReader.makeJavaBinaryAnalysisScope(
             cp,
-            FileProvider.getFile("Java60RegressionExclusions.txt"))
+            (new FileProvider()).getFile("Java60RegressionExclusions.txt"))
 
         val cha = ClassHierarchy.make(scope);
 
