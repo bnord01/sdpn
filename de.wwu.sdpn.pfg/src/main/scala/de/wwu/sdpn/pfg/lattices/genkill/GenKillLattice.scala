@@ -23,6 +23,9 @@ class GenKillLattice[L: Lattice] extends Lattice[GenKill[L]] {
     def isTop(e: GenKill[L]): Boolean = {
         e.gen isTop
     }
+    def isId(e: GenKill[L]): Boolean = {
+        e.gen.isBottom && e.kill.isTop
+    }
     
     def id: GenKill[L] = GenKill(implicitly[Lattice[L]].bottom, implicitly[Lattice[L]].top)
     def bottom: GenKill[L] = GenKill(implicitly[Lattice[L]].bottom, implicitly[Lattice[L]].bottom)
@@ -64,6 +67,7 @@ class GenKillLattice[L: Lattice] extends Lattice[GenKill[L]] {
 trait GenKillLatticeElem[L] {
     def andThen(other:GenKill[L]):GenKill[L]
     def appliedTo(elem:L):L
+    def isId:Boolean
 }
 
 // TODO Normalize?

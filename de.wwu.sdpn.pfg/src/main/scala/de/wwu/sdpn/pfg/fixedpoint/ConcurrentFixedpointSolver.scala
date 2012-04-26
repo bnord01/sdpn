@@ -2,8 +2,7 @@ package de.wwu.sdpn.pfg.fixedpoint
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.Executors
 
-class ConcurrentFixedpointSolver[T] extends FixedpointSolver[T] {
-
+class ConcurrentFixedpointSolver[T] extends FixedpointSolver[T,Statement[T]] {	
     import scala.collection.mutable.{ Map => MMap, Set => MSet }
 
     private val dependendStatements: MMap[T, MSet[Statement[T]]] = MMap().withDefaultValue(MSet())
@@ -63,6 +62,6 @@ class ConcurrentFixedpointSolver[T] extends FixedpointSolver[T] {
 
     def getNumberOfStatements = nbrOfStmts
 }
-object ConcurrentFixedpointSolverFactory extends FixedpointSolverFactory {
-    def createSolver[T] = new ConcurrentFixedpointSolver[T]
-}
+//object ConcurrentFixedpointSolverFactory extends FixedpointSolverFactory {
+//    def createSolver[T] = new ConcurrentFixedpointSolver[T]
+//}

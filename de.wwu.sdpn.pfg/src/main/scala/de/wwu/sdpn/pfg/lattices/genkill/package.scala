@@ -5,7 +5,7 @@ package object genkill {
         val lat = implicitly[GenKillLattice[L]]
         def andThen(other:GenKill[L]) = lat.andThen(self,other)
         def appliedTo(elem:L) = lat.appliedTo(self,elem)
-
+        def isId = lat.isId(self)
     }
 	implicit def getGKLattice[L:Lattice]:GenKillLattice[L] = new GenKillLattice[L]
 }

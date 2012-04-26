@@ -1,6 +1,6 @@
 package de.wwu.sdpn.pfg.fixedpoint
 
-trait Statement [T]{
+trait Statement [+T]{
     def lhs: T
     def rhs: List[T]
     /**
@@ -9,6 +9,16 @@ trait Statement [T]{
      */
     def evaluate(): ChangeInfo
 }
+
+trait LHSSubstitution[-T,+S]{
+    def substituteLHS(nVar: T):S
+}
+
+trait IdentityCheck[+T]{
+    def isId :Boolean
+    def getIdVar:Option[T]
+}
+
 
 sealed trait ChangeInfo
 sealed trait InfoChanged extends ChangeInfo

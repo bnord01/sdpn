@@ -86,10 +86,10 @@ class PFGBackwardGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](
                 case be: BaseEdge[P, N, BA, R] =>
                     addStmts(
                         S(be.snk) ⊒ (S(be.src) andThen transfer(e)), //S.base
-                        LS(be.src) ⊒ (transfer(e) before LS(be.snk)), //LS.base
-                        SB(be.snk) ⊒ ( SB(be.src) before transfer(e) ) //SB'.base // swichted order because of ambiguity of andThen here 
+                        LS(be.src) ⊒ (transfer(e) after LS(be.snk)), //LS.base
+                        SB(be.snk) ⊒ ( SB(be.src) after transfer(e) ) //SB'.base // swichted order because of ambiguity of andThen here 
                         ,
-                        L(be.src) ⊒ ( transfer(e) before L(be.snk) ) // L.base
+                        L(be.src) ⊒ ( GKConst(transfer(e)) appliedTo L(be.snk) ) // L.base
                         
                         
                         
@@ -99,12 +99,12 @@ class PFGBackwardGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](
                         val rnode = retNodes(ce.proc)(rval)
                             addStmts(
                                 S(snk) ⊒ (S(ce.src) andThen transfer(e) andThen S(rnode)),//S.call
-                                LS(ce.src) ⊒ ( transfer(e) before LS(entryNode(ce.proc)) ), // LS.call1
-                                LS(ce.src) ⊒ ( transfer(e) before SB(rnode) before LS(snk) ), // LS.call2 // modified
+                                LS(ce.src) ⊒ ( transfer(e) after LS(entryNode(ce.proc)) ), // LS.call1
+                                LS(ce.src) ⊒ ( transfer(e) after SB(rnode) after LS(snk) ), // LS.call2 // modified
                                 //SB(ce.src) ⊒ ( transfer(e) before SB(entryNode(ce.proc)) before SB(snk) ) // SB.call // fix this! only the appropriate sink!
                                 SB(snk) ⊒ (SB(ce.src) andThen transfer(e) andThen SB(rnode)) //SB'.call
                                 ,
-                                L(ce.src) ⊒ ( transfer(e) before SB(rnode) before L(snk) ) //L.call2
+                                L(ce.src) ⊒ ( (transfer(e) )after (SB(rnode)) appliedTo L(snk) ) //L.call2
                                 ,
                                 L(rnode) ⊒ L(snk) //L.ret                                
                             )
@@ -113,17 +113,17 @@ class PFGBackwardGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](
                     val ep = pfg.entryNode(ce.proc)
                     addStmts(
                         R(ep) ⊒ (R(ce.src) andThen transfer(e)),
-                        L(ce.src) ⊒ (transfer(e) before LS(ep) before lat.bottom)
+                        L(ce.src) ⊒ ((transfer(e) )after (LS(ep)) appliedTo lat.bottom)
                     )
 
                 case se: SpawnEdge[P, N, BA, R] =>
                     addStmts(
                             S(se.snk) ⊒ (S(se.src) andThen transfer(e)), //S.spawn
                             R(pfg.entryNode(se.proc)) ⊒ (R(se.src) andThen transfer(e)), //R.spawn
-                            LS(se.src) ⊒ ( transfer(e) before LS(entryNode(se.proc)) before LS(se.snk)), //LS.spawn
+                            LS(se.src) ⊒ ( transfer(e) after LS(entryNode(se.proc)) after LS(se.snk)), //LS.spawn
                             SB(se.snk) ⊒ ( SB(se.src) andThen transfer(e) andThen LS(entryNode(se.proc))) //SB'.spawn
                             ,
-                            L(se.src) ⊒ (transfer(e) before LS(entryNode(se.proc)) before L(se.snk)) //L.spawn
+                            L(se.src) ⊒ ((transfer(e) )after (LS(entryNode(se.proc))) appliedTo L(se.snk)) //L.spawn
                             )
             }
         }

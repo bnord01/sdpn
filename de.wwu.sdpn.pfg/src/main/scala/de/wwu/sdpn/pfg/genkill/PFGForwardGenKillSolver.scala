@@ -13,7 +13,7 @@ import de.wwu.sdpn.pfg.fixedpoint.FixedpointSolver
 class PFGForwardGenKillSolver[L: Lattice, P, N, BA, R, E <: Edge[P, N, BA, R]](
         pfg: ParFlowGraph[P, N, BA, R, E],
         transfer: E => GenKill[L],
-        flowSolver: Option[FixedpointSolver[PFGVar[L]]] = None) {
+        flowSolver: Option[FixedpointSolver[PFGVar[L],LGKStatement[L]]] = None) {
 
     import scala.collection.mutable.{ Map => MMap, Set => MSet }
 

@@ -21,7 +21,8 @@ import com.ibm.wala.ssa.SSAGetInstruction
 import com.ibm.wala.ssa.SSAFieldAccessInstruction
 import de.wwu.sdpn.pfg.fixedpoint.ConcurrentFixedpointSolver
 import com.ibm.wala.types.ClassLoaderReference
-import de.wwu.sdpn.pfg.fixedpoint.FixedpointSolverFactory
+import de.wwu.sdpn.pfg.fixedpoint.FixedpointSolver
+import de.wwu.sdpn.pfg.genkill.LGKStatement
 
 /**
  * We calculate def/use dependencies on wala parallel flow graphs.
@@ -30,18 +31,21 @@ import de.wwu.sdpn.pfg.fixedpoint.FixedpointSolverFactory
  * which defs (represented by BaseEdges (which contain a SSAPutInstruction)) may flow there.
  *
  */
-class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true, solverFactory: FixedpointSolverFactory = null, onlyApplication:Boolean=true) {
-
+class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true, subSolver: FixedpointSolver[PFGVar[LMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]]],LGKStatement[LMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]]]] = null, onlyApplication:Boolean=true) {
+	type Facts = LMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]]
+    type DUVar = PFGVar[Facts]
+	
+    
     private var p_result: Map[Node, LMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]]] = null
 
     private lazy val isUnique: Set[InstanceKey] = if (interpretKill) UniqueInstanceLocator.instances(cg, pa) else Set()
 
     private lazy val pfg = PFGFactory.getPFG(cg)
 
-    private lazy val solver = if(solverFactory == null)
-    	new PFGForwardGenKillSolver(pfg, getGenKill)
+    private lazy val solver = if(subSolver == null)
+    	new PFGForwardGenKillSolver[Facts,CGNode,Node,Action,State,Edge](pfg, getGenKill)
     else 
-        new PFGForwardGenKillSolver(pfg, getGenKill,Some(solverFactory.createSolver[PFGVar[LMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]]]]))
+        new PFGForwardGenKillSolver[Facts,CGNode,Node,Action,State,Edge](pfg, getGenKill,Some(subSolver))
 
     private lazy val hm = pa.getHeapModel()
 

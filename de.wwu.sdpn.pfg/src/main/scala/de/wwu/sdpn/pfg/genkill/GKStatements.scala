@@ -77,7 +77,7 @@ sealed class GKVar[L: GenKillLattice: Lattice] extends PFGVar[L] {
     override def toString: String = "GKVar" + hashCode + "(" + elem + ")"
 }
 
-sealed trait LGKStatement[L] extends Statement[PFGVar[L]]
+sealed trait LGKStatement[L] extends Statement[PFGVar[L]] with IdentityCheck[PFGVar[L]] with LHSSubstitution[PFGVar[L],LGKStatement[L]]
 
 sealed class LStatement[L: Lattice](lh: LVar[L], rh: LExpr[L]) extends LGKStatement[L] {
 
@@ -92,6 +92,14 @@ sealed class LStatement[L: Lattice](lh: LVar[L], rh: LExpr[L]) extends LGKStatem
     override def equals(other: Any) = this eq (other.asInstanceOf[AnyRef])
 
     override def toString: String = lh + " ⊑ " + rh
+    
+    def isId = rh.getIdVar.isDefined
+    override def getIdVar = rh.getIdVar
+    
+    override def substituteLHS(nlhs:PFGVar[L]) :LStatement[L] = nlhs match {
+        case nlh: LVar[_] => new LStatement(nlh,rh)
+        case _ => throw new IllegalArgumentException("Can substitute LHS of LStatement only by LVar but got: " + nlhs)
+    }
 
 }
 
@@ -121,7 +129,14 @@ sealed class GKStatement[L: Lattice](lh: GKVar[L], rh: GKExpr[L]) extends LGKSta
     override def equals(other: Any) = this eq (other.asInstanceOf[AnyRef])
 
     override def toString: String = lh + " ⊒ " + rh
-
+    
+    def isId = rh.getIdVar.isDefined
+    override def getIdVar = rh.getIdVar
+    
+    override def substituteLHS(nlhs:PFGVar[L]) :GKStatement[L] = nlhs match {
+        case nlh: GKVar[_] => new GKStatement(nlh,rh)
+        case _ => throw new IllegalArgumentException("Can substitute LHS of GKStatement only by GKVar but got: " + nlhs)
+    }
 }
 sealed class DebuggingGKStatement[L: Lattice](lh: GKVar[L], rh: GKExpr[L]) extends GKStatement[L](lh, rh) {
     override def evaluate(): ChangeInfo = {
@@ -147,31 +162,45 @@ sealed trait LExpr[L] {
     def join(other: LExpr[L])(implicit lat: Lattice[L]) = LJoinExpr(this, other)
     def ⊔(other: LExpr[L])(implicit lat: Lattice[L]) = LJoinExpr(this, other)
     def andThen(trans: GKExpr[L])(implicit lat: GenKillLattice[L]) = LAppliedToExpr(trans, this)
+    def getIdVar:Option[LVar[L]]
+    def isConstTop:Boolean
 }
 
 case class LJoinExpr[L: Lattice](lh: LExpr[L], rh: LExpr[L]) extends LExpr[L] {
     lazy val vars = lh.vars ::: rh.vars
     def value = lh.value ⊔ rh.value
+    def getIdVar = if (lh.isConstTop) rh.getIdVar else if(rh.isConstTop) lh.getIdVar else None
+    def isConstTop = lh.isConstTop && rh.isConstTop
 }
 
 case class LAppliedToExpr[L: GenKillLattice](trans: GKExpr[L], elem: LExpr[L]) extends LExpr[L] {
     lazy val vars = elem.vars ::: trans.vars
     def value = trans.value appliedTo elem.value
+    def isConstTop = trans.isConstIdTransfer && elem.isConstTop
+    def getIdVar = if(trans.isConstIdTransfer) elem.getIdVar else None
 }
 
 sealed trait GKExpr[L] {
     def vars: List[PFGVar[L]]
     def value: GenKill[L]
-
+    /**
+     * Is this expression constant and the identity transformer?
+     */
+    def isConstIdTransfer :Boolean
+    /**
+     * Is this expression equivalent to some var? 
+     */
+    def getIdVar:Option[GKVar[L]]
+    
     def andThen(other: GKExpr[L])(implicit lat: GenKillLattice[L]) = GKAndThenExpr(this, other)
     def andThen(other: GenKill[L])(implicit lat: GenKillLattice[L]) = GKAndThenExpr(this, GKConst[L](other))
-    def before(other: GKExpr[L])(implicit lat: GenKillLattice[L]) = GKAndThenExpr(other, this)
-    def before(other: GenKill[L])(implicit lat: GenKillLattice[L]) = GKAndThenExpr(GKConst[L](other), this)
-    def before(other: LExpr[L])(implicit lat: GenKillLattice[L]) = LAppliedToExpr(this, other)
+    def after(other: GKExpr[L])(implicit lat: GenKillLattice[L]) = GKAndThenExpr(other, this)
+    def after(other: GenKill[L])(implicit lat: GenKillLattice[L]) = GKAndThenExpr(GKConst[L](other), this)
+    def appliedTo(other: LExpr[L])(implicit lat: GenKillLattice[L]) = LAppliedToExpr(this, other)
 }
 object GKExpr {
     implicit def gkVar2Expr[L](gkvar: GKVar[L]): GKExpr[L] = GKVarExpr(gkvar)
-    implicit def gk2Expr[L](elem: GenKill[L]): GKExpr[L] = GKConst(elem)
+    implicit def gk2Expr[L: GenKillLattice](elem: GenKill[L]): GKExpr[L] = GKConst(elem)
     implicit def lVar2Expr[L](lvar: LVar[L]): LExpr[L] = LVarExpr(lvar)
     implicit def l2Expr[L: Lattice](elem: L): LExpr[L] = LConst(elem)
 }
@@ -179,21 +208,31 @@ object GKExpr {
 case class GKAndThenExpr[L: GenKillLattice](lh: GKExpr[L], rh: GKExpr[L]) extends GKExpr[L] {
     def vars = lh.vars ::: rh.vars
     def value = lh.value andThen rh.value
+    def isConstIdTransfer = lh.isConstIdTransfer && rh.isConstIdTransfer    
+    def getIdVar = if(lh.isConstIdTransfer) rh.getIdVar else None 
 }
-case class GKConst[L](gk: GenKill[L]) extends GKExpr[L] {
+case class GKConst[L: GenKillLattice](gk: GenKill[L]) extends GKExpr[L] {
     def vars: List[PFGVar[L]] = Nil
     def value = gk
+    lazy val isConstIdTransfer = gk.isId
+    val getIdVar = None
 }
-case class LConst[L](l: L) extends LExpr[L] {
+case class LConst[L:Lattice](l: L) extends LExpr[L] {
     def vars: List[PFGVar[L]] = Nil
     def value = l
+    def isConstTop = l.isTop
+    def getIdVar = None
 }
 case class GKVarExpr[L](gk: GKVar[L]) extends GKExpr[L] {
     def vars: List[PFGVar[L]] = List(gk)
     def value = gk.elem
+    def isConstIdTransfer = false
+    def getIdVar = Some(gk)
 }
 case class LVarExpr[L](l: LVar[L]) extends LExpr[L] {
     def vars: List[PFGVar[L]] = List(l)
     def value = l.elem
+    def isConstTop = false
+    def getIdVar = Some(l)
 }
 
