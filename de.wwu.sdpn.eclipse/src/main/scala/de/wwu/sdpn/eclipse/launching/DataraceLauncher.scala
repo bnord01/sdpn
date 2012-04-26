@@ -16,7 +16,7 @@ import de.wwu.sdpn.eclipse.DRAPreferences
 import de.wwu.sdpn.eclipse.DataraceResultViewPart
 import de.wwu.sdpn.wala.analyses.datarace.DataraceAnalysis
 import de.wwu.sdpn.wala.analyses.SimpleAnalyses
-import de.wwu.sdpn.wala.util.WalaUtil
+import de.wwu.sdpn.eclipse.util.WalaEclipseUtil
 
 object DataraceLauncher {
 
@@ -53,7 +53,7 @@ object DataraceLauncher {
             println("Main class: " + mcname)
 
             pm subTask "Setting up WALA scope"
-            val scope = WalaUtil.makeScopeFromCPnJRE(cp, jrelib)
+            val scope = WalaEclipseUtil.makeScopeFromCPnJRE(cp, jrelib)
 
             val mainClass = "L" + mcname.replace('.', '/')
 
@@ -61,7 +61,7 @@ object DataraceLauncher {
             pm worked 1
 
             pm subTask "Building WALA call graph and running pointer analysis."
-            val (cg, pa) = WalaUtil.makeCGFromScopeAndMainClass(scope, mainClass)
+            val (cg, pa) = WalaEclipseUtil.makeCGFromScopeAndMainClass(scope, mainClass)
             pm worked 2
 
             check(pm)
