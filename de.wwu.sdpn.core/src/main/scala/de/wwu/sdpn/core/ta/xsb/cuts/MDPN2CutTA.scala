@@ -44,8 +44,8 @@ class MDPN2CutTA[GlobalState<%HTR, StackSymbol<%HTR, DPNAction, Lock](dpn: Monit
   def genScript = {
     val buffer = new StringBuilder()
     import buffer.{ append => out }
-    out(name + "_cut(t(G,s(X,Y,Z)),c(G,s(X,Y,Z),G2,T),c(G,s(X,Y,Z),G2,T)).\n")
-    out(name + "_nil(t(G,s(X,Y,Z)),c(G,s(X,Y,Z),G,0)).\n")
+    out(name + "_cut(t(G,S),c(G,S,G2,T),c(G,S,G2,T)).\n")
+    out(name + "_nil(t(G,S),c(G,S,G,0)).\n")
 
     if (lockMap.isEmpty) { //TODO this assumes that at least one safe lock is used somewhere otherwise 
       out("""
