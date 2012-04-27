@@ -47,13 +47,16 @@ class MDPN2IterableTA[GlobalState<%HTR, StackSymbol<%HTR, DPNAction, Lock](dpn: 
     out(name + "_cut(cpt(_,S),c(G,S,G2,T),c(G,S,G2,T)).\n")
     out(name + "_nil(S,c(G,S,G,0)).\n")
 
-    if (lockMap.isEmpty) { //TODO this assumes that at least one safe lock is used somewhere otherwise 
-      out("""
-%% No safe locks used in program  
+    out("""
+%% Defining all predicates just to be sure.
 name_acq(_,c(_,_,_,_),c(_,_,_,_)) :- fail.
 name_use(_,c(_,_,_,_),c(_,_,_,_),c(_,_,_,_)) :- fail.
+name_ret(_) :- fail.
+name_base(_,_,_) :- fail.
+name_spawn(_,_,_) :- fail.
+name_call1(_,_) :- fail.
+name_call2(_,_,_) :- fail.
 """.replace("name", name))
-    }
 
     for (rule <- dpn.getTransitions) {
       rule match {

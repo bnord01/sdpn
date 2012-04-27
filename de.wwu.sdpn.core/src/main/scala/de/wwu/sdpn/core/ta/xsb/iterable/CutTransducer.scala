@@ -1,16 +1,24 @@
 package de.wwu.sdpn.core.ta.xsb.iterable
 
-class CutTansducer (cutNumber:Int,other:IterableTreeAutomata,override val name:String) extends IterableTreeAutomata {
+import de.wwu.sdpn.core.ta.xsb.ScriptTreeAutomata
+
+class CutTransducer (cutNumber:Int,other:ScriptTreeAutomata,override val name:String) extends IterableTreeAutomata {
+    require(other.alphabet == alphabet,"Can cut transduce only IterableTreeAutomata!")
     def isForwardRule = Set() //Set("nil","ret","base","call1","acq","final")
     def genScript: String = {
         val buf = new StringBuilder()
         import buf.{ append => out }
         def outln(s: String) { out(s); out("\n") }
      
+        outln("""
+                %%% The tree automata to be checkt at cut number: """ + cutNumber + "\n")
+        outln(other.genScript)
         
-        
+        val c1 = "sdfbj8900uzu23hjsdf89hio34t79gdh98erzhnbcs98hj4235fdg0u9ij"
+        val c2 = "4567079gbvb89sz9hjlnadf90s7hbwjnayd0v897z8hjn2309a7dsfzhnl"
         out(
 """
+                %%% New rules for the iterated automata
 name_nil(GS,b(Q)) :- other_nil(GS,Q).
 name_nil(GS,r) :- not(other_nil(GS,_)).
                 
@@ -52,9 +60,9 @@ name_call2(b(Qc),b(Qr),r) :- not(other_call2(Qc,Qr,_)).
                 %%% A returning use just like %%%
                 
 % Some subtree couldn't be accepted by the other automata continue propagating 'r'                
-name_use(A,r,r,r).
-name_use(A,b(_),r,r).
-name_use(A,r,b(_),r).                
+name_use(_,r,r,r).
+name_use(_,b(_),r,r).
+name_use(_,r,b(_),r).                
 
 % If the other ta can continque let him.                
 name_use(A,b(Qc),b(Qr),b(Q)) :- other_use(A,Qc,Qr,Q).
@@ -81,21 +89,29 @@ name_spawn(r,_,r).
                 
 % Other ta can not handle, but we could be under the cut, go to r.                
 name_spawn(b(Qs),b(Qr),r) :- not(other_spawn(Qs,Qr,_)).               
-.                
+               
                 %%% The cut we are looking for %%%
 name_cut(cpt(cutNumber,S),b(_),t(Q)) :- other_nil(S,Q).                
 name_cut(cpt(cutNumber,S),r,t(Q)) :- other_nil(S,Q).
 
                 %%% The cut's we don't care about %%%
-"""//.replace("cutNumber",cutNumber.toString).replace("name","%1$s").replace("other","%2$s").format(name,other.name)
+""".replace("cutNumber",cutNumber.toString).replace("name",c1).replace("other",c2).replace(c1,name).replace(c2,other.name)
         )
         
         for(i <- 0 until cutNumber){
             out(""" 
 name_cut(cpt(cutNumber,S),b(Q1),b(Q2)) :- other_cut(cpt(i,S),Q1,Q2).                
 name_cut(cpt(cutNumber,S),t(Q1),t(Q2)) :- other_cut(cpt(i,S),Q1,Q2).  
-""".replace("cutNumber",i.toString).replace("name","%1$s").replace("other","%2$s").format(name,other.name))
+""".replace("cutNumber",i.toString).replace("name",c1).replace("other",c2).replace(c1,name).replace(c2,other.name))
         }
+        
+        out(""" 
+                %%% Final states %%%
+                
+name_final(t(Q)) :- other_final(Q).                
+                """.replace("name",c1).replace("other",c2).replace(c1,name).replace(c2,other.name)
+                
+        )
         
         
         return buf.toString

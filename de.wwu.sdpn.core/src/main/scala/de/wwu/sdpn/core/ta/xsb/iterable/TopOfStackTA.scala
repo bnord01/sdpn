@@ -1,4 +1,4 @@
-package de.wwu.sdpn.core.ta.xsb.cuts
+package de.wwu.sdpn.core.ta.xsb.iterable
 import de.wwu.sdpn.core.ta.xsb.HasTermRepresentation
 
 /**
@@ -6,7 +6,7 @@ import de.wwu.sdpn.core.ta.xsb.HasTermRepresentation
  * 
  * @author Benedikt Nordhoff
  */
-class TopOfStackTA[StackSymbol<%HasTermRepresentation](override val name:String,tos:Set[StackSymbol]) extends CutLockTreeAutomataAlphabet {
+class TopOfStackTA[StackSymbol<%HasTermRepresentation](override val name:String,tos:Set[StackSymbol]) extends IterableTreeAutomata {
 	val isForwardRule: Set[String] = Set[String]()
     
     def genScript(): String = { 
