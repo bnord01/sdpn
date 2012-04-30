@@ -79,7 +79,7 @@ name_use(A,b(Qc),b(Qr),r) :- not(other_use(A,Qc,Qr,_)).
 % Other ta can handle the cases, let him.                 
 name_spawn(b(Qs),b(Qr),b(Q)) :- other_spawn(Qs,Qr,Q).                
 name_spawn(b(Qs),t(Qr),t(Q)) :- other_spawn(Qs,Qr,Q).
-name_spawn(t(Qs),b(Qr),t(Q)) :- other_spawn(Qs,Qr,Q).                
+name_spawn(t(Qs),b(Qr),b(Q)) :- other_spawn(Qs,Qr,Q).                
 name_spawn(t(Qs),t(Qr),t(Q)) :- other_spawn(Qs,Qr,Q).                
                 
 % Some subtree was already rejected                
@@ -100,8 +100,8 @@ name_cut(cpt(cutNumber,S),r,t(Q)) :- other_nil(S,Q).
         
         for(i <- 0 until cutNumber){
             out(""" 
-name_cut(cpt(cutNumber,S),b(Q1),b(Q2)) :- other_cut(cpt(i,S),Q1,Q2).                
-name_cut(cpt(cutNumber,S),t(Q1),t(Q2)) :- other_cut(cpt(i,S),Q1,Q2).  
+name_cut(cpt(cutNumber,S),b(Q1),b(Q2)) :- other_cut(cpt(cutNumber,S),Q1,Q2).                
+name_cut(cpt(cutNumber,S),t(Q1),t(Q2)) :- other_cut(cpt(cutNumber,S),Q1,Q2).  
 """.replace("cutNumber",i.toString).replace("name",c1).replace("other",c2).replace(c1,name).replace(c2,other.name))
         }
         
