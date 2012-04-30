@@ -8,9 +8,14 @@ package de.wwu.sdpn.core.ta.xsb
 class IntersectionTA(ta1: ScriptTreeAutomata, ta2: ScriptTreeAutomata, name0 :String = null) extends ScriptTreeAutomata {
     require(ta1.name != ta2.name)
     require(ta1.stateSize == 1)
-    require(ta2.stateSize == 1)
-    val name = if(name0 == null) "inter_" + ta1.name + "_" + ta2.name else name0
+    require(ta2.stateSize == 1)    
+    def name = if(name0 == null) "inter_" + ta1.name + "_" + ta2.name else name0
     require(ta1.alphabet == ta2.alphabet)
+    require(ta1.boundNames intersect ta2.boundNames isEmpty)
+    require(!(ta1.boundNames contains name))
+    require(!(ta2.boundNames contains name))
+    override def boundNames = ta1.boundNames union ta2.boundNames + name
+    
     val alphabet = ta1.alphabet
     val stateSize = 1
 

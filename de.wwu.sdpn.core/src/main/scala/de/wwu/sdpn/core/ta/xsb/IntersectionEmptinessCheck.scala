@@ -29,7 +29,11 @@ class IntersectionEmptinessCheck(ta1: ScriptTreeAutomata, ta2: ScriptTreeAutomat
      * By default "interemp_" + ta1.name + "_" + ta2.name
      * this should be overridden at creation time. 
      */
-    val name = if(name0 != null) name0 else "interemp_" + ta1.name + "_" + ta2.name
+    def name = if(name0 != null) name0 else "interemp_" + ta1.name + "_" + ta2.name
+    require(ta1.boundNames intersect ta2.boundNames isEmpty,"Bound names not distinct!: " + ta1.boundNames + ta2.boundNames)
+    require(!(ta1.boundNames contains name))
+    require(!(ta2.boundNames contains name))
+    def boundNames = ta1.boundNames union ta2.boundNames + name
 
     def emptiness: String = {
         val buffer = new StringBuilder()

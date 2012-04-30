@@ -32,7 +32,12 @@ class WitnessIntersectionEmptinessCheck(ta1: ScriptTreeAutomata, ta2: ScriptTree
     require(ta2.stateSize == 1)
     
     val alphabet = ta1.alphabet
-    val name = "interemp_" + ta1.name + "_" + ta2.name
+    def name = "interemp_" + ta1.name + "_" + ta2.name
+    
+    require(ta1.boundNames intersect ta2.boundNames isEmpty)
+    require(!(ta1.boundNames contains name))
+    require(!(ta2.boundNames contains name))
+    def boundNames = ta1.boundNames union ta2.boundNames + name
 
     def emptiness: String = {
         val buffer = new StringBuilder()

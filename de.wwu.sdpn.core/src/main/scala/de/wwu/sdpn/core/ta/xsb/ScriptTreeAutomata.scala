@@ -33,4 +33,6 @@ trait ScriptTreeAutomata {
 	 */
 	def isForwardRule:scala.collection.Set[String]
 	
+	def boundNames:Set[String] = Set(name)
+	
 }

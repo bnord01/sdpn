@@ -29,10 +29,14 @@ package de.wwu.sdpn.core.ta.xsb
 class FullWitnessIntersectionEmptinessCheck(ta1: ScriptTreeAutomata, ta2: ScriptTreeAutomata,name0:String = null) {
     require(ta1.alphabet == ta2.alphabet, "Tried to intersect tree automata with different alphabets.")
     require(ta1.stateSize == 1)
-    require(ta2.stateSize == 1)
+    require(ta2.stateSize == 1)    
+    val name = if(name0 != null) name0 else "interemp_" + ta1.name + "_" + ta2.name
+    require(ta1.boundNames intersect ta2.boundNames isEmpty)
+    require(!(ta1.boundNames contains name))
+    require(!(ta2.boundNames contains name))
+    val boundNames = ta1.boundNames union ta2.boundNames + name
     
     val alphabet = ta1.alphabet
-    val name = if(name0 != null) name0 else "interemp_" + ta1.name + "_" + ta2.name
     
     def emptiness: String = {
         val buffer = new StringBuilder()
