@@ -11,9 +11,9 @@ class IntersectionTA(ta1: ScriptTreeAutomata, ta2: ScriptTreeAutomata, name0 :St
     require(ta2.stateSize == 1)    
     def name = if(name0 == null) "inter_" + ta1.name + "_" + ta2.name else name0
     require(ta1.alphabet == ta2.alphabet)
-    require(ta1.boundNames intersect ta2.boundNames isEmpty)
-    require(!(ta1.boundNames contains name))
-    require(!(ta2.boundNames contains name))
+    require(ta1.boundNames intersect ta2.boundNames isEmpty,"Bound names not distinct!: " + ta1.boundNames + " " + ta2.boundNames)
+    require(!(ta1.boundNames contains name), "Name already bound in first automat!: " + ta1.boundNames + " " + name)
+    require(!(ta2.boundNames contains name), "Name already bound in second automat!: " + ta2.boundNames + " " + name)
     override def boundNames = ta1.boundNames union ta2.boundNames + name
     
     val alphabet = ta1.alphabet

@@ -1,6 +1,7 @@
 package de.wwu.sdpn.tests.core
 
 import de.wwu.sdpn.core.textual._
+import de.wwu.sdpn.core.analyses.IRTask
 import de.wwu.sdpn.core.ta.xsb.iterable._
 import de.wwu.sdpn.core.dpn.monitor.MonitorDPN
 import org.junit.Assert._
@@ -116,6 +117,10 @@ class IterableTextualTest {
     def destDPN6_a2_a3_2() {
         testOnceIterated2(true, "a2", "a3", dpn6)
     }
+    @Test
+    def destDPN6_a2_a3_3() {
+        testIterated2(true, List("a2", "a3"), dpn6)
+    }
     
     
 
@@ -207,11 +212,30 @@ class IterableTextualTest {
         }
         assertEquals("Check didn't yield expected result!", expected, result)
     }
-
+    
     /**
      * Parse the given DPN and check whether sym2 can be reached after reaching sym1 and compare the result to expected.
      */
     def testIterated(expected: Boolean, symsS: List[String], dpnString: String) {
+        val (dpn, naming) = DPNParser.parseDPN(dpnString).get
+
+        assert(!symsS.isEmpty, "Empty list of stack symbols!")
+
+        val syms = symsS.map(x => Set(naming.sname(x)))
+        
+        val task = IRTask(dpn,syms,false)
+
+        val result = task.run
+        if (result) {            
+            println("witness: \n" + task.runWitness.get)
+        }
+        assertEquals("Check didn't yield expected result!", expected, result)
+    }
+
+    /**
+     * Parse the given DPN and check whether sym2 can be reached after reaching sym1 and compare the result to expected.
+     */
+    def testIterated2(expected: Boolean, symsS: List[String], dpnString: String) {
         val (dpn, naming) = DPNParser.parseDPN(dpnString).get
 
         assert(!symsS.isEmpty, "Empty list of stack symbols!")
@@ -224,23 +248,15 @@ class IterableTextualTest {
         val s0 :: st = syms
         var confl: ScriptTreeAutomata = new TopOfStackTA("reach0", Set(s0))
 
+        // Other order than in IRTask here, problem found and fixed ;)
         for ((sym, i) <- st.zipWithIndex) {
             val reach1Cut = new CutTransducer(i, confl, "cut" + i + "confl")
+            val cwf = new CutWellFormed("cwf" + i, i)            
+            val conf0 = new IntersectionTA(cwf,reach1Cut, "conflwf" + i)
+            
             val reach = new TopOfStackTA("reach" + (i + 1), Set(sym))
-            val conf0 = new IntersectionTA(reach1Cut, reach, "confl" + i)
-            val cwf = new CutWellFormed("cwf" + i, i)
-            confl = new IntersectionTA(conf0, cwf, "conflwf" + i)
+            confl = new IntersectionTA(conf0, reach, "reachconfl" + (i +1))
         }
-        
-        //TODO This doesn't terminate. Check why!?
-//        for ((sym, i) <- st.zipWithIndex) {
-//            val reach1Cut = new CutTransducer(i, confl, "cut" + i + "confl")
-//            val cwf = new CutWellFormed("cwf" + i, i)            
-//            val conf0 = new IntersectionTA(cwf,reach1Cut, "conflwf" + i)
-//            
-//            val reach = new TopOfStackTA("reach" + (i + 1), Set(sym))
-//            confl = new IntersectionTA(conf0, reach, "reach" + (i +1))
-//        }
         val check = new IntersectionEmptinessCheck(dpnTA, confl, "check")
 
         val result = !XSBInterRunner.runCheck(check)

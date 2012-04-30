@@ -34,9 +34,9 @@ class WitnessIntersectionEmptinessCheck(ta1: ScriptTreeAutomata, ta2: ScriptTree
     val alphabet = ta1.alphabet
     def name = "interemp_" + ta1.name + "_" + ta2.name
     
-    require(ta1.boundNames intersect ta2.boundNames isEmpty)
-    require(!(ta1.boundNames contains name))
-    require(!(ta2.boundNames contains name))
+    require(ta1.boundNames intersect ta2.boundNames isEmpty,"Bound names not distinct!: " + ta1.boundNames + " " + ta2.boundNames)
+    require(!(ta1.boundNames contains name), "Name already bound in first automat!: " + ta1.boundNames + " " + name)
+    require(!(ta2.boundNames contains name), "Name already bound in second automat!: " + ta2.boundNames + " " + name)
     def boundNames = ta1.boundNames union ta2.boundNames + name
 
     def emptiness: String = {

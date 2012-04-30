@@ -5,7 +5,7 @@ import de.wwu.sdpn.core.ta.xsb.ScriptTreeAutomata
 class CutTransducer (cutNumber:Int,other:ScriptTreeAutomata,name0:String=null) extends IterableTreeAutomata {
     require(other.alphabet == alphabet,"Can cut transduce only IterableTreeAutomata!")
     def name = if(name0 != null) name0 else "cut" + cutNumber + "_" + other.name
-    require(!(other.boundNames contains name))
+    require(!(other.boundNames contains name), "Name already bound in automata!: " + other.boundNames + " " + name)
     override def boundNames = other.boundNames + name
     
     def isForwardRule = Set() //Set("nil","ret","base","call1","acq","final")

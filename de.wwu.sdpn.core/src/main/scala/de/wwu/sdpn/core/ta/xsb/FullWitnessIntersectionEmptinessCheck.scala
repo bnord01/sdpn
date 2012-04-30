@@ -31,9 +31,9 @@ class FullWitnessIntersectionEmptinessCheck(ta1: ScriptTreeAutomata, ta2: Script
     require(ta1.stateSize == 1)
     require(ta2.stateSize == 1)    
     val name = if(name0 != null) name0 else "interemp_" + ta1.name + "_" + ta2.name
-    require(ta1.boundNames intersect ta2.boundNames isEmpty)
-    require(!(ta1.boundNames contains name))
-    require(!(ta2.boundNames contains name))
+    require(ta1.boundNames intersect ta2.boundNames isEmpty,"Bound names not distinct!: " + ta1.boundNames + " " + ta2.boundNames)
+    require(!(ta1.boundNames contains name), "Name already bound in first automat!: " + ta1.boundNames + " " + name)
+    require(!(ta2.boundNames contains name), "Name already bound in second automat!: " + ta2.boundNames + " " + name)
     val boundNames = ta1.boundNames union ta2.boundNames + name
     
     val alphabet = ta1.alphabet
