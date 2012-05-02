@@ -17,9 +17,13 @@ import scala.collection.JavaConversions._
 import scala.collection.Set
 import de.wwu.sdpn.core.ta.xsb.reachability.TwoSetConflictTA
 import de.wwu.sdpn.core.ta.xsb.XSBInterRunner
+import de.wwu.sdpn.core.ta.xsb.XSBCommandRunner
+import de.wwu.sdpn.core.ta.xsb.XSBRunner
 
 object TwoSetReachability {
-    val runner = XSBInterRunner
+    val runner:XSBRunner = if(isWindows) XSBCommandRunner else XSBInterRunner
+    
+    def isWindows = System.getProperty("os.name").toLowerCase.indexOf("win") >= 0
 
   /**
    * Generate tree automata based on an arbitrary monitor dpn and conflict set

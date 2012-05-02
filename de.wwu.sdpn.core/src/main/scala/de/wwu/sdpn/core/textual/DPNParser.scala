@@ -27,6 +27,10 @@ import java.io.FileReader
  * Moreover, if the option `--explore`  is given as the first argument ,
  * a viewer is started which simulates the DPN instead.
  *
+ * To run the analysis the `sdpn.properties` file, which specifies the path to the xsb executable
+ * and a directory where temporary files are stored, needs to be either present in the current directory,
+ * on the class path or specified via -Dsdpn.properties <path to file>.
+ *
  * The file given as argument should contain a tsr_task as defined by the following grammar.
  *
  * Names are optional and are only used when exploring the DPN.
@@ -38,18 +42,20 @@ import java.io.FileReader
  * `term` is a natural number or a combination of lower and upper case alpha numerical
  * symbols and _ which starts with a lower case letter.
  *
- * `name` can be any string literal enclosed in `"` as accepted java.
+ * `name` can be any string literal enclosed in `"` as accepted by java.
  *
  * When using the optional `nolocks` keyword in the task definition a lock insensitive analysis is performed.
  *
  * In all lists commas are optional.
  *
  * {{{
- * term           ::= [1-9][0-9]* | [a-z][a-zA-Z0-9_]*
+ * atom           ::= "0" | [1-9][0-9]* | [a-z][a-zA-Z0-9_]*
+ * term           ::= (atom [tuple]) | tuple
+ * tuple          ::= "(" [term {"," term}] ")"
  * name           ::= STRINGLITERAL "..."
  * named          ::= term ":" name
  * repnamed       ::= [named { [","] named}]
- * rule           ::= base_rule | pop_rule | simple_push | lock_push | spawn_rule
+ * 
  * controls       ::= "controls" "{" repnamed "}"
  * stacks         ::= "stacks" "{" repnamed "}"
  * locks          ::= "locks" "{" repnamed "}"
@@ -65,14 +71,22 @@ import java.io.FileReader
  * spawn_rule     ::= "(" control "," stack ")" "--" action "-->" "(" control "," stack ":>" control "," stack ")"
  * simple_push    ::= "(" control "," stack ")" "--" action "-->" "(" control "," stack "," stack ")"
  * lock_push      ::= "(" control "," stack ")" "--" action "-" lock "-->" "(" control "," stack "," stack ")"
+ * 
+ * s_base_rule      ::= "(" stack ")" "--" action "-->" "(" stack ")"
+ * s_pop_rule       ::= "(" stack ")" "--" action "-->" "(" ")"
+ * s_spawn_rule     ::= "(" stack ")" "--" action "-->" "(" stack ":>" stack ")"
+ * s_simple_push    ::= "(" stack ")" "--" action "-->" "(" stack "," stack ")"
+ * s_lock_push      ::= "(" stack ")" "--" action "-" lock "-->" "(" stack "," stack ")"
  *
+ * rule           ::= base_rule | pop_rule | simple_push | lock_push | spawn_rule |
+ *                    s_base_rule | s_pop_rule | s_simple_push | s_lock_push | s_spawn_rule 
  * rules          ::= "rules" "{" [rule { [","] rule }] "}"
- * initial_conf   ::= "initial" "(" control "," stack ")"
+ * initial_conf   ::= "initial" "(" [control ","] stack ")"
  *
  * dpn            ::= "dpn" "{" naming initial_conf rules "}"
  *
  * repstack       ::= stack { [","] stack}
- * tsr_conflict   ::= ["check" ["for"]] "conflict" ["nolocks"] ["between"] "{" repstack "}" ["and"] "{” repstack "}"
+ * tsr_conflict   ::= ["check" ["for"]] "conflict" ["nolocks"] ["between"] "{" repstack "}" ["and"] "{" repstack "}"
  *
  * tsr_task       ::= dpn tsr_conflict_def
  * }}}
@@ -125,8 +139,13 @@ object DPNParser extends JavaTokenParsers {
         var explore = false
         var file: String = ""
         if (args.length == 2) {
-            explore = (args(0) == "-e" || args(0) == "--explore")
-            file = args(1)
+            if (args(0) == "-e" || args(0) == "--explore") {
+                explore = true
+                file = args(1)
+            } else if (args(1) == "-e" || args(1) == "--explore") {
+                explore = true
+                file = args(0)
+            }
         } else if (args.length == 1) {
             file = args(0)
         } else {
@@ -168,7 +187,11 @@ object DPNParser extends JavaTokenParsers {
     }
     
     // format: OFF
-    def term: Parser[String] = "[1-9][0-9]*".r | "[a-z][a-zA-Z0-9_]*".r
+    protected override val whiteSpace = """(\s|//.*|(?m)/\*(\*(?!/)|[^*])*\*/)+""".r
+    
+    def atom: Parser[String] = "0" | "[1-9][0-9]*".r | "[a-z][a-zA-Z0-9_]*".r
+    def term: Parser[String] = (atom ~ opt(tuple) ^^ {case a~None => a; case a~Some(t) => a + t}) | tuple
+    def tuple: Parser[String] = "("~>repsep(term,",")<~")"^^{case ls => ls.mkString("(",",",")")}
     def name: Parser[String] = stringLiteral ^^(x => x.substring(1,x.length - 1))
     def controlDef: Parser[(String, Control)] = term ~ ":" ~ name ^^ { case term ~ ":" ~ name => term -> Control(term, name) }
     def stackDef: Parser[(String, Stack)] = term ~ ":" ~ name ^^ { case term ~ ":" ~ name => term -> Stack(term, name) }
@@ -189,24 +212,49 @@ object DPNParser extends JavaTokenParsers {
     def lock(implicit n: Naming) : Parser[Lock] = term ^^ {n lname _}
     def action(implicit n: Naming) : Parser[BaseAction] = term ^^ {n aname _}
     
-    def initial(implicit n:Naming) : Parser[(Control,Stack)] = "initial"~>"("~control~","~stack~")"^^{case "("~control~","~stack~")" => (control,stack)}
+    def nostate(implicit n:Naming) : Control = n.cname("0")
     
-    def  base_rule(implicit n:Naming)      : Parser[BaseRule[Control,Stack,Action]] = "("~control~","~stack~")"~"--"~action~"-->"~"("~control~","~stack~")" ^^{
+    def initial(implicit n:Naming) : Parser[(Control,Stack)] = 
+        "initial"~>"("~control~","~stack~")"^^{case "("~control~","~stack~")" => (control,stack)} |
+        "initial"~>"("~stack~")"^^{case "("~stack~")" => (nostate,stack)}        
+    
+    def  base_rule(implicit n:Naming) : Parser[BaseRule[Control,Stack,Action]] = "("~control~","~stack~")"~"--"~action~"-->"~"("~control~","~stack~")" ^^{
         case "("~c~","~s~")"~"--"~a~"-->"~"("~c1~","~s1~")" => BaseRule(c,s,a,c1,s1)
-    }
-    def  pop_rule(implicit n:Naming)      : Parser[PopRule[Control,Stack,Action]] = "("~control~","~stack~")"~"--"~action~"-->"~"("~control~")" ^^{
+    } 
+    
+    def  pop_rule(implicit n:Naming) : Parser[PopRule[Control,Stack,Action]] = "("~control~","~stack~")"~"--"~action~"-->"~"("~control~")" ^^{
         case "("~c~","~s~")"~"--"~a~"-->"~"("~c1~")" => PopRule(c,s,a,c1)
     }
-    def  spawn_rule(implicit n:Naming)     : Parser[SpawnRule[Control,Stack,Action]] = "("~control~","~stack~")"~"--"~action~"-->"~"("~control~","~stack~":>"~control~","~stack~")" ^^{
+    def  spawn_rule(implicit n:Naming) : Parser[SpawnRule[Control,Stack,Action]] = "("~control~","~stack~")"~"--"~action~"-->"~"("~control~","~stack~":>"~control~","~stack~")" ^^{
         case "("~c~","~s~")"~"--"~a~"-->"~"("~cr~","~sr~":>"~cs~","~ss~")" => SpawnRule(c,s,a,cr,sr,cs,ss)
     }
-    def  simple_push(implicit n:Naming)     : Parser[PushRule[Control,Stack,Action]] = "("~control~","~stack~")"~"--"~action~"-->"~"("~control~","~stack~","~stack~")" ^^{
+    def  simple_push(implicit n:Naming) : Parser[PushRule[Control,Stack,Action]] = "("~control~","~stack~")"~"--"~action~"-->"~"("~control~","~stack~","~stack~")" ^^{
         case "("~c~","~s~")"~"--"~a~"-->"~"("~cr~","~ss~","~sr~")" => PushRule(c,s,a,cr,ss,sr)
     }
-    def  lock_push(implicit n:Naming)     : Parser[PushRule[Control,Stack,Action]] = "("~control~","~stack~")"~"--"~action~"-"~lock~"-->"~"("~control~","~stack~","~stack~")" ^^{
+    def  lock_push(implicit n:Naming) : Parser[PushRule[Control,Stack,Action]] = "("~control~","~stack~")"~"--"~action~"-"~lock~"-->"~"("~control~","~stack~","~stack~")" ^^{
         case "("~c~","~s~")"~"--"~a~"-"~l~"-->"~"("~cr~","~ss~","~sr~")" => PushRule(c,s,LockAction(a,l),cr,ss,sr)
     }
-    def rule(implicit n:Naming) : Parser[DPNRule[Control,Stack,Action]] = base_rule | pop_rule | spawn_rule | simple_push | lock_push
+    
+    def  s_base_rule(implicit n:Naming) : Parser[BaseRule[Control,Stack,Action]] = "("~stack~")"~"--"~action~"-->"~"("~stack~")" ^^{
+        case "("~s~")"~"--"~a~"-->"~"("~s1~")" => BaseRule(nostate,s,a,nostate,s1)
+    } 
+    
+    def  s_pop_rule(implicit n:Naming) : Parser[PopRule[Control,Stack,Action]] = "("~stack~")"~"--"~action~"-->"~"("~")" ^^{
+        case "("~s~")"~"--"~a~"-->"~"("~")" => PopRule(nostate,s,a,nostate)
+    }
+    def  s_spawn_rule(implicit n:Naming)     : Parser[SpawnRule[Control,Stack,Action]] = "("~stack~")"~"--"~action~"-->"~"("~stack~":>"~stack~")" ^^{
+        case "("~s~")"~"--"~a~"-->"~"("~sr~":>"~ss~")" => SpawnRule(nostate,s,a,nostate,sr,nostate,ss)
+    }
+    def  s_simple_push(implicit n:Naming)     : Parser[PushRule[Control,Stack,Action]] = "("~stack~")"~"--"~action~"-->"~"("~stack~","~stack~")" ^^{
+        case "("~s~")"~"--"~a~"-->"~"("~ss~","~sr~")" => PushRule(nostate,s,a,nostate,ss,sr)
+    }
+    def  s_lock_push(implicit n:Naming)     : Parser[PushRule[Control,Stack,Action]] = "("~stack~")"~"--"~action~"-"~lock~"-->"~"("~stack~","~stack~")" ^^{
+        case "("~s~")"~"--"~a~"-"~l~"-->"~"("~ss~","~sr~")" => PushRule(nostate,s,LockAction(a,l),nostate,ss,sr)
+    }
+    
+    def rule(implicit n:Naming) : Parser[DPNRule[Control,Stack,Action]] = 
+        base_rule | pop_rule | spawn_rule | simple_push | lock_push | 
+        s_base_rule | s_pop_rule | s_spawn_rule | s_simple_push | s_lock_push
     
     def rules(implicit n: Naming) : Parser[Set[DPNRule[Control,Stack,Action]]] = "rules"~"{"~>repsep(rule,opt(","))<~"}" ^^ {Set() ++ _}
     
@@ -268,5 +316,5 @@ case class BaseAction(term: String, name: String) extends Action
 case class Lock(term: String, name: String) extends NamedTerm
 case class LockAction(action: BaseAction, lock: Lock) extends Action {
     val term = action.term
-    val name = action.name + "-" + lock.name
+    val name = action.name 
 }

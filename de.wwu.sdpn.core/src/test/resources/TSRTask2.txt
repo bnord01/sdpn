@@ -1,0 +1,44 @@
+dpn{
+	
+	/*
+		Stack symbols represent the control points of the program.
+		It's not necessary to define those, these names are printed 
+		when exploring the DPN.  
+	*/
+	stacks {
+   		main:"Start"
+   	    2:"Before monitor enter"
+   	    3:"Inside Monitor, Spawning (1,1)"
+   	    4: "Just spawned, now returning to 10"
+   	    10:"Monitor return point. Going to Start"   	    
+	}
+	
+	// Some actions. 
+    actions {
+    	skip:"skip" 
+    	acq:"Entering monitor"
+    	spawn:"Spawning"
+    	rel:"Leaving monitor"
+    	5:"Resuming to start"
+	}            
+	// Some locks
+    locks {
+    	mylock:"Some lock"
+    }
+
+	// The point where the program starts
+	initial(main) 
+
+	// Some Rules
+	rules {
+		(main) --skip--> (2)
+		
+  		(2) --acq-mylock--> (3,10)
+  		(3) --spawn--> (4:>main)
+  		(4) --rel--> ()
+  		
+  		(10) --5--> (2)
+  	}
+}
+
+conflict between {4} and {4}
