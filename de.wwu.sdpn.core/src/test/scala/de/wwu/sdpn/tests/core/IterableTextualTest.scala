@@ -216,14 +216,14 @@ class IterableTextualTest {
     /**
      * Parse the given DPN and check whether sym2 can be reached after reaching sym1 and compare the result to expected.
      */
-    def testIterated(expected: Boolean, symsS: List[String], dpnString: String) {
+    def testIterated(expected: Boolean, symsS: List[String], dpnString: String,lockSens:Boolean = false) {
         val (dpn, naming) = DPNParser.parseDPN(dpnString).get
 
         assert(!symsS.isEmpty, "Empty list of stack symbols!")
 
         val syms = symsS.map(x => Set(naming.sname(x)))
         
-        val task = IRTask(dpn,syms,false)
+        val task = IRTask(dpn,syms,lockSens)
 
         val result = task.run
         if (result) {            

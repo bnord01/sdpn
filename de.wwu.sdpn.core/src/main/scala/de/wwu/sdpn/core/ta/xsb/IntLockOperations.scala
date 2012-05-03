@@ -22,6 +22,7 @@ name_notin(Elem,X) :- 0 is X '/\' (1 '<<' Elem).
 name_isElem(Elem,X) :- not(0 is X '/\' (1 '<<' Elem)).
 name_isUnion(X,Y,XY) :- XY is X '\/' Y.
 name_isGraphUnion(X,U,G,GUX) :- GUX is G '\/' (U '<<' (numLocks * X)).
+name_isGraphUnion2(X,U,G1,G2,GUX) :- GUX is G1 '\/' (G2 '\/' (U '<<' (numLocks * X))).            
 name_isElemUnion2(Elem,X,Y,EXY) :- EXY is X '\/' (Y '\/' (1 '<<' Elem)).
 name_isUnion3(X,Y,Z,XYZ) :- XYZ is X '\/' (Y '\/' Z).
 name_emptyGraph(0).

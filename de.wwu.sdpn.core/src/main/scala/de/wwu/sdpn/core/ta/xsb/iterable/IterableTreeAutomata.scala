@@ -20,6 +20,7 @@ import de.wwu.sdpn.core.ta.xsb.ScriptTreeAutomata
  * @author Benedikt Nordhoff
  */
 trait IterableTreeAutomata extends ScriptTreeAutomata {
+    final val firstCutNumber = 0;
     override val alphabet = Map(
         "cut" -> (1, 2),
         "nil" -> (1, 1),

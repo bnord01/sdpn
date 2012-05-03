@@ -28,18 +28,17 @@ name_isNoElem(Elem,X) :- not(ord_member(Elem,X)).
 name_isElem(Elem,X) :- ord_member(Elem,X).
 name_isUnion(X,Y,XY) :- ord_union(X,Y,XY).
 name_isUnion3(X,Y,Z,XYZ) :- ord_union(X,Y,XY),ord_union(XY,Z,XYZ).
-name_setCopy(X,X).
 name_isElemUnion2(Elem,X,Y,EXY) :- ord_add_element(X,Elem,EX), ord_union(EX,Y,EXY).
 
 %Operations on Graphs
 name_emptyGraph([]).
-name_graphCopy(G,G).
 name_isGraphUnion(X,Y,XY) :- graph_union(X,Y,XY).
 name_isGraphUnion3(X,Y,Z,XYZ) :- graph_union(X,Y,XY),graph_union(XY,Z,XYZ).
 name_allEdges(_X,[],[]).
 name_allEdges(X,[H|T],[X-H|XT]) :- name_allEdges(X,T,XT).
 
 name_isGraphXUUnion(X,U,G,GUX) :- name_allEdges(X,U,XU), add_edges(G,XU,GUX).
+name_isGraphXUUnion2(X,U,G1,G2,GUX) :- name_allEdges(X,U,XU), add_edges(G1,XU,G1UX), graph_union(G2,G1UX,GUX).      
 
         
 :-table(name_edge/3).

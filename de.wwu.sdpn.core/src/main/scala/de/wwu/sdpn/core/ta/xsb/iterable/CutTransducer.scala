@@ -61,7 +61,7 @@ name_call2(t(Qr),_,t(Q)) :- other_call1(Qr,Q).
 % No rule to handle, go to state r                 
 name_call2(b(Qc),b(Qr),r) :- not(other_call2(Qc,Qr,_)).                
 
-                %%% A returning use just like %%%
+                %%% A returning use just like a call %%%
                 
 % Some subtree couldn't be accepted by the other automata continue propagating 'r'                
 name_use(_,r,r,r).
@@ -102,7 +102,7 @@ name_cut(cpt(cutNumber,S),r,t(Q)) :- other_nil(S,Q).
 """.replace("cutNumber",cutNumber.toString).replace("name",c1).replace("other",c2).replace(c1,name).replace(c2,other.name)
         )
         
-        for(i <- 0 until cutNumber){
+        for(i <- firstCutNumber until cutNumber){
             out(""" 
 name_cut(cpt(cutNumber,S),b(Q1),b(Q2)) :- other_cut(cpt(cutNumber,S),Q1,Q2).                
 name_cut(cpt(cutNumber,S),t(Q1),t(Q2)) :- other_cut(cpt(cutNumber,S),Q1,Q2).  

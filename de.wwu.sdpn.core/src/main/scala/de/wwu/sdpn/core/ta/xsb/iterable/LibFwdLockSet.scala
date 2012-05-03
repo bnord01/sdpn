@@ -1,4 +1,4 @@
-package de.wwu.sdpn.core.ta.xsb.reachability
+package de.wwu.sdpn.core.ta.xsb.iterable
 import de.wwu.sdpn.core.ta.xsb.LockOperations
 
 
@@ -9,9 +9,7 @@ import de.wwu.sdpn.core.ta.xsb.LockOperations
  * 
  * @author Benedikt Nordhoff
  */
-class LibFwdLockSet(val name: String, lo:LockOperations) extends LockTreeAutomataAlphabet {
-    val stateSize = 1
-
+class LibFwdLockSet(val name: String, lo:LockOperations) extends IterableTreeAutomata {
     val isForwardRule = alphabet.keySet + "final"
 
     def genScript: String = {
@@ -27,12 +25,11 @@ class LibFwdLockSet(val name: String, lo:LockOperations) extends LockTreeAutomat
         //name_isUnion(X,Y,XY) :- XY is X '\/' Y.
 
         out("""
-%Helper functions for bitvector operations
-
 %TA rules
 name_nil(_,_).
 name_ret(_).
-name_base(X,X).
+name_base(_,X,X).
+name_cut(_,X,X).                
 name_call1(X,X).
 name_call2(X,X,X).
 name_use(la(Lock,0),LX,X,X) :- LON_isNoElem(Lock,X), LON_isElemUnion(Lock,X,LX).

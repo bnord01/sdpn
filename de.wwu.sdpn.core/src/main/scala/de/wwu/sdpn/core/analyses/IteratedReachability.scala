@@ -13,6 +13,10 @@ import java.io.FileWriter
 import scala.collection.JavaConversions._
 import de.wwu.sdpn.core.ta.xsb.reachability.TwoSetConflictTA
 import de.wwu.sdpn.core.ta.xsb.XSBInterRunner
+import de.wwu.sdpn.core.ta.xsb.IntLockOperations
+import de.wwu.sdpn.core.ta.xsb.iterable.LibLockTA
+import de.wwu.sdpn.core.ta.xsb.iterable.LibRelTA
+import de.wwu.sdpn.core.ta.xsb.iterable.LocksHeldTroughoutTA
 
 object IteratedReachability {
     val runner = XSBInterRunner
@@ -29,7 +33,6 @@ object IteratedReachability {
         confs: List[Iterable[StackSymbol]],
         lockSens: Boolean): (ScriptTreeAutomata, ScriptTreeAutomata) = {
 
-        require(!lockSens, "No lock sens at the moment!")
         require(dpn != null, "Can't analyze null-DPN")
         require(!lockSens || (dpn.locks.size <= 8),
             "Can't run locksensitive analysis with " + dpn.locks.size + " locks.")
@@ -37,28 +40,48 @@ object IteratedReachability {
 
         val doLockSens = lockSens && dpn.locks.size > 0
 
-        val dpnTA = new MDPN2IterableTA(dpn)
-        val s0 :: st = confs
-        var confl: ScriptTreeAutomata = new TopOfStackTA("reach0", Set() ++ s0)
+        if (doLockSens) {
+            val numLocks = dpn.locks.size
+            val lo = new IntLockOperations(numLocks,"ilo")            
+            
+            val dpnTA = new MDPN2IterableTA(dpn)
+            val fwdls = new LibFwdLockSet("fwdls",lo)
+            val lsdpn = new IntersectionTA(dpnTA,fwdls,"lsdpn")
+            
+            val s0 :: st = confs
+            var confl: ScriptTreeAutomata = new TopOfStackTA("reach0", Set() ++ s0)
+            
+            val ah = new LibLockTA("ah",lo)
+            confl = new IntersectionTA(confl,ah,"reach0ls")
+            
+            for ((sym, i) <- st.zipWithIndex) {
+                val reach1Cut = new CutTransducer(i, confl, "cut" + i + "confl")
+                val reach = new TopOfStackTA("reach" + (i + 1), Set() ++ sym)
+                val conf0 = new IntersectionTA(reach1Cut, reach, "confl" + i)
+                val cwf = new CutWellFormed("cwf" + i, i)
+                val conflwf = new IntersectionTA(conf0, cwf, "conflwf" + i)
+                
+                val rs = new LibRelTA(i,"rs" + i,lo)
+                val ht = new LocksHeldTroughoutTA(i,"ht" + i, lo)
+                val rsht = new IntersectionTA(rs,ht,"rs_ht" + i)
+                val ls = new IntersectionTA(ah,rsht,"ls"+i)
+                confl =  new IntersectionTA(conflwf,ls,"conflwfls" + i)
+            }
+            return (lsdpn, confl)            
+        } else {
+            val dpnTA = new MDPN2IterableTA(dpn)
+            val s0 :: st = confs
+            var confl: ScriptTreeAutomata = new TopOfStackTA("reach0", Set() ++ s0)
 
-        for ((sym, i) <- st.zipWithIndex) {
-            val reach1Cut = new CutTransducer(i, confl, "cut" + i + "confl")
-            val reach = new TopOfStackTA("reach" + (i + 1), Set() ++ sym)
-            val conf0 = new IntersectionTA(reach1Cut, reach, "confl" + i)
-            val cwf = new CutWellFormed("cwf" + i, i)
-            confl = new IntersectionTA(conf0, cwf, "conflwf" + i)
+            for ((sym, i) <- st.zipWithIndex) {
+                val reach1Cut = new CutTransducer(i, confl, "cut" + i + "confl")
+                val reach = new TopOfStackTA("reach" + (i + 1), Set() ++ sym)
+                val conf0 = new IntersectionTA(reach1Cut, reach, "confl" + i)
+                val cwf = new CutWellFormed("cwf" + i, i)
+                confl = new IntersectionTA(conf0, cwf, "conflwf" + i)
+            }
+            return (dpnTA, confl)
         }
-
-        //TODO This doesn't terminate. Check why!?
-        //        for ((sym, i) <- st.zipWithIndex) {
-        //            val reach1Cut = new CutTransducer(i, confl, "cut" + i + "confl")
-        //            val cwf = new CutWellFormed("cwf" + i, i)            
-        //            val conf0 = new IntersectionTA(cwf,reach1Cut, "conflwf" + i)
-        //            
-        //            val reach = new TopOfStackTA("reach" + (i + 1), Set(sym))
-        //            confl = new IntersectionTA(conf0, reach, "reach" + (i +1))
-        //        }
-        return (dpnTA, confl)
     }
 
     /**
