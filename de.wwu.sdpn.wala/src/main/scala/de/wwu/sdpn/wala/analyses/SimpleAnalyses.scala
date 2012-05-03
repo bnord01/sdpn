@@ -86,7 +86,7 @@ object SimpleAnalyses {
      * @param pa The corresponding PointerAnalysis obtained from the builder used to create the call graph
      * @param confSet A set of StackSymbols which should be checked for mutual exclusion.
      * @param sliceSet A set of CGNodes which are used for slicing. E.g. the methods of confSet plus locking positions.
-     * @param lockSens A flag which decieds if this analysis should be locksensitive.
+     * @param lockSens A flag which decides if this analysis should be lock sensitive.
      * @return true iff no conflict can exist.
      */
     def runSSRCheck(cg: CallGraph,
