@@ -12,7 +12,6 @@ import org.eclipse.jdt.launching.AbstractJavaLaunchConfigurationDelegate
 import org.eclipse.core.resources.ResourcesPlugin
 import org.eclipse.core.resources.IProject
 import org.eclipse.jdt.core.JavaCore
-import de.wwu.sdpn.wala.util.WalaUtil
 import de.wwu.sdpn.wala.analyses.datarace.DataraceAnalysis
 import org.eclipse.swt.widgets.Display
 import org.eclipse.ui.PlatformUI
