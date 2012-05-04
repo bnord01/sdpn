@@ -21,14 +21,16 @@ class StdLibLockOperations(val name: String = "sllo") extends LockOperations {
 
 %Operations on Lock Sets
 name_emptySet([]).
+name_emptyLockSet([]).
 name_isElemUnion(Elem,X,EX) :- ord_add_element(X,Elem,EX).
 name_isElemUnion(Elem,X,Y,EXY) :- ord_add_element(X,Elem,EX), ord_union(EX,Y,EXY).
+name_isElemUnion2(Elem,X,Y,EXY) :- ord_add_element(X,Elem,EX), ord_union(EX,Y,EXY).
 name_disjoint(X,Y) :- ord_disjoint(X,Y).
 name_isNoElem(Elem,X) :- not(ord_member(Elem,X)).
 name_isElem(Elem,X) :- ord_member(Elem,X).
 name_isUnion(X,Y,XY) :- ord_union(X,Y,XY).
 name_isUnion3(X,Y,Z,XYZ) :- ord_union(X,Y,XY),ord_union(XY,Z,XYZ).
-name_isElemUnion2(Elem,X,Y,EXY) :- ord_add_element(X,Elem,EX), ord_union(EX,Y,EXY).
+
 
 %Operations on Graphs
 name_emptyGraph([]).
@@ -48,6 +50,7 @@ name_edge(G,X,Y) :- edges(G,Edges), member(X-Y,Edges).
 name_path(G,X,Y) :- name_edge(G,X,Y).
 name_path(G,X,Z) :- name_path(G,X,Y),name_edge(G,Y,Z).
 
+name_hasCycle(G) :- name_path(G,X,X).              
 name_notCyclic(G) :- not(name_path(G,X,X)).        
 """.replace("name", name)
   }

@@ -49,12 +49,15 @@ object XSBInterRunner extends XSBRunner {
       out.println(check.emptiness)
       out.close()
       worked(pm, 1)
-      XSB.consultAbsolute(tempFile)
+      val loaded = XSB.consultAbsolute(tempFile)
+      assert(loaded,"Could not load the ")
       worked(pm, 1)
       if (isCanceled(pm))
         throw new RuntimeException("Canceled!")
       val future = listenOnCancel(pm, () => XSB.interrupt(), 1000)
       try {
+        val abolished = XSB.deterministicGoal("abolish_all_tables")
+        assert(abolished, "Could not abolish all tables. Expect wrong results!")
         val rev = !XSB.deterministicGoal(check.name + "_notEmpty")
         worked(pm, 3)
         return rev
@@ -79,7 +82,9 @@ object XSBInterRunner extends XSBRunner {
       XSB.consultAbsolute(tempFile)
       worked(pm, 1)
       val future = listenOnCancel(pm, () => XSB.interrupt(), 1000)
-      try {
+      try {          
+        val abolished = XSB.deterministicGoal("abolish_all_tables")
+        assert(abolished, "Could not abolish all tables. Expect wrong results!")
         val rev = XSB.deterministicGoal(check.name + "_notEmptyWitness(W)", null)
         worked(pm, 3)
         if (rev == null)

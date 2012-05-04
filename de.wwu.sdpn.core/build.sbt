@@ -8,7 +8,11 @@ scalaVersion := "2.9.2"
 
 fork in (Test,run) := true
 
+parallelExecution in Test := false
+
 javaOptions in (Test,run) += "-Xmx2G"
+
+javaOptions in (Test,run) += "-XX:MaxPermSize="
 
 resolvers += "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/.m2/repository"
 

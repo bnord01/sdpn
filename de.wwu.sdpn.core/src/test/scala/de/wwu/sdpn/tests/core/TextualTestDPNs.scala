@@ -1,7 +1,8 @@
 package de.wwu.sdpn.tests.core
 
 object TextualTestDPNs {
-    val dpn1 = """dpn{
+
+    def dpn1 = """dpn{
 	initial(1,1) 
 
 	rules {
@@ -13,7 +14,7 @@ object TextualTestDPNs {
 }
 	    """
 
-    val dpn2 = """dpn{
+    def dpn2 = """dpn{
 	initial(1,1) 
 
 	rules {
@@ -24,7 +25,7 @@ object TextualTestDPNs {
   	}
 }
 	    """
-    val dpn3 = """dpn{
+    def dpn3 = """dpn{
 	initial(1,a1) 
 
 	rules {
@@ -47,7 +48,7 @@ object TextualTestDPNs {
 }
 	    """
 
-    val dpn4 = """dpn{
+    def dpn4 = """dpn{
 	initial(1,a1) 
 
 	rules {
@@ -70,7 +71,7 @@ object TextualTestDPNs {
   	}
 }
 	    """
-    val dpn5 = """dpn{
+    def dpn5 = """dpn{
 	initial(1,a1) 
 
 	rules {
@@ -93,8 +94,8 @@ object TextualTestDPNs {
   	}
 }
 	    """
-        
-        val dpn6 = """dpn{
+
+    def dpn6 = """dpn{
 	initial(1,a1) 
 
 	rules {
@@ -111,4 +112,34 @@ object TextualTestDPNs {
   	}
 }
 	    """
+
+    def dpn7 = """dpn{
+	initial(a1) 
+
+	rules {
+		(a1) --callspwn-l--> (b1,a2)
+  		(a2) --2--> (a3)
+  		(a3) --3--> (a4)
+  		(a4) --4--> (a4)
+            
+        (b1) --spwn--> (b2:>c1)
+        (b2) --r--> ()
+        
+        (c1) --n-l--> (d1,c2)
+        (c2) --r--> (c2)
+        
+        (d1) --a--> (d2)
+        (d2) --r--> ()
+  	}
+}
+	    """
+        
+    def dpn = Map(
+        1 -> dpn1,
+        2 -> dpn2,
+        3 -> dpn3,
+        4 -> dpn4,
+        5 -> dpn5,
+        6 -> dpn6,
+        7 -> dpn7)
 }

@@ -32,9 +32,9 @@ class LibLockTA(val name: String, val lo: LockOperations) extends LockTreeAutoma
 
         out("\n%%% Defining transitions\n")
         
-        NIL("_", l(A, U, G)) :- (emptySet(A), emptySet(U), emptyGraph(G))!
+        NIL("_", l(A, U, G)) :- (emptyLockSet(A), emptyLockSet(U), emptyGraph(G))!
 
-        RET(l(A, U, G)) :- (emptySet(A), emptySet(U), emptyGraph(G))!
+        RET(l(A, U, G)) :- (emptyLockSet(A), emptyLockSet(U), emptyGraph(G))!
 
         CALL1(l(A1, U1, G1), l(A1, U1, G1))!
 

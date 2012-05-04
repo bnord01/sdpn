@@ -107,6 +107,7 @@ object XSBCommandRunner extends XSBRunner {
 
                 var retVal = false
                 var hadErr = false
+                var theErr = ""
 
                 @volatile
                 var ready = false
@@ -150,6 +151,7 @@ object XSBCommandRunner extends XSBRunner {
                         if (line != "") {
                             hadErr = true
                             ready = true
+                            theErr= line
                             mainThread.interrupt()
                         }
                         line = in.readLine
@@ -177,7 +179,7 @@ object XSBCommandRunner extends XSBRunner {
                 if (ready && !hadErr) {
                     return retVal
                 } else if (hadErr) {
-                    throw new IOException("XSB Error")
+                    throw new IOException("XSB Error: " + theErr)
                 } else {
                     throw new IOException("Error running XSB")
                 }

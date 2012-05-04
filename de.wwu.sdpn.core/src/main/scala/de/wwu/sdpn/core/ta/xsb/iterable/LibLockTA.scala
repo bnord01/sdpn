@@ -18,20 +18,19 @@ class LibLockTA(val name: String, val lo: LockOperations) extends IterableTreeAu
     def genScript: String = {
         val lon = lo.name
         implicit val buf = new StringBuilder()
-        out(lo.genScript)
         out("\n")
 
         def l(a: LSVar, u: LSVar, g: GVar) = "l(" + a + "," + u + "," + g + ")"
         def la(l: LVar, i: TBVar) = "la(" + l + "," + i + ")"
 
-        ("""
-         %%% Definition of tree-automata for lock sensitive schedules: """ + name + " %%%")!
+        % ("""
+         %%% Definition of tree-automata for lock sensitive schedules: """ + name + " %%%")
 
-        "\n%%% Defining transitions\n"!
+        % ("\n%%% Defining transitions\n")
 
-        NIL("_", l(A, U, G)) :- (emptySet(A), emptySet(U), emptyGraph(G))!
+        NIL("_", l(A, U, G)) :- (emptyLockSet(A), emptyLockSet(U), emptyGraph(G))!
 
-        RET(l(A, U, G)) :- (emptySet(A), emptySet(U), emptyGraph(G))!
+        RET(l(A, U, G)) :- (emptyLockSet(A), emptyLockSet(U), emptyGraph(G))!
 
         CALL1(l(A1, U1, G1), l(A1, U1, G1))!
 

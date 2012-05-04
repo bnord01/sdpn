@@ -18,7 +18,6 @@ class LibFwdLockSet(val name: String, lo:LockOperations) extends IterableTreeAut
         
 
         def outln(s:String) {out(s);out("\n")}
-        outln(lo.genScript)
         //outln (name + "_allLocks(X) :- X is 2'" + ("1" * numLocks) + ".")
         
         //name_disjoint(X,Y) :- 0 is X '/\' Y.
@@ -36,10 +35,10 @@ name_use(la(Lock,0),LX,X,X) :- LON_isNoElem(Lock,X), LON_isElemUnion(Lock,X,LX).
 name_use(la(Lock,1),X,X,X) :- LON_isElem(Lock,X).
 name_acq(la(Lock,0),LX,X) :- LON_isNoElem(Lock,X), LON_isElemUnion(Lock,X,LX).
 name_acq(la(Lock,1),X,X) :- LON_isElem(Lock,X).
-name_spawn(L0,X,X) :- LON_emptySet(L0).
+name_spawn(L0,X,X) :- LON_emptyLockSet(L0).
 
 %Final state
-name_final(L0) :- LON_emptySet(L0). 
+name_final(L0) :- LON_emptyLockSet(L0). 
 
 """.replace("LON",lo.name).replace("name",name))
      

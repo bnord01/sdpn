@@ -14,7 +14,7 @@ package de.wwu.sdpn.core.ta.xsb
  * @param ta2 the tree automata to be checked bottom up
  * @author Benedikt Nordhoff
  */
-class IntersectionEmptinessCheck(ta1: ScriptTreeAutomata, ta2: ScriptTreeAutomata,name0:String = null) {
+class IntersectionEmptinessCheck(ta1: ScriptTreeAutomata, ta2: ScriptTreeAutomata,adds:XSBScript = null,name0:String = null) {
     require(ta1.alphabet == ta2.alphabet, "Tried to intersect tree automata with different alphabets.")
     require(ta1.stateSize == 1)
     require(ta2.stateSize == 1)
@@ -41,6 +41,11 @@ class IntersectionEmptinessCheck(ta1: ScriptTreeAutomata, ta2: ScriptTreeAutomat
 
         def nl = out("\n")
         def outln(s: String) { out(s); nl }
+        
+        if(adds != null) {
+        	outln("%%% Additionally used scripts %%%")
+        	outln(adds.genScript)
+        }
 
         out("%%% BEGIN Definition of: " + ta1.name + "\n")
         out(ta1.genScript)

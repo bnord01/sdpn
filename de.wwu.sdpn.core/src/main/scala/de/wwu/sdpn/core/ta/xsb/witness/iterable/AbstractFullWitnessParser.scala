@@ -13,8 +13,8 @@ object AbstractFullWitnessParser extends JavaTokenParsers {
   // The Parser 
   // format: OFF
       
-  def xsbAtom: Parser[String] = "[0-9][0-9]*".r | "[a-z][a-zA-Z0-9_]*".r
-  def xsbTerm: Parser[String] = (xsbAtom ~ opt(xsbTuple) ^^ {case a~None => a; case a~Some(t) => a + t}) | xsbTuple
+  def xsbAtomOrVar: Parser[String] = "[a-zA-Z0-9_]+".r
+  def xsbTerm: Parser[String] = (xsbAtomOrVar ~ opt(xsbTuple) ^^ {case a~None => a; case a~Some(t) => a + t}) | xsbTuple
   def xsbTuple: Parser[String] = "("~>repsep(xsbTerm,",")<~")"^^{case ls => ls.mkString("(",",",")")}
 
   def state: Parser[State] = xsbTerm^^{case x => UnparsedState(x)}
@@ -55,7 +55,7 @@ object AbstractFullWitnessParser extends JavaTokenParsers {
   def nilTree = "nil("~>annot<~")" ^^ {x => PNilTree(x)}
   def retTree = "ret" ^^ { _ => PRetTree }
   
-  def fullTreeWithName: Parser[WitnessTree] = xsbAtom~"("~>fullTree<~")"
+  def fullTreeWithName: Parser[WitnessTree] = xsbAtomOrVar~"("~>fullTree<~")"
   
   def anyFullTree: Parser[WitnessTree] = fullTree | fullTreeWithName
   // format: ON

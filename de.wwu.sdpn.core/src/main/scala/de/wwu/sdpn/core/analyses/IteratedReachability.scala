@@ -13,10 +13,12 @@ import java.io.FileWriter
 import scala.collection.JavaConversions._
 import de.wwu.sdpn.core.ta.xsb.reachability.TwoSetConflictTA
 import de.wwu.sdpn.core.ta.xsb.XSBInterRunner
+import de.wwu.sdpn.core.ta.xsb.XSBCommandRunner
 import de.wwu.sdpn.core.ta.xsb.IntLockOperations
 import de.wwu.sdpn.core.ta.xsb.iterable.LibLockTA
 import de.wwu.sdpn.core.ta.xsb.iterable.LibRelTA
 import de.wwu.sdpn.core.ta.xsb.iterable.LocksHeldTroughoutTA
+import de.wwu.sdpn.core.ta.xsb.XSBScript
 
 object IteratedReachability {
     val runner = XSBInterRunner
@@ -26,12 +28,12 @@ object IteratedReachability {
      * @param dpn the MonitorDPN to analyze
      * @param cset the conflict set of stack symbols
      * @param lockSens should this analysis be lock sensitive
-     * @return (td-automata,bu-automata)
+     * @return (td-automata,bu-automata,additional scripts)
      */
     def genAutomata[GlobalState <% HTR, StackSymbol <% HTR, DPNAction, Lock](
         dpn: MonitorDPN[GlobalState, StackSymbol, DPNAction, Lock],
         confs: List[Iterable[StackSymbol]],
-        lockSens: Boolean): (ScriptTreeAutomata, ScriptTreeAutomata) = {
+        lockSens: Boolean): (ScriptTreeAutomata, ScriptTreeAutomata,XSBScript) = {
 
         require(dpn != null, "Can't analyze null-DPN")
         require(!lockSens || (dpn.locks.size <= 8),
@@ -64,10 +66,11 @@ object IteratedReachability {
                 val rs = new LibRelTA(i,"rs" + i,lo)
                 val ht = new LocksHeldTroughoutTA(i,"ht" + i, lo)
                 val rsht = new IntersectionTA(rs,ht,"rs_ht" + i)
+                val ah = new LibLockTA("ah"+i,lo)
                 val ls = new IntersectionTA(ah,rsht,"ls"+i)
                 confl =  new IntersectionTA(conflwf,ls,"conflwfls" + i)
             }
-            return (lsdpn, confl)            
+            return (lsdpn, confl,lo)            
         } else {
             val dpnTA = new MDPN2IterableTA(dpn)
             val s0 :: st = confs
@@ -80,7 +83,7 @@ object IteratedReachability {
                 val cwf = new CutWellFormed("cwf" + i, i)
                 confl = new IntersectionTA(conf0, cwf, "conflwf" + i)
             }
-            return (dpnTA, confl)
+            return (dpnTA, confl,null)
         }
     }
 
@@ -104,9 +107,9 @@ object IteratedReachability {
     def runConflictCheck[C <% HTR, S <% HTR, A <% HTR, L](dpn: MonitorDPN[C, S, A, L], confs: List[Iterable[S]], lockSens: Boolean = true): Boolean = {
         val ss = dpn.getStackSymbols
         require(ss.containsAll(confs.flatMap(x => x)), "Some symbols are not contained in the DPN!")
-        val (td, bu) = genAutomata(dpn, confs, lockSens)
+        val (td, bu,lo) = genAutomata(dpn, confs, lockSens)
 
-        val check = new IntersectionEmptinessCheck(td, bu, "check")
+        val check = new IntersectionEmptinessCheck(td, bu, lo, "check")
         return !runner.runCheck(check)
     }
     def runConflictCheck[C <% HTR, S <% HTR, A <% HTR, L](task: IRTask[C, S, A, L]): Boolean = {
@@ -115,9 +118,9 @@ object IteratedReachability {
     def runWitnessCheck[C <% HTR, S <% HTR, A <% HTR, L](dpn: MonitorDPN[C, S, A, L], confs: List[Iterable[S]], lockSens: Boolean = true): Option[WitnessTree] = {
         val ss = dpn.getStackSymbols
         require(ss.containsAll(confs.flatMap(x => x)), "Some symbols are not contained in the DPN!")
-        val (td, bu) = genAutomata(dpn, confs, lockSens)
+        val (td, bu,lo) = genAutomata(dpn, confs, lockSens)
 
-        val check = new FullWitnessIntersectionEmptinessCheck(td, bu, "check")
+        val check = new FullWitnessIntersectionEmptinessCheck(td, bu,lo, "check")
         runner.runFullWitnessCheck(check) match {
             case None => None
             case Some(w) =>

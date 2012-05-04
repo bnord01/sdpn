@@ -26,6 +26,7 @@ package de.wwu.sdpn.core.ta.xsb
  * @todo check why the generated script is very expensive to evaluate some times.
  * @author Benedikt Nordhoff
  */
+@deprecated("Use FullWitnessIntersectionEmptienssCheck instead","some time now")
 class WitnessIntersectionEmptinessCheck(ta1: ScriptTreeAutomata, ta2: ScriptTreeAutomata) {
     require(ta1.alphabet == ta2.alphabet, "Tried to intersect tree automata with different alphabets.")
     require(ta1.stateSize == 1)

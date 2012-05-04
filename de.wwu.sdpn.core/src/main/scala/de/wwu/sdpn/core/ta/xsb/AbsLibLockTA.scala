@@ -27,6 +27,9 @@ trait AbsLibLockTA {
         def :-(constr: String*) = { str + constr.mkString(" :- \n\t", " ,\n\t", "") }
         def !(implicit sb: StringBuilder): Unit = { sb.append(str); sb.append(".\n") }
     }
+    
+    def %(str:String) (implicit sb:StringBuilder) = sb.append("% " + str + "\n")
+    def %%%(str:String) (implicit sb:StringBuilder) = {sb.append("\n        %%%  ");sb.append(str);sb.append("  %%%\n\n")}
 
     trait LSVar
     trait LVar
@@ -80,7 +83,7 @@ trait AbsLibLockTA {
     def isElem(elem: LVar, set: LSVar) = lon + "_isElem(" + elem + "," + set + ")"
     def isNoElem(elem: LVar, set: LSVar) = lon + "_isNoElem(" + elem + ", " + set + ")"
     def isElemUnion(elem: LVar, set: LSVar, eset: LSVar) = lon + "_isElemUnion(" + elem + "," + set + "," + eset + ")"
-    def isElemUnion2(elem: LVar, set1: LSVar, set2: LSVar, eset: LSVar) = lon + "_isElemUnion(" + elem + "," + set1 + ", " + set2 + ", " + eset + ")"
+    def isElemUnion2(elem: LVar, set1: LSVar, set2: LSVar, eset: LSVar) = lon + "_isElemUnion2(" + elem + "," + set1 + ", " + set2 + ", " + eset + ")"
     def isGraphUnion(g1: GVar, g2: GVar, g3: GVar) =
         lon + "_isGraphUnion(" + g1 + ", " + g2 + ", " + g3 + ")"
     def isGraphXUUnion(x: LVar, u: LSVar, g1: GVar, g2: GVar) =
@@ -88,7 +91,7 @@ trait AbsLibLockTA {
     def isGraphXUUnion2(x: LVar, u: LSVar, g1: GVar, g2: GVar, g:GVar) =
         lon + "_isGraphXUUnion2(" + x + ", " + u + ", " + g1 + ", " + g2 + ", " + g +")"
     def emptyGraph(g: GVar) = lon + "_emptyGraph(" + g + ")"
-    def emptySet(g: LSVar) = lon + "_emptySet(" + g + ")"
+    def emptyLockSet(g: LSVar) = lon + "_emptyLockSet(" + g + ")"
     def notCyclic(g: GVar) = lon + "_notCyclic(" + g + ")"
     def acyclic(g: GVar) = lon + "_notCyclic(" + g + ")"
 
