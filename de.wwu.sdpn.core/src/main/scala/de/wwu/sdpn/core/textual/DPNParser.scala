@@ -248,9 +248,9 @@ object DPNParser extends JavaTokenParsers {
             println("""usage: command <file> [-e|-w]
                     
     where <file> is a file containing a well formed TSRTask 
-    -e indicates that the dpn should be simulated 
-    -w indicates that a witness should be printed if the dpn insn't explored
-    -s indicates that a witness annotated with the states of the used tree automata should be printed""")
+    -e or --explore indicates that the dpn should be simulated (explored) 
+    -w or --witness indicates that a witness should be printed if the dpn isn't simulated
+    -s or --states  indicates that a witness annotated with the states of the used tree automata should be printed""")
         }
 
         val estr = Set("-e", "--explore")
