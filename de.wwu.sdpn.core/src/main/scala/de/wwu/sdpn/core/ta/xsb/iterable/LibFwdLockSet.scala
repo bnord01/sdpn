@@ -26,16 +26,16 @@ class LibFwdLockSet(val name: String, lo:LockOperations) extends IterableTreeAut
         out("""
 %TA rules
 name_nil(_,_).
-name_ret(_).
+name_ret(_,_).
 name_base(_,X,X).
 name_cut(_,X,X).                
-name_call1(X,X).
-name_call2(X,X,X).
-name_use(la(Lock,0),LX,X,X) :- LON_isNoElem(Lock,X), LON_isElemUnion(Lock,X,LX).
-name_use(la(Lock,1),X,X,X) :- LON_isElem(Lock,X).
-name_acq(la(Lock,0),LX,X) :- LON_isNoElem(Lock,X), LON_isElemUnion(Lock,X,LX).
-name_acq(la(Lock,1),X,X) :- LON_isElem(Lock,X).
-name_spawn(L0,X,X) :- LON_emptyLockSet(L0).
+name_call1(_,X,X).
+name_call2(_,X,X,X).
+name_use(ra(_,la(Lock,0)),LX,X,X) :- LON_isNoElem(Lock,X), LON_isElemUnion(Lock,X,LX).
+name_use(ra(_,la(Lock,1)),X,X,X) :- LON_isElem(Lock,X).
+name_acq(ra(_,la(Lock,0)),LX,X) :- LON_isNoElem(Lock,X), LON_isElemUnion(Lock,X,LX).
+name_acq(ra(_,la(Lock,1)),X,X) :- LON_isElem(Lock,X).
+name_spawn(_,L0,X,X) :- LON_emptyLockSet(L0).
 
 %Final state
 name_final(L0) :- LON_emptyLockSet(L0). 

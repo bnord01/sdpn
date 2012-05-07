@@ -2,6 +2,16 @@ package de.wwu.sdpn.core.ta.xsb.iterable
 
 import de.wwu.sdpn.core.ta.xsb.ScriptTreeAutomata
 
+/**
+ * 
+ * This translates an automaton for trees with n cuts into an automaton for n+1 cuts
+ * by simulating the automaton on tree corresponding to the part before the last cut.
+ * 
+ * Important: This assumes that 
+ * 	1) cut nodes are annotaed with cpt(nr,X) where X is the annotation of the corresponding nil node.
+ *  2) the annotations of call1 and call2 nodes and acq and use nodes are the same. 
+ *  
+ */
 class CutTransducer (cutNumber:Int,other:ScriptTreeAutomata,name0:String=null) extends IterableTreeAutomata {
     require(other.alphabet == alphabet,"Can cut transduce only IterableTreeAutomata!")
     def name = if(name0 != null) name0 else "cut" + cutNumber + "_" + other.name
@@ -26,13 +36,13 @@ class CutTransducer (cutNumber:Int,other:ScriptTreeAutomata,name0:String=null) e
 name_nil(GS,b(Q)) :- other_nil(GS,Q).
 name_nil(GS,r) :- not(other_nil(GS,_)).
                 
-name_ret(b(Q)) :- other_ret(Q).
-name_ret(r) :- not(other_ret(_)).
+name_ret(A,b(Q)) :- other_ret(A,Q).
+name_ret(A,r) :- not(other_ret(A,_)).
 
-name_call1(b(Q1),b(Q2)) :- other_call1(Q1,Q2).
-name_call1(t(Q1),t(Q2)) :- other_call1(Q1,Q2).
-name_call1(r,r).
-name_call1(b(Q),r) :- not(other_call1(Q,_)).
+name_call1(A,b(Q1),b(Q2)) :- other_call1(A,Q1,Q2).
+name_call1(A,t(Q1),t(Q2)) :- other_call1(A,Q1,Q2).
+name_call1(_,r,r).
+name_call1(A,b(Q),r) :- not(other_call1(A,Q,_)).
                 
 name_base(A,b(Q1),b(Q2)) :- other_base(A,Q1,Q2).
 name_base(A,t(Q1),t(Q2)) :- other_base(A,Q1,Q2).
@@ -47,19 +57,19 @@ name_acq(A,b(Q),r) :- not(other_acq(A,Q,_)).
                 %%% A returning call %%%
                 
 % Some subtree couldn't be accepted by the other automata continue propagating 'r'                
-name_call2(r,r,r).
-name_call2(b(_),r,r).
-name_call2(r,b(_),r).                
+name_call2(_,r,r,r).
+name_call2(_,b(_),r,r).
+name_call2(_,r,b(_),r).                
 
 % If the other ta can continque let him.                
-name_call2(b(Qc),b(Qr),b(Q)) :- other_call2(Qc,Qr,Q).
-name_call2(b(Qc),t(Qr),t(Q)) :- other_call2(Qc,Qr,Q).                
+name_call2(A,b(Qc),b(Qr),b(Q)) :- other_call2(A,Qc,Qr,Q).
+name_call2(A,b(Qc),t(Qr),t(Q)) :- other_call2(A,Qc,Qr,Q).                
 
 % Cut in the returning branch, handle as non returning call.                
-name_call2(t(Qr),_,t(Q)) :- other_call1(Qr,Q).
+name_call2(A,t(Qr),_,t(Q)) :- other_call1(A,Qr,Q).
 
 % No rule to handle, go to state r                 
-name_call2(b(Qc),b(Qr),r) :- not(other_call2(Qc,Qr,_)).                
+name_call2(A,b(Qc),b(Qr),r) :- not(other_call2(A,Qc,Qr,_)).                
 
                 %%% A returning use just like a call %%%
                 
@@ -81,18 +91,18 @@ name_use(A,b(Qc),b(Qr),r) :- not(other_use(A,Qc,Qr,_)).
                 %%% A spawn %%%
                 
 % Other ta can handle the cases, let him.                 
-name_spawn(b(Qs),b(Qr),b(Q)) :- other_spawn(Qs,Qr,Q).                
-name_spawn(b(Qs),t(Qr),t(Q)) :- other_spawn(Qs,Qr,Q).
-name_spawn(t(Qs),b(Qr),b(Q)) :- other_spawn(Qs,Qr,Q).                
-name_spawn(t(Qs),t(Qr),t(Q)) :- other_spawn(Qs,Qr,Q).                
+name_spawn(A,b(Qs),b(Qr),b(Q)) :- other_spawn(A,Qs,Qr,Q).                
+name_spawn(A,b(Qs),t(Qr),t(Q)) :- other_spawn(A,Qs,Qr,Q).
+name_spawn(A,t(Qs),b(Qr),b(Q)) :- other_spawn(A,Qs,Qr,Q).                
+name_spawn(A,t(Qs),t(Qr),t(Q)) :- other_spawn(A,Qs,Qr,Q).                
                 
 % Some subtree was already rejected                
-name_spawn(b(_),r,r).
-name_spawn(r,_,r).
+name_spawn(_,b(_),r,r).
+name_spawn(_,r,_,r).
 % If the spawned thread has a cut, there is no reason to continue!
                 
 % Other ta can not handle, but we could be under the cut, go to r.                
-name_spawn(b(Qs),b(Qr),r) :- not(other_spawn(Qs,Qr,_)).               
+name_spawn(A,b(Qs),b(Qr),r) :- not(other_spawn(A,Qs,Qr,_)).               
                
                 %%% The cut we are looking for %%%
 name_cut(cpt(cutNumber,S),b(_),t(Q)) :- other_nil(S,Q).                

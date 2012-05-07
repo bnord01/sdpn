@@ -11,27 +11,27 @@ class LibRelTA(cutNumber: Int, val name: String, val lo: LockOperations) extends
         implicit val buf = new StringBuilder
 
         def r(c: TBVar, u: LSVar, g: GVar) = "r(" + c + ", " + u + ", " + g + ")"
-        def la(l: LVar, i: TBVar) = "la(" + l + "," + i + ")"
+        def la(l: LVar, i: TBVar) = "ra(_,la(" + l + "," + i + "))"
         def P = "P"
         def cutN(i: Int) = "cpt(" + i + ", _)"
 
         NIL("_", r(bot, A, G)) :- (emptyLockSet(A), emptyGraph(G))!
 
-        RET(r(bot, A, G)) :- (emptyLockSet(A), emptyGraph(G))!
+        RET("_",r(bot, A, G)) :- (emptyLockSet(A), emptyGraph(G))!
 
         BASE("_", P, P)!
 
         ACQ("_", P, P)!
 
-        CALL1(P, P)!
+        CALL1("_",P, P)!
 
         %%%("A returning call")
 
-        CALL2(r(C, Uc, Gc), r(bot, Ur, Gr), r(C, U, G)) :- (
+        CALL2("_",r(C, Uc, Gc), r(bot, Ur, Gr), r(C, U, G)) :- (
             isUnion(Uc, Ur, U),
             isGraphUnion(Gc, Gr, G))!
 
-        CALL2(r(bot, __, Gc), r(top, Ur, Gr), r(top, Ur, G)) :- (
+        CALL2("_",r(bot, __, Gc), r(top, Ur, Gr), r(top, Ur, G)) :- (
             isGraphUnion(Gc, Gr, G))!
 
         %%%("Reentrant uses and uses over the cut ar handled like calls")
@@ -57,9 +57,9 @@ class LibRelTA(cutNumber: Int, val name: String, val lo: LockOperations) extends
             
         %%%("Spawns")
     
-        SPAWN(r(bot,__,G),r(bot,Ur,G),r(bot,Ur,G)) :- emptyGraph(G)!
+        SPAWN("_",r(bot,__,G),r(bot,Ur,G),r(bot,Ur,G)) :- emptyGraph(G)!
         
-        SPAWN(r(top,__,Gs),r(C,Ur,Gr),r(C,Ur,G)) :- isGraphUnion(Gs,Gr,G)!
+        SPAWN("_",r(top,__,Gs),r(C,Ur,Gr),r(C,Ur,G)) :- isGraphUnion(Gs,Gr,G)!
 
         %%%("The cut we are looking for")
 

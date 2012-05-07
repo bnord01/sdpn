@@ -28,18 +28,18 @@ name_or(top,bot,top).
 name_or(top,top,top).
 
 %TA rules
-name_ret(bot).
+name_ret(_,bot).
 name_nil(S,top) :- name_tos(S).
 name_nil(S,bot) :- not(name_tos(S)).
 
 name_base(_,X,X).
-name_call1(X,X).
+name_call1(_,X,X).
 name_acq(_,X,X).
 name_cut(_,X,X).
 
 name_use(_,X,Y,XoY) :- name_or(X,Y,XoY).
-name_call2(X,Y,XoY) :- name_or(X,Y,XoY).
-name_spawn(X,Y,XoY) :- name_or(X,Y,XoY).
+name_call2(_,X,Y,XoY) :- name_or(X,Y,XoY).
+name_spawn(_,X,Y,XoY) :- name_or(X,Y,XoY).
 
 name_final(top). 
 

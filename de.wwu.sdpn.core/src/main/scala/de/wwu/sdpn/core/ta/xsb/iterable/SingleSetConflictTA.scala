@@ -27,17 +27,17 @@ class SingleSetConflictTA[StackSymbol <% HasTermRepresentation](val name: String
 name_nil(X,1) :- name_badStack(X).
 name_nil(X,0) :- not(name_badStack(X)).
 
-name_ret(0).
+name_ret(_,0).
 name_base(_,X,X).
 name_cut(_,X,X).
-name_call1(X,X).
+name_call1(_,X,X).
 
-name_call2(1,0,1).
-name_call2(0,1,1).
-name_call2(0,0,0).
-name_call2(1,1,2).
-name_call2(_,2,2).
-name_call2(2,_,2).
+name_call2(_,1,0,1).
+name_call2(_,0,1,1).
+name_call2(_,0,0,0).
+name_call2(_,1,1,2).
+name_call2(_,_,2,2).
+name_call2(_,2,_,2).
 
 name_use(_,1,0,1).
 name_use(_,0,1,1).
@@ -47,12 +47,12 @@ name_use(_,_,2,2).
 name_use(_,2,_,2).
 
 name_acq(_,X,X).
-name_spawn(1,0,1).
-name_spawn(0,1,1).
-name_spawn(0,0,0).
-name_spawn(1,1,2).
-name_spawn(_,2,2).
-name_spawn(2,_,2).
+name_spawn(_,1,0,1).
+name_spawn(_,0,1,1).
+name_spawn(_,0,0,0).
+name_spawn(_,1,1,2).
+name_spawn(_,_,2,2).
+name_spawn(_,2,_,2).
 name_final(2).
 """.replace("name", name))
 

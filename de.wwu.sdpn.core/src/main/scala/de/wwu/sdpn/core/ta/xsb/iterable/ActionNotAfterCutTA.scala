@@ -37,45 +37,45 @@ name_or(top,bot,top).
 name_or(top,top,top).
 
 %TA rules
-name_ret(n).
+name_ret(_,n).
 name_nil(_,n).
 
 name_base(A,n,a) :- name_badAction(A).
 name_base(A,n,n) :- not(name_badAction(A)).                
 name_base(A,a,a).
 name_base(A,c,c).                
-name_call1(X,X).
+name_call1(_,X,X).
 name_acq(_,X,X).
 
                 %%% Returning calls %%%
 % With cut                
-name_call2(c,n,c).	
-name_call2(n,c,c).
-name_call2(a,c,c). % Bad action before the cut
+name_call2(_,c,n,c).	
+name_call2(_,n,c,c).
+name_call2(_,a,c,c). % Bad action before the cut
         		   % no rule for c,a as a lies after
                    % the cut.
 
 % Without cut just propagate existing a               
-name_call2(n,n,n).
-name_call2(n,a,a).
-name_call2(a,n,a).                
-name_call2(a,a,a).                
+name_call2(_,n,n,n).
+name_call2(_,n,a,a).
+name_call2(_,a,n,a).                
+name_call2(_,a,a,a).                
                 %%% Use just as calls as usual %%%
-name_use(_,X,Y,XoY) :- name_call2(X,Y,XoY).
+name_use(_,X,Y,XoY) :- name_call2(_,X,Y,XoY).
 
 
                 %%% Rules for spawns %%%
 % With cut                
-name_spawn(c,n,n). % Don't propagate cuts from the spawned process!
-name_spawn(c,c,c). % If we've seen a cut so must the spawned process.
-name_spawn(c,a,a). % We haven't seen our cut but we must be above it.
+name_spawn(_,c,n,n). % Don't propagate cuts from the spawned process!
+name_spawn(_,c,c,c). % If we've seen a cut so must the spawned process.
+name_spawn(_,c,a,a). % We haven't seen our cut but we must be above it.
                    % This a will be discarded.
                 
 % Without cut
-name_spawn(n,n,n).                
-name_spawn(a,n,a).
-name_spawn(n,a,a).                
-name_spawn(a,a,a).                
+name_spawn(_,n,n,n).                
+name_spawn(_,a,n,a).
+name_spawn(_,n,a,a).                
+name_spawn(_,a,a,a).                
 
                 
                 %%% Ignore previous cuts %%%

@@ -21,7 +21,7 @@ class LibLockTA(val name: String, val lo: LockOperations) extends IterableTreeAu
         out("\n")
 
         def l(a: LSVar, u: LSVar, g: GVar) = "l(" + a + "," + u + "," + g + ")"
-        def la(l: LVar, i: TBVar) = "la(" + l + "," + i + ")"
+        def la(l: LVar, i: TBVar) = "ra(_,la(" + l + "," + i + "))"
 
         % ("""
          %%% Definition of tree-automata for lock sensitive schedules: """ + name + " %%%")
@@ -30,15 +30,15 @@ class LibLockTA(val name: String, val lo: LockOperations) extends IterableTreeAu
 
         NIL("_", l(A, U, G)) :- (emptyLockSet(A), emptyLockSet(U), emptyGraph(G))!
 
-        RET(l(A, U, G)) :- (emptyLockSet(A), emptyLockSet(U), emptyGraph(G))!
+        RET("_",l(A, U, G)) :- (emptyLockSet(A), emptyLockSet(U), emptyGraph(G))!
 
-        CALL1(l(A1, U1, G1), l(A1, U1, G1))!
+        CALL1("_",l(A1, U1, G1), l(A1, U1, G1))!
 
         BASE("_", l(A1, U1, G1), l(A1, U1, G1))!
 
         CUT("_", l(A1, U1, G1), l(A1, U1, G1))!
 
-        CALL2(l(A1, U1, G1), l(A2, U2, G2), l(A3, U3, G3)) :- (
+        CALL2("_",l(A1, U1, G1), l(A2, U2, G2), l(A3, U3, G3)) :- (
             disjoint(A1, A2),
             isUnion(A1, A2, A3),
             isUnion(U1, U2, U3),
@@ -64,7 +64,7 @@ class LibLockTA(val name: String, val lo: LockOperations) extends IterableTreeAu
 
         ACQ(la(__, top), l(A1, U1, G1), l(A1, U1, G1))!
 
-        SPAWN(l(A1, U1, G1), l(A2, U2, G2), l(A3, U3, G3)) :- (
+        SPAWN("_",l(A1, U1, G1), l(A2, U2, G2), l(A3, U3, G3)) :- (
             disjoint(A1, A2),
             isUnion(A1, A2, A3),
             isUnion(U1, U2, U3),

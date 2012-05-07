@@ -14,7 +14,7 @@ class LocksHeldTroughoutTA(cutNumber: Int, val name: String, val lo: LockOperati
 
         def h(c: TBVar, a: LSVar, u: LSVar) = "h(" + c + ", " + a + ", " + u + ")"
 
-        def la(x: LVar, c: TBVar) = "la(" + x + ", " + c + ")"
+        def la(x: LVar, c: TBVar) = "ra(la(" + x + ", " + c + "))"
 
         def cutN(i: Int) = "cpt(" + i + ", _)"
 
@@ -22,11 +22,11 @@ class LocksHeldTroughoutTA(cutNumber: Int, val name: String, val lo: LockOperati
 
         NIL("_", h(bot, A, A)) :- emptyLockSet(A)!
 
-        RET(h(bot, A, A)) :- emptyLockSet(A)!
+        RET("_",h(bot, A, A)) :- emptyLockSet(A)!
 
         BASE("_", P, P)!
 
-        CALL1(P, P)!
+        CALL1("_",P, P)!
 
         %("Reentrant acq")
 
@@ -34,18 +34,18 @@ class LocksHeldTroughoutTA(cutNumber: Int, val name: String, val lo: LockOperati
 
         %%%("A returning call without cuts, just collect A and U")
 
-        CALL2(h(bot, A1, U1), h(bot, A2, U2), h(bot, A3, U3)) :- (
+        CALL2("_",h(bot, A1, U1), h(bot, A2, U2), h(bot, A3, U3)) :- (
             isUnion(A1, A2, A3),
             isUnion(U1, U2, U3))!
 
         %%%("A cut in the returning branch, drop locks acquired afterwards")
 
-        CALL2(h(top, A1, U1), h(bot, __, U2), h(top, A1, U3)) :-
+        CALL2("_",h(top, A1, U1), h(bot, __, U2), h(top, A1, U3)) :-
             isUnion(U1, U2, U3)!
 
         %%%("A cut after the the returning branch, drop locks used befores")
 
-        CALL2(h(bot, A1, __), h(top, A2, U2), h(top, A3, U2)) :-
+        CALL2("_",h(bot, A1, __), h(top, A2, U2), h(top, A3, U2)) :-
             isUnion(A1, A2, A3)!
 
         %%%("Uses which lie over the cut or are reentrant are handled just as calls")
@@ -82,7 +82,7 @@ class LocksHeldTroughoutTA(cutNumber: Int, val name: String, val lo: LockOperati
 
         %%%("A spawn, collect A and U")
 
-        SPAWN(h(__, A1, U1), h(C, A2, U2), h(C, A3, U3)) :- (
+        SPAWN("_",h(__, A1, U1), h(C, A2, U2), h(C, A3, U3)) :- (
             isUnion(A1, A2, A3),
             isUnion(U1, U2, U3))!
 
