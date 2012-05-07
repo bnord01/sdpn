@@ -242,10 +242,13 @@ object DPNParser extends JavaTokenParsers {
     val defaultNaming = Naming(cdef, sdef, adef, ldef)
 
     
-    
+    /**
+     * Main method to run this from the command line. 
+     * options -e, -w, -s
+     */
     def main(args: Array[String]): Unit = {
         def printUseage() {
-            println("""usage: command <file> [-e|-w]
+            println("""usage: command [-ews] <file> [-ews]
                     
     where <file> is a file containing a well formed TSRTask 
     -e or --explore indicates that the dpn should be simulated (explored) 
