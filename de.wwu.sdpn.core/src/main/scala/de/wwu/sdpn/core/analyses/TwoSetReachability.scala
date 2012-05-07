@@ -98,6 +98,3 @@ object TwoSetReachability {
 
     
 }
-case class TSRTask[C<%HTR,S<%HTR,A<%HTR,L](dpn:MonitorDPN[C,S,A,L], confSet1: Set[S], confSet2: Set[S], lockSens:Boolean){
-    def run : Boolean = {TwoSetReachability.runConflictCheck(this)}
-}

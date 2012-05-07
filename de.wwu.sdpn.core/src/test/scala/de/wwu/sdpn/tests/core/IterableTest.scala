@@ -78,7 +78,7 @@ class IterableTest extends FunSuite with ShouldMatchers with TableDrivenProperty
                 val testname = "DPN number: %d expected %s conflict on symbols %s ".format(nr, if (expectedResult) "a" else "no", syms.mkString(","))
                 test(testname) {
                     val (result, owitness) = runAnalysis(syms, dpn(nr), true)
-                    if (result && !expectedResult)
+                    if (result)
                         println(testname + "\nWitness:\n" + owitness.get.printTree)
                     result should equal(expectedResult)
                     owitness.isDefined should equal (expectedResult)
@@ -92,7 +92,7 @@ class IterableTest extends FunSuite with ShouldMatchers with TableDrivenProperty
                 val testname = "DPN number: %d expected %s conflict on symbols %s ".format(nr, if (expectedResult) "a" else "no", syms.mkString(","))
                 test(testname) {
                     val (result, owitness) = runAnalysis(syms, dpn(nr), false)
-                    if (result && !expectedResult)
+                    if (result)
                         println(testname + "\nWitness:\n" + owitness.get.printTree)
                     result should equal(expectedResult)
                 }

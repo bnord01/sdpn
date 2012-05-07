@@ -20,7 +20,10 @@ import de.wwu.sdpn.core.dpn.monitor.DPNRule
  *
  * @author b_nord01
  */
-class MDPN2IterableTA[GlobalState <% HTR, StackSymbol <% HTR, DPNAction, Lock](dpn: MonitorDPN[GlobalState, StackSymbol, DPNAction, Lock], val name: String = "cflow", annotater: DPNAnnotater[GlobalState, StackSymbol, DPNAction] = null) extends IterableTreeAutomata {
+class MDPN2IterableTA[GlobalState <% HTR, StackSymbol <% HTR, DPNAction, Lock](
+        dpn: MonitorDPN[GlobalState, StackSymbol, DPNAction, Lock], 
+        val name: String = "dpn", 
+        annotater: DPNRule[GlobalState, StackSymbol, DPNAction] => String = null) extends IterableTreeAutomata {
 
     val lockMap: Map[Lock, Int] = {
         var m = Map[Lock, Int]()
@@ -142,7 +145,7 @@ name_call2(_,_,_,_) :- fail.
         if (annotater == null)
             "0"
         else
-            annotater.annotateRule(rule).toString
+            annotater(rule)
     }
 
     def stack(s: StackSymbol) = s.toTerm
