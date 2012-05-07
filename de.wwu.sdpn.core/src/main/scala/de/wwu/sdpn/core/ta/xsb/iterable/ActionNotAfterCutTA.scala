@@ -3,7 +3,10 @@ package de.wwu.sdpn.core.ta.xsb.iterable
 import de.wwu.sdpn.core.ta.xsb.HasTermRepresentation
 
 /**
- * An automaton checking that no base action  
+ * An automaton checking that no base action annotated with an 
+ * action from the set actions is executed after the cut with the 
+ * given number.
+ * 
  * @author Benedikt Nordhoff
  */
 class NoBadActionTA[T<%HasTermRepresentation](cutNumber:Int,actions: Set[T],override val name:String) extends IterableTreeAutomata {
