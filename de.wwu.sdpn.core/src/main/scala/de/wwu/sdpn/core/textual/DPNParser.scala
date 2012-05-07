@@ -55,7 +55,7 @@ import java.io.FileReader
  * name           ::= STRINGLITERAL "..."
  * named          ::= term ":" name
  * repnamed       ::= [named { [","] named}]
- * 
+ *
  * controls       ::= "controls" "{" repnamed "}"
  * stacks         ::= "stacks" "{" repnamed "}"
  * locks          ::= "locks" "{" repnamed "}"
@@ -71,7 +71,7 @@ import java.io.FileReader
  * spawn_rule     ::= "(" control "," stack ")" "--" action "-->" "(" control "," stack ":>" control "," stack ")"
  * simple_push    ::= "(" control "," stack ")" "--" action "-->" "(" control "," stack "," stack ")"
  * lock_push      ::= "(" control "," stack ")" "--" action "-" lock "-->" "(" control "," stack "," stack ")"
- * 
+ *
  * s_base_rule      ::= "(" stack ")" "--" action "-->" "(" stack ")"
  * s_pop_rule       ::= "(" stack ")" "--" action "-->" "(" ")"
  * s_spawn_rule     ::= "(" stack ")" "--" action "-->" "(" stack ":>" stack ")"
@@ -79,7 +79,7 @@ import java.io.FileReader
  * s_lock_push      ::= "(" stack ")" "--" action "-" lock "-->" "(" stack "," stack ")"
  *
  * rule           ::= base_rule | pop_rule | simple_push | lock_push | spawn_rule |
- *                    s_base_rule | s_pop_rule | s_simple_push | s_lock_push | s_spawn_rule 
+ *                    s_base_rule | s_pop_rule | s_simple_push | s_lock_push | s_spawn_rule
  * rules          ::= "rules" "{" [rule { [","] rule }] "}"
  * initial_conf   ::= "initial" "(" [control ","] stack ")"
  *
@@ -134,57 +134,6 @@ import java.io.FileReader
  *
  */
 object DPNParser extends JavaTokenParsers {
-
-    def main(args: Array[String]): Unit = {
-        var explore = false
-        var file: String = ""
-        if (args.length == 2) {
-            if (args(0) == "-e" || args(0) == "--explore") {
-                explore = true
-                file = args(1)
-            } else if (args(1) == "-e" || args(1) == "--explore") {
-                explore = true
-                file = args(0)
-            }
-        } else if (args.length == 1) {
-            file = args(0)
-        } else {
-            println("Please supply the name of the file containing the task definition as single argument!")
-            System.exit(-1)
-        }
-        val f = new File(file)
-        require(f.exists() && f.canRead(), "Couldn't read file: " + args(0))
-        val rdr = new BufferedReader(new FileReader(f))
-        if (explore) {
-            val pres = parseDPN(rdr)
-            if (pres.successful) {
-                val dpn = pres.get._1
-                MonitorDPNView.show(dpn, true)
-            } else {
-                println("Parsing error!")
-                println(pres)
-                System.exit(-1)
-            }
-
-        } else {
-            val pres = parseTSRTask(rdr)
-            if (pres.successful) {
-                val result = pres.get.run
-                println(result)
-                if (result) {
-                    System.err.println("A conflict could exist.")
-                    System.exit(0)
-                } else {
-                    System.err.println("No conflict can exist.")
-                    System.exit(0)
-                }
-            } else {
-                println("Parsing error!")
-                println(pres)
-                System.exit(-1)
-            }
-        }
-    }
     
     // format: OFF
     protected override val whiteSpace = """(\s|//.*|(?m)/\*(\*(?!/)|[^*])*\*/)+""".r
@@ -292,6 +241,81 @@ object DPNParser extends JavaTokenParsers {
 
     val defaultNaming = Naming(cdef, sdef, adef, ldef)
 
+    
+    
+    def main(args: Array[String]): Unit = {
+        def printUseage() {
+            println("""usage: command <file> [-e|-w]
+                    
+    where <file> is a file containing a well formed TSRTask 
+    -e indicates that the dpn should be simulated 
+    -w indicates that a witness should be printed if the dpn insn't explored
+    -s indicates that a witness annotated with the states of the used tree automata should be printed""")
+        }
+
+        val estr = Set("-e", "--explore")
+        val wstr = Set("-w", "--witness")
+        val sstr = Set("-s", "--states")
+        val ops = estr union wstr union sstr
+
+        val explore = args.exists(estr)
+        val witness = args.exists(wstr union sstr)
+        val states = args.exists(sstr)
+
+        val noOps = args.filter(x => !(ops(x)))
+
+        if (noOps.length != 1) {
+            printUseage()
+        }
+        val file = noOps(0)
+
+        val f = new File(file)
+        require(f.exists() && f.canRead(), "Couldn't read file: " + args(0))
+        val rdr = new BufferedReader(new FileReader(f))
+        if (explore) {
+            val pres = parseDPN(rdr)
+            if (pres.successful) {
+                val dpn = pres.get._1
+                MonitorDPNView.show(dpn, true)
+            } else {
+                println("Parsing error!")
+                println(pres)
+                System.exit(-1)
+            }
+
+        } else {
+            val pres = parseTSRTask(rdr)
+            if (pres.successful) {
+                if (!witness) {
+                    val result = pres.get.run
+                    println(result)
+                    if (result) {
+                        System.err.println("A conflict could exist.")
+                        System.exit(0)
+                    } else {
+                        System.err.println("No conflict can exist.")
+                        System.exit(0)
+                    }
+                } else {
+                    val result = pres.get.runWitness
+                    if (result.isDefined) {
+                        println("witness")
+                        println(if(states) result.get.printTreeStates else result.get.printTree)
+                        System.err.println("A conflict could exist.")
+                        System.exit(0)
+                    } else {
+                        println("no witness")
+                        System.err.println("No conflict can exist.")
+                        System.exit(0)
+                    }
+                }
+            } else {
+                println("Parsing error!")
+                println(pres)
+                System.exit(-1)
+            }
+        }
+    }
 }
 
 case class Naming(cname: Map[String, Control], sname: Map[String, Stack], aname: Map[String, BaseAction], lname: Map[String, Lock]) {
@@ -316,5 +340,5 @@ case class BaseAction(term: String, name: String) extends Action
 case class Lock(term: String, name: String) extends NamedTerm
 case class LockAction(action: BaseAction, lock: Lock) extends Action {
     val term = action.term
-    val name = action.name 
+    val name = action.name
 }

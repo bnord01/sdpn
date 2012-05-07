@@ -4,6 +4,7 @@ package de.wwu.sdpn.core.ta.xsb.witness.iterable
 sealed trait WitnessTree extends Product{
   def state: State
   def printTree:String = WitnessTree.printTree(this)
+  def printTreeStates:String = WitnessTree.printTreeStates(this)
 }
 
 object WitnessTree{
@@ -22,17 +23,31 @@ object WitnessTree{
     }
     
     
-    def printTree(tree:WitnessTree,prefix:String = "") :String= {
+    def printTreeStates(tree:WitnessTree,prefix:String = "") :String= {
         tree match {
-            case CutTree(a,s,c) => prefix + "Cut(" + a + ") -- " + s + "\n" + printTree(c,prefix + " ")
-            case BaseTree(a,s,c) => prefix + "Base(" + a + ") -- " + s + "\n" + printTree(c,prefix + " ")
-            case Call1Tree(a,s,c) => prefix + "Call1(" + a + ") -- " + s + "\n" + printTree(c,prefix + " ")
-            case AcqTree(a,s,c) => prefix + "Acq(" + a + ") -- " + s + "\n" + printTree(c,prefix + " ")
-            case Call2Tree(a,s,c1,c2) => prefix + "Call2(" + a + ") -- " + s + "\n" + printTree(c1,prefix + " ") + "\n" + printTree(c2,prefix + " ")
-            case UseTree(a,s,c1,c2) => prefix + "Use(" + a + ") -- " + s + "\n" + printTree(c1,prefix + " ") + "\n" + printTree(c2,prefix + " ")
-            case SpawnTree(a,s,c1,c2) => prefix + "Spawn(" + a + ") -- " + s + "\n" + printTree(c1,prefix + " ") + "\n" + printTree(c2,prefix + " ")
+            case CutTree(a,s,c) => prefix + "Cut(" + a + ") -- " + s + "\n" + printTreeStates(c,prefix + " ")
+            case BaseTree(a,s,c) => prefix + "Base(" + a + ") -- " + s + "\n" + printTreeStates(c,prefix + " ")
+            case Call1Tree(a,s,c) => prefix + "Call1(" + a + ") -- " + s + "\n" + printTreeStates(c,prefix + " ")
+            case AcqTree(a,s,c) => prefix + "Acq(" + a + ") -- " + s + "\n" + printTreeStates(c,prefix + " ")
+            case Call2Tree(a,s,c1,c2) => prefix + "Call2(" + a + ") -- " + s + "\n" + printTreeStates(c1,prefix + " ") + "\n" + printTreeStates(c2,prefix + " ")
+            case UseTree(a,s,c1,c2) => prefix + "Use(" + a + ") -- " + s + "\n" + printTreeStates(c1,prefix + " ") + "\n" + printTreeStates(c2,prefix + " ")
+            case SpawnTree(a,s,c1,c2) => prefix + "Spawn(" + a + ") -- " + s + "\n" + printTreeStates(c1,prefix + " ") + "\n" + printTreeStates(c2,prefix + " ")
             case NilTree(a,s) => prefix + "Nil(" + a + ") -- " + s
             case RetTree(a,s) => prefix + "Ret(" + a + ") -- " + s
+        }
+    }
+    
+    def printTree(tree:WitnessTree,prefix:String = "") :String= {
+        tree match {
+            case CutTree(a,s,c) => prefix + "Cut(" + a + ")\n" + printTree(c,prefix + " ")
+            case BaseTree(a,s,c) => prefix + "Base(" + a + ")\n" + printTree(c,prefix + " ")
+            case Call1Tree(a,s,c) => prefix + "Call1(" + a + ")\n" + printTree(c,prefix + " ")
+            case AcqTree(a,s,c) => prefix + "Acq(" + a + ")\n" + printTree(c,prefix + " ")
+            case Call2Tree(a,s,c1,c2) => prefix + "Call2(" + a + ")\n" + printTree(c1,prefix + " ") + "\n" + printTree(c2,prefix + " ")
+            case UseTree(a,s,c1,c2) => prefix + "Use(" + a + ")\n" + printTree(c1,prefix + " ") + "\n" + printTree(c2,prefix + " ")
+            case SpawnTree(a,s,c1,c2) => prefix + "Spawn(" + a + ")\n" + printTree(c1,prefix + " ") + "\n" + printTree(c2,prefix + " ")
+            case NilTree(a,s) => prefix + "Nil(" + a + ")"
+            case RetTree(a,s) => prefix + "Ret(" + a + ")"
         }
     }
 }
