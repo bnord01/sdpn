@@ -138,7 +138,7 @@ object DPNParser extends JavaTokenParsers {
     // format: OFF
     protected override val whiteSpace = """(\s|//.*|(?m)/\*(\*(?!/)|[^*])*\*/)+""".r
     
-    def atom: Parser[String] = "0" | "[1-9][0-9]*".r | "[a-z][a-zA-Z0-9_]*".r
+    def atom: Parser[String] = "0" | "-?[1-9][0-9]*".r | "[a-z][a-zA-Z0-9_]*".r
     def term: Parser[String] = (atom ~ opt(tuple) ^^ {case a~None => a; case a~Some(t) => a + t}) | tuple
     def tuple: Parser[String] = "("~>repsep(term,",")<~")"^^{case ls => ls.mkString("(",",",")")}
     def name: Parser[String] = stringLiteral ^^(x => x.substring(1,x.length - 1))

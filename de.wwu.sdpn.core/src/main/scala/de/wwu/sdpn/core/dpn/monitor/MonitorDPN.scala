@@ -33,6 +33,7 @@ trait MonitorDPN[CSymbol, SSymbol, Action,Lock] {
     def usedLock(rule:DPNRule[CSymbol,SSymbol,Action]) : Option[Lock]
     
 
+    def getLocks : Set[Lock] = locks
     def getActions: Set[Action] = actions
     def getControlSymbols: Set[CSymbol] = controlSymbols
     def getStackSymbols: Set[SSymbol] = stackSymbols

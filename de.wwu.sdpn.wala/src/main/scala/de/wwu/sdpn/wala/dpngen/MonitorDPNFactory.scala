@@ -46,6 +46,12 @@ import de.wwu.sdpn.wala.dpngen.symbols.MExitState
  */
 class MonitorDPNFactory(analysis: PreAnalysis) {
   import analysis._
+  private var modelMultipleLocks = true
+  
+  def this(analysis:PreAnalysis,mml:Boolean) {
+      this(analysis)
+      modelMultipleLocks = mml
+  }
 
   //private val dpn = new DPN[GlobalState, StackSymbol, DPNAction](
   //   NState, StackSymbol(entryNode, 0, 0))
@@ -254,8 +260,9 @@ class MonitorDPNFactory(analysis: PreAnalysis) {
                   SSAAction(a),
                   NState, StackSymbol(target, 0, 0), StackSymbol(cgnode, bbnr2, index2))
             }
+            val doLocks = modelMultipleLocks || iks.size == 1
             for (ik <- iks) {
-              if (safeLock(ik, cgnode)) {
+              if (safeLock(ik, cgnode) && doLocks) {
                 addPushRule(
                   NState, StackSymbol(cgnode, bbnr1, index1),
                   SyncMethodEnter(a, ik),
@@ -295,23 +302,25 @@ class MonitorDPNFactory(analysis: PreAnalysis) {
            */
           val fakeIndex = -1
           val exits = MonitorMatcher.getExits(cfg,bbnr1).zipWithIndex
+          
           for(((exitBlock,idxBeforeMonitorExit),num) <- exits) {
               addPopRule(
             		  NState, StackSymbol(cgnode, exitBlock.getGraphNodeId(), idxBeforeMonitorExit),
-            		  MonitorExit(a,StackSymbol(cgnode,bbnr1,index2)),
+            		  MonitorExit(a,StackSymbol(cgnode,bbnr1,index1)),
             		  MExitState(num)) 
               addBaseRule(
             		  MExitState(num), StackSymbol(cgnode, bbnr1, fakeIndex),
             		  NoAction,
             		  NState,
             		  StackSymbol(cgnode, exitBlock.getGraphNodeId, idxBeforeMonitorExit + 1))
-          }          
-
+          }
+          
+          val doLocks = modelMultipleLocks || iks.size == 1
           for (target <- iks) {
             //we use (CGNode,bbnr1,fakeIndex) as a fake return point for the fake method call
             //for the monitor             
 
-            if (safeLock(target, cgnode)) {
+            if (safeLock(target, cgnode) && doLocks) {
               addPushRule(
                 NState, StackSymbol(cgnode, bbnr1, index1),
                 MonitorEnter(a, target),

@@ -216,7 +216,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
             override def initialSet = ss0
             override def safeLock(ik: InstanceKey, node: CGNode) = possibleLocks(ik) && lockFilter(ik) && !waitMap(node)(ik)
         }
-        val dpnFac = new MonitorDPNFactory(prea)
+        val dpnFac = new MonitorDPNFactory(prea,false)
         return dpnFac.getDPN
     }
 
@@ -241,7 +241,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
     @throws(classOf[IllegalArgumentException])
     @throws(classOf[RuntimeException])
     @throws(classOf[CancelException])
-    def mayHappenSuccessively(writePos: StackSymbol, readPos: StackSymbol, pm: IProgressMonitor = null): Boolean = {
+    def mayHappenSuccessively(writePos: StackSymbol, readPos: StackSymbol, pm: IProgressMonitor = null, timeout:Long = 0): Boolean = {
         beginTask(pm, "Running DPN-based interference check", 3)
         try {
             val pm1 = new SubProgressMonitor(pm, 1)
@@ -249,7 +249,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
             val icheck = new IntersectionEmptinessCheck(td, bu) { override val name = "ifccheck" }
             val pm2 = new SubProgressMonitor(pm, 2)
 
-            return !XSBInterRunner.runCheck(icheck, new WPMWrapper(pm2))
+            return !XSBInterRunner.runCheck(icheck, new WPMWrapper(pm2),timeout)
         } finally {
             done(pm)
         }
@@ -277,7 +277,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
     @throws(classOf[IllegalArgumentException])
     @throws(classOf[RuntimeException])
     @throws(classOf[CancelException])
-    def mayHappenInParallel(posOne: StackSymbol, posTwo: StackSymbol, pm: IProgressMonitor = null): Boolean = {
+    def mayHappenInParallel(posOne: StackSymbol, posTwo: StackSymbol, pm: IProgressMonitor = null,timeout:Long=0): Boolean = {
         beginTask(pm, "Running DPN-based MHP check", 5)
         try {
             subTask(pm, "Generating MonitorDPN")
@@ -291,7 +291,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
             worked(pm, 1)
             val pm2 = new SubProgressMonitor(pm, 3)
 
-            return !XSBInterRunner.runCheck(icheck, new WPMWrapper(pm2))
+            return !XSBInterRunner.runCheck(icheck, new WPMWrapper(pm2),timeout)
         } finally {
             done(pm)
         }
@@ -379,7 +379,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
 
     }
 
-    def mayFlowFromTo(writeNode: CGNode, writeIdx: Int, readNode: CGNode, readIdx: Int, pm: IProgressMonitor = null): Boolean = {
+    def mayFlowFromTo(writeNode: CGNode, writeIdx: Int, readNode: CGNode, readIdx: Int, pm: IProgressMonitor = null,timeout:Long = 0): Boolean = {
         beginTask(pm, "Running DPN-based interference check", 5)
         try {
             subTask(pm, "Identifying fields")
@@ -405,16 +405,18 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
 
             val interObs = writeObs intersect readObs
 
-            if (interObs isEmpty)
-                //no shared instance keys means no flow possible!
-                return false;
+            //no shared instance keys means no flow possible, but we would wan't joana to check for this!
+            require(!(interObs isEmpty),"No shared instance keys for field found!")
+
 
             val uniqueInterObs = interObs filter(key => uniqueInstances(key) || isConstantKey(key))
             if ((interObs size) > 1 || (uniqueInterObs isEmpty)) {
-                System.err.println("Running weak check. %n interObs: %s %n uniqueInterObs: %s".format(interObs,uniqueInterObs))
+                System.err.println("No safe killings, running weak check. %n interObs: %s %n uniqueInterObs: %s".
+                        format(interObs.mkString("\n\t","\n\t",""),
+                                uniqueInterObs.mkString("\n\t","\n\t","\n")))
                 val pm1 = new SubProgressMonitor(pm, 4)
                 // There may be multiple instances which correspond to this interference we can't interpret any killing definitions
-                return mayHappenSuccessively(writePos, readPos, pm1)
+                return mayHappenSuccessively(writePos, readPos, pm1,timeout)
             }
 
             assert(uniqueInterObs.size == 1, "I'm with stupid. I've written rubish above.")
@@ -448,7 +450,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
             val icheck = new IntersectionEmptinessCheck(td, bu) { override val name = "ifccheck" }
             val pm2 = new SubProgressMonitor(pm, 3)
 
-            return !XSBInterRunner.runCheck(icheck, new WPMWrapper(pm2))
+            return !XSBInterRunner.runCheck(icheck, new WPMWrapper(pm2),timeout)
         } finally {
             done(pm)
         }

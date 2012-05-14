@@ -68,6 +68,34 @@ object XSBInterRunner extends XSBRunner {
       done(pm)
     }
   }
+  
+  def runCheck(check: IntersectionEmptinessCheck, pm: IProgressMonitor, timeout:Long): Boolean = {
+    try {
+      beginTask(pm, "Running XSB-based emptiness check", 5)
+      val out = new PrintWriter(new BufferedWriter(new FileWriter(tempFile)));
+      out.println(check.emptiness)
+      out.close()
+      worked(pm, 1)
+      val loaded = XSB.consultAbsolute(tempFile)
+      assert(loaded,"Could not load the ")
+      worked(pm, 1)
+      if (isCanceled(pm))
+        throw new RuntimeException("Canceled!")
+      val future = listenOnCancel(timeout, pm, () => XSB.interrupt(), 500)
+      try {
+        val abolished = XSB.deterministicGoal("abolish_all_tables")
+        assert(abolished, "Could not abolish all tables. Expect wrong results!")
+        val rev = !XSB.deterministicGoal(check.name + "_notEmpty")
+        worked(pm, 3)
+        return rev
+      } finally {
+        delisten(future)
+      }
+    } finally {
+      done(pm)
+    }
+  }
+  
   override def runCheck(check: IntersectionEmptinessCheck): Boolean = runCheck(check,null)
   
   override def runFullWitnessCheck(check: FullWitnessIntersectionEmptinessCheck): Option[String] = runFullWitnessCheck(check,null)

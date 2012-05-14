@@ -78,6 +78,27 @@ object ProgressMonitorUtil {
             }, 10, delay, TimeUnit.MILLISECONDS))
     }
 
+    /**
+     * Checks every '''delay''' ms whether the given progress monitor has been canceled
+     * or the timeout has been exceeded and if so the call back '''cb''' is called.
+     * The thread can indicate that it want's to stop listening
+     * by parsing the returned option to the '''delisten''' method.
+     */
+    def listenOnCancel(timeout: Long, pm: IProgressMonitor, cb: () => _, delay: Int = 100): Option[ScheduledFuture[_]] = {
+        val kill = if (timeout > 0) System.currentTimeMillis + timeout else Long.MaxValue
+        Some(scheduler.scheduleWithFixedDelay(new Runnable {
+            def run() {
+                if ((pm != null && pm.isCanceled()) || kill <= System.currentTimeMillis) {
+                    try {
+                        cb()
+                    } finally {
+                        throw new Exception("Unschedule the ugly way.")
+                    }
+                }
+            }
+        }, 10, delay, TimeUnit.MILLISECONDS))
+    }
+
     def delisten(future: Option[ScheduledFuture[_]]) {
         future.foreach(_.cancel(false))
     }
@@ -91,7 +112,7 @@ object ProgressMonitorUtil {
             }
         }
         val res = Executors.newSingleThreadScheduledExecutor(tf)
-        ShutdownHookThread({res.shutdown()})
+        ShutdownHookThread({ res.shutdown() })
         res
     }
 
