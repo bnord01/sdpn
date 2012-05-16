@@ -9,8 +9,9 @@ import de.wwu.sdpn.core.ta.xsb.HasTermRepresentation
  * 
  * @author Benedikt Nordhoff
  */
-class NoBadActionTA[T<%HasTermRepresentation](cutNumber:Int,actions: Set[T],override val name:String) extends IterableTreeAutomata {
+class ActionNotAfterCutTA[T<%HasTermRepresentation](cutNumber:Int,actions: Set[T],override val name:String) extends IterableTreeAutomata {
 	val isForwardRule: Set[String] = Set[String]()
+	require(!actions.isEmpty,"Empty set of actions for " + name)
     
     def genScript(): String = { 
         val buf = new StringBuilder()
@@ -22,11 +23,11 @@ class NoBadActionTA[T<%HasTermRepresentation](cutNumber:Int,actions: Set[T],over
                 
                 %%% Bad actions that shouldn't happen after the cut! %%%
                 """.replace("cutNumber",cutNumber.toString))
-        for(a <- actions) {
+        for(a <- actions.map(_.toTerm)) {
             out(name)
             out("_badAction(")
-            out(a.toTerm)
-            out(")\n")
+            out(a)
+            out(").\n")
         }
 
         out("""
@@ -42,8 +43,8 @@ name_nil(_,n).
 
 name_base(A,n,a) :- name_badAction(A).
 name_base(A,n,n) :- not(name_badAction(A)).                
-name_base(A,a,a).
-name_base(A,c,c).                
+name_base(_,a,a).
+name_base(_,c,c).                
 name_call1(_,X,X).
 name_acq(_,X,X).
 

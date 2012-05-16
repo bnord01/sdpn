@@ -51,7 +51,7 @@ class LibRelTA(cutNumber: Int, val name: String, val lo: LockOperations) extends
             
         %%%("Not reentrant use with the cut in the returning branch")
 
-        USE(la(X, bot), r(bot, Uc, Gc), r(bot, Ur, Gr), r(bot, U, G)) :- (
+        USE(la(X, bot), r(top, Uc, Gc), r(bot, Ur, Gr), r(bot, U, G)) :- (
             isUnion(Uc, Ur, U),
             isGraphXUUnion2(X,Uc,Gc, Gr, G))!
             

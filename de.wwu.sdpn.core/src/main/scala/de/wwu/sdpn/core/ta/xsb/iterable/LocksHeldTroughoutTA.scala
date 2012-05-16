@@ -14,7 +14,7 @@ class LocksHeldTroughoutTA(cutNumber: Int, val name: String, val lo: LockOperati
 
         def h(c: TBVar, a: LSVar, u: LSVar) = "h(" + c + ", " + a + ", " + u + ")"
 
-        def la(x: LVar, c: TBVar) = "ra(la(" + x + ", " + c + "))"
+        def la(x: LVar, c: TBVar) = "ra(_,la(" + x + ", " + c + "))"
 
         def cutN(i: Int) = "cpt(" + i + ", _)"
 

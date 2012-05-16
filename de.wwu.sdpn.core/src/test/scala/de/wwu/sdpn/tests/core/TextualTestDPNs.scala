@@ -134,6 +134,42 @@ object TextualTestDPNs {
 }
 	    """
         
+    def dpn8 = """dpn{
+	initial(a0) 
+
+	rules {
+        (a0) --0--> (a1)
+		(a1) --1-l--> (b1,a2)
+  		(a2) --2--> (a3)
+  		(a3) --4--> (a3)
+        
+        (b1) --4--> (b2)
+        (b2) --r--> ()
+  	}
+}
+	    """
+        
+     def dpn9 = """dpn{
+	initial(a0) 
+
+	rules {
+        (a0) --spawn--> (a1:>c1)
+		(a1) --use_l_b-l--> (b1,a2)
+  		(a2) --after_use_b_l--> (a3)
+  		(a3) --loop_a--> (a3)
+        
+        (b1) --base_b--> (b2)
+        (b2) --retb--> ()
+         
+        (c1) --use_l_d-l-->(d1,c2)
+        (c2) --loop_c--> (c2)
+         
+        (d1) --base_d--> (d2)
+        (d2) --retd--> ()
+  	}
+}
+	    """
+        
     def dpn = Map(
         1 -> dpn1,
         2 -> dpn2,
@@ -141,5 +177,7 @@ object TextualTestDPNs {
         4 -> dpn4,
         5 -> dpn5,
         6 -> dpn6,
-        7 -> dpn7)
+        7 -> dpn7,
+        8 -> dpn8,
+        9 -> dpn9)
 }

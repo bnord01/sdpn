@@ -5,9 +5,26 @@ sealed trait WitnessTree extends Product{
   def state: State
   def printTree:String = WitnessTree.printTree(this)
   def printTreeStates:String = WitnessTree.printTreeStates(this)
+  def equalModStates(other:WitnessTree) = WitnessTree.equalModStates(this, other)
 }
 
 object WitnessTree{
+    
+    def equalModStates(t1:WitnessTree, t2:WitnessTree) : Boolean = {
+        (t1,t2) match {
+           	case (CutTree(a1,_,c1),CutTree(a2,_,c2)) => a1 == a2 && equalModStates(c1, c2)
+           	case (BaseTree(a1,_,c1),BaseTree(a2,_,c2)) => a1 == a2 && equalModStates(c1, c2)
+           	case (Call1Tree(a1,_,c1),Call1Tree(a2,_,c2)) => a1 == a2 && equalModStates(c1, c2)
+           	case (AcqTree(a1,_,c1),AcqTree(a2,_,c2)) => a1 == a2 && equalModStates(c1, c2)
+           	case (Call2Tree(a1,_,c11,c12),Call2Tree(a2,_,c21,c22)) => a1 == a2 && equalModStates(c11, c21) && equalModStates(c12, c22)
+           	case (UseTree(a1,_,c11,c12),UseTree(a2,_,c21,c22)) => a1 == a2 && equalModStates(c11, c21) && equalModStates(c12, c22)
+           	case (SpawnTree(a1,_,c11,c12),SpawnTree(a2,_,c21,c22)) => a1 == a2 && equalModStates(c11, c21) && equalModStates(c12, c22)
+           	case (NilTree(a1,_),NilTree(a2,_)) => a1 == a2
+           	case (RetTree(a1,_),RetTree(a2,_)) => a1 == a2
+           	case (_,_) => false
+        }
+    }
+    
     def pruneBase(tree:WitnessTree) :WitnessTree = {
         tree match {
             case CutTree(a,s,c) => CutTree(a,s,pruneBase(c))
