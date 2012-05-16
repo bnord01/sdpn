@@ -49,7 +49,7 @@ import java.io.FileReader
  * In all lists commas are optional.
  *
  * {{{
- * atom           ::= "0" | [1-9][0-9]* | [a-z][a-zA-Z0-9_]*
+ * atom           ::= "0" | -?[1-9][0-9]* | [a-z][a-zA-Z0-9_]*
  * term           ::= (atom [tuple]) | tuple
  * tuple          ::= "(" [term {"," term}] ")"
  * name           ::= STRINGLITERAL "..."
@@ -248,27 +248,36 @@ object DPNParser extends JavaTokenParsers {
      */
     def main(args: Array[String]): Unit = {
         def printUseage() {
-            println("""usage: command [-ews] <file> [-ews]
+            println("""usage: command [-ewsh] <file> [-ewsh]
                     
     where <file> is a file containing a well formed TSRTask 
     -e or --explore indicates that the dpn should be simulated (explored) 
     -w or --witness indicates that a witness should be printed if the dpn isn't simulated
-    -s or --states  indicates that a witness annotated with the states of the used tree automata should be printed""")
+    -s or --states  indicates that a witness annotated with the states of the used tree automata should be printed
+    -h or --help    indicates that this help should be printed. Nothig else is done.""")
         }
 
         val estr = Set("-e", "--explore")
         val wstr = Set("-w", "--witness")
         val sstr = Set("-s", "--states")
-        val ops = estr union wstr union sstr
+        val hstr = Set("-h", "--help")
+        val ops = estr union wstr union sstr union hstr
 
         val explore = args.exists(estr)
         val witness = args.exists(wstr union sstr)
         val states = args.exists(sstr)
-
+        val help = args.exists(hstr)
+        
+        if(help) {
+            printUseage()
+            System.exit(0)
+        }
+        
         val noOps = args.filter(x => !(ops(x)))
-
+        
         if (noOps.length != 1) {
             printUseage()
+            System.exit(0)
         }
         val file = noOps(0)
 
