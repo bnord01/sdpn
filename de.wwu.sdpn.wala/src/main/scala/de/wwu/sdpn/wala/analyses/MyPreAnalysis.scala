@@ -5,8 +5,6 @@ import com.ibm.wala.classLoader.IMethod
 import de.wwu.sdpn.wala.util.ThreadSensContextSelector
 import com.ibm.wala.ipa.callgraph.propagation.SSAPropagationCallGraphBuilder
 import com.ibm.wala.ipa.callgraph.impl.Util
-
-import com.ibm.wala.util.io.FileProvider
 import com.ibm.wala.util.config.AnalysisScopeReader
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import com.ibm.wala.ipa.callgraph.CallGraph
@@ -21,16 +19,17 @@ import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 import de.wwu.sdpn.wala.util.PreAnalysis
 import de.wwu.sdpn.wala.util.BackwardSliceFilter
 import scala.collection.Set
+import java.io.File
 
 /**
  * A helper which holds defaults for the Wala specific settings and is easily extendable
  */
 case class MyPreAnalysis(
-    cha: IClassHierarchy,
-    cg: CallGraph,
-    pa: PointerAnalysis,
-    ii: CGNode => Boolean = _ => true,
-    sl: (InstanceKey, CGNode) => Boolean = (_, _) => false) extends PreAnalysis {
+        cha: IClassHierarchy,
+        cg: CallGraph,
+        pa: PointerAnalysis,
+        ii: CGNode => Boolean = _ => true,
+        sl: (InstanceKey, CGNode) => Boolean = (_, _) => false) extends PreAnalysis {
     def isThreadStart(cgnode: CGNode): Boolean = {
         cgnode != null &&
             cgnode.getMethod != null &&
@@ -40,18 +39,18 @@ case class MyPreAnalysis(
     def this(a: PreAnalysis) = {
         this(a.cha, a.cg, a.pa, a.isInteresting, a.safeLock)
     }
-    def this(cg:CallGraph,pa:PointerAnalysis) = this(cg.getClassHierarchy,cg,pa)
+    def this(cg: CallGraph, pa: PointerAnalysis) = this(cg.getClassHierarchy, cg, pa)
 
     def entryNode = cg.getFakeRootNode
     def isInteresting(node: CGNode) = ii(node)
     def safeLock(ik: InstanceKey, node: CGNode) = sl(ik, node)
 
-    def +(isl: (InstanceKey, CGNode) => Boolean):MyPreAnalysis = {
+    def +(isl: (InstanceKey, CGNode) => Boolean): MyPreAnalysis = {
         new MyPreAnalysis(this) {
             override def safeLock(ik: InstanceKey, node: CGNode) = isl(ik, node)
         }
     }
-    def +(sliceSet: Set[CGNode]):MyPreAnalysis = {
+    def +(sliceSet: Set[CGNode]): MyPreAnalysis = {
         new MyPreAnalysis(this) with BackwardSliceFilter {
             override val initialSet = sliceSet
         }
@@ -88,8 +87,7 @@ object MyPreAnalysis {
     def getStd(cp: String, mc: String): PreAnalysis = {
 
         val scope = AnalysisScopeReader.makeJavaBinaryAnalysisScope(
-            cp,
-            (new FileProvider()).getFile("Java60RegressionExclusions.txt"))
+            cp,getDefaultExclusionsFile)
 
         val cha = ClassHierarchy.make(scope);
 
@@ -111,6 +109,26 @@ object MyPreAnalysis {
 
         return MyPreAnalysis(cha, cg, pa, isInteresting, safeLock)
 
+    }
+
+    def getDefaultExclusionsFile: File = {
+        val f = File.createTempFile("WalaExclusions", "txt")
+        import java.io._
+        val fo = new PrintStream(new BufferedOutputStream(new FileOutputStream(f)))
+        try {
+            fo.print("""java\/awt\/.*
+javax\/swing\/.*
+sun\/awt\/.*
+sun\/swing\/.*
+com\/sun\/.*
+sun\/.*
+org\/netbeans\/.*
+org\/openide\/.*
+""")
+        } finally {
+            fo.close
+        }
+        return f
     }
 
 }

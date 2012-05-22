@@ -17,6 +17,7 @@ import de.wwu.sdpn.eclipse.DataraceResultViewPart
 import de.wwu.sdpn.wala.analyses.datarace.DataraceAnalysis
 import de.wwu.sdpn.wala.analyses.SimpleAnalyses
 import de.wwu.sdpn.eclipse.util.WalaEclipseUtil
+import de.wwu.sdpn.core.util.EPMWrapper
 
 object DataraceLauncher {
 
@@ -72,7 +73,7 @@ object DataraceLauncher {
             check(pm)
             pm subTask "Running DPN-based analyses for individual instances."
 
-            val result = rda.fullDetailedAnalysis(pm = new SubProgressMonitor(pm, 5))
+            val result = rda.fullDetailedAnalysis(pm = new EPMWrapper(new SubProgressMonitor(pm, 5)))
 
             println("Data race possible: " + result.value)
 

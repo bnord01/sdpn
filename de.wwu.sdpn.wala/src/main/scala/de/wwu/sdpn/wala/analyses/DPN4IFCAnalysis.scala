@@ -9,11 +9,6 @@ import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import com.ibm.wala.ipa.callgraph.CGNode
 import com.ibm.wala.ipa.callgraph.CallGraph
 import com.ibm.wala.types.ClassLoaderReference
-import com.ibm.wala.util.MonitorUtil.IProgressMonitor
-import com.ibm.wala.util.MonitorUtil.beginTask
-import com.ibm.wala.util.MonitorUtil.done
-import com.ibm.wala.util.MonitorUtil.subTask
-import com.ibm.wala.util.MonitorUtil.worked
 import com.ibm.wala.util.CancelException
 import de.wwu.sdpn.core.analyses.TwoSetReachability
 import de.wwu.sdpn.core.dpn.monitor.MonitorDPN
@@ -29,14 +24,12 @@ import de.wwu.sdpn.core.ta.xsb.IntersectionEmptinessCheck
 import de.wwu.sdpn.core.ta.xsb.IntersectionTA
 import de.wwu.sdpn.core.ta.xsb.ScriptTreeAutomata
 import de.wwu.sdpn.core.ta.xsb.XSBInterRunner
-import de.wwu.sdpn.core.util.WPMWrapper
 import de.wwu.sdpn.wala.dpngen.symbols.DPNAction
 import de.wwu.sdpn.wala.dpngen.symbols.GlobalState
 import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
 import de.wwu.sdpn.wala.dpngen.MonitorDPNFactory
 import de.wwu.sdpn.wala.util.BackwardSliceFilter
 import de.wwu.sdpn.wala.util.LockWithOriginLocator
-import de.wwu.sdpn.wala.util.SubProgressMonitor
 import de.wwu.sdpn.wala.util.UniqueInstanceLocator
 import de.wwu.sdpn.wala.util.WaitMap
 import com.ibm.wala.ssa.SSAPutInstruction
@@ -46,6 +39,9 @@ import de.wwu.sdpn.core.ta.xsb.cuts.DPNAnnotater
 import de.wwu.sdpn.core.dpn.monitor._
 import de.wwu.sdpn.wala.dpngen.symbols.SSAAction
 import de.wwu.sdpn.core.ta.xsb.cuts.IFlowNoOverwrite
+import de.wwu.sdpn.core.util.IProgressMonitor
+import de.wwu.sdpn.core.util.SubProgressMonitor
+import de.wwu.sdpn.core.util.ProgressMonitorUtil._
 
 /**
  * Interface class to use for integration of sDPN with Joana.
@@ -249,7 +245,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
             val icheck = new IntersectionEmptinessCheck(td, bu) { override val name = "ifccheck" }
             val pm2 = new SubProgressMonitor(pm, 2)
 
-            return !XSBInterRunner.runCheck(icheck, new WPMWrapper(pm2),timeout)
+            return !XSBInterRunner.runCheck(icheck, pm2,timeout)
         } finally {
             done(pm)
         }
@@ -291,7 +287,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
             worked(pm, 1)
             val pm2 = new SubProgressMonitor(pm, 3)
 
-            return !XSBInterRunner.runCheck(icheck, new WPMWrapper(pm2),timeout)
+            return !XSBInterRunner.runCheck(icheck, pm2,timeout)
         } finally {
             done(pm)
         }
@@ -450,7 +446,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
             val icheck = new IntersectionEmptinessCheck(td, bu) { override val name = "ifccheck" }
             val pm2 = new SubProgressMonitor(pm, 3)
 
-            return !XSBInterRunner.runCheck(icheck, new WPMWrapper(pm2),timeout)
+            return !XSBInterRunner.runCheck(icheck, pm2,timeout)
         } finally {
             done(pm)
         }

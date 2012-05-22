@@ -18,6 +18,7 @@ import de.wwu.sdpn.core.ta.xsb.XSBInterRunner
 import org.junit.runners.Parameterized.Parameters
 import org.junit.runners.Parameterized
 import org.junit.runner.RunWith
+import de.wwu.sdpn.core.util.PrintProgressMonitor 
 
 object SimpleAnalysesTest {
 
@@ -178,8 +179,7 @@ class SimpleAnalysesTest(useIPL: Boolean) {
     //@Test // This is a bad test because it's not race free
     def testUnslicedLockInsensSSR1Cancel() {
         val (cg, pa, mr) = stuff(1)
-        val epm = new PrintingPM()
-        val pm = new EPMWrapper(epm)
+        val pm = new PrintProgressMonitor
         new Thread() {
             override def run() {
                 Thread.sleep(40)

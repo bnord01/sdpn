@@ -1,9 +1,6 @@
 package de.wwu.sdpn.wala.analyses
-import com.ibm.wala.util.io.FileProvider
 import java.io.BufferedInputStream
-import java.io.FileInputStream
 import java.util.Properties
-import java.io.File
 
 /**
  * Properties used for various analyses 
@@ -36,8 +33,8 @@ object SDPNTestProps{
      * Read the default properties from the {{sdpn.test.properties}} file found on the class path
      */
     lazy val get: SDPNTestProps = {
-        val f = (new FileProvider()).getFile("sdpn.test.properties")
-        val fin = new BufferedInputStream(new FileInputStream(f))
+        val f = this.getClass.getClassLoader.getResourceAsStream("sdpn.test.properties")
+        val fin = new BufferedInputStream(f)
         val p = new Properties()
         p.load(fin)       
         

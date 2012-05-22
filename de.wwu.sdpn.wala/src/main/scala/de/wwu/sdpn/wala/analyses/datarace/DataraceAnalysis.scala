@@ -16,8 +16,8 @@ import de.wwu.sdpn.wala.analyses.SimpleAnalyses
 import de.wwu.sdpn.wala.analyses.SimpleTSRResult
 import de.wwu.sdpn.core.result._
 import com.ibm.wala.ipa.callgraph.CGNode
-import org.eclipse.core.runtime.IProgressMonitor
-import org.eclipse.core.runtime.NullProgressMonitor
+import de.wwu.sdpn.core.util.IProgressMonitor
+import de.wwu.sdpn.core.util.NullProgressMonitor
 
 object DataraceAnalysis {
     class DRBaseResult(ik:InstanceKey,nodes: Set[(CGNode, SSAFieldAccessInstruction)]) 

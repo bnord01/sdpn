@@ -13,7 +13,6 @@ import com.ibm.wala.ipa.callgraph.CallGraph
 import com.ibm.wala.ipa.cha.ClassHierarchy
 import com.ibm.wala.types.ClassLoaderReference
 import com.ibm.wala.util.config.AnalysisScopeReader
-import com.ibm.wala.util.io.FileProvider
 import de.wwu.sdpn.core.analyses.SingleSetReachability
 import de.wwu.sdpn.core.analyses.TwoSetReachability
 import de.wwu.sdpn.core.dpn.monitor.MonitorDPN
@@ -35,6 +34,7 @@ import de.wwu.sdpn.core.ta.xsb.witness.WitnessTree
 import de.wwu.sdpn.core.ta.xsb.witness.FullWitnessParser
 import de.wwu.sdpn.core.ta.xsb.XSBRunner
 import de.wwu.sdpn.core.ta.xsb.XSBCommandRunner
+import java.io.File
 
 object SimpleAnalyses {
     import ProgressMonitorUtil._
@@ -347,8 +347,7 @@ object SimpleAnalyses {
     def getCGandPAfromCP(cp: String, mc: String): (CallGraph, PointerAnalysis) = {
 
         val scope = AnalysisScopeReader.makeJavaBinaryAnalysisScope(
-            cp,
-            (new FileProvider()).getFile("Java60RegressionExclusions.txt"))
+            cp,getDefaultExclusionsFile)
 
         val cha = ClassHierarchy.make(scope);
 
@@ -513,6 +512,26 @@ object SimpleAnalyses {
     private def shutdown() {
         if(useIPL)
         	XSBInterRunner.shutdown()
+    }
+    
+    def getDefaultExclusionsFile: File = {
+        val f = File.createTempFile("WalaExclusions", "txt")
+        import java.io._
+        val fo = new PrintStream(new BufferedOutputStream(new FileOutputStream(f)))
+        try {
+            fo.print("""java\/awt\/.*
+javax\/swing\/.*
+sun\/awt\/.*
+sun\/swing\/.*
+com\/sun\/.*
+sun\/.*
+org\/netbeans\/.*
+org\/openide\/.*
+""")
+        } finally {
+            fo.close
+        }
+        return f
     }
 
 }

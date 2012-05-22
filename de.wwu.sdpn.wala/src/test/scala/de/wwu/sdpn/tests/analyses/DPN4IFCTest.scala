@@ -10,7 +10,6 @@ import com.ibm.wala.ipa.callgraph.CallGraph
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import com.ibm.wala.types.MethodReference
 import com.ibm.wala.ipa.cha.IClassHierarchy
-import com.ibm.wala.ide.util.ProgressMonitorDelegate
 import de.wwu.sdpn.wala.analyses.SimpleAnalyses
 import de.wwu.sdpn.wala.analyses.SDPNTestProps
 import de.wwu.sdpn.wala.analyses.DPN4IFCAnalysis
@@ -18,6 +17,7 @@ import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
 import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
 import junit.framework.JUnit4TestAdapter
 import de.wwu.sdpn.core.ta.xsb.XSBInterRunner
+import de.wwu.sdpn.core.util.PrintProgressMonitor
 
 object DPN4IFCTest {
 
@@ -76,8 +76,8 @@ class DPN4IFCTest {
         assert(nodes.size == 1)
         node = nodes.head
         val readPos = StackSymbol(node, 5, 0)
-        dia.init(ProgressMonitorDelegate.createProgressMonitorDelegate((new PrintingPM())))
-        val res = dia.mayHappenSuccessively(writePos, readPos, ProgressMonitorDelegate.createProgressMonitorDelegate(new PrintingPM()))
+        dia.init(new PrintProgressMonitor)
+        val res = dia.mayHappenSuccessively(writePos, readPos, new PrintProgressMonitor)
         assertFalse("there should be no flow", res)
 
     }
@@ -97,8 +97,8 @@ class DPN4IFCTest {
         assert(nodes.size == 1)
         node = nodes.head
         val readPos = StackSymbol(node, 9, 0)
-        dia.init(ProgressMonitorDelegate.createProgressMonitorDelegate((new PrintingPM())))
-        val res = dia.mayHappenSuccessively(writePos, readPos, ProgressMonitorDelegate.createProgressMonitorDelegate(new PrintingPM()))
+        dia.init(new PrintProgressMonitor)
+        val res = dia.mayHappenSuccessively(writePos, readPos, new PrintProgressMonitor)
         assertTrue("there should be flow", res)
 
     }
@@ -120,9 +120,9 @@ class DPN4IFCTest {
         node = nodes.head
         println(node.getIR)
         val readPos = StackSymbol(node, 2, 0)
-        dia.init(ProgressMonitorDelegate.createProgressMonitorDelegate((new PrintingPM())))
+        dia.init(new PrintProgressMonitor)
         println(dia.getPossibleLocks)
-        val res = dia.mayHappenSuccessively(writePos, readPos, ProgressMonitorDelegate.createProgressMonitorDelegate(new PrintingPM()))
+        val res = dia.mayHappenSuccessively(writePos, readPos, new PrintProgressMonitor)
         assertFalse("there should be no flow", res)
 
     }
@@ -142,8 +142,8 @@ class DPN4IFCTest {
         assert(nodes.size == 1)
         node = nodes.head
         val readPos = StackSymbol(node, 5, 0)
-        dia.init(ProgressMonitorDelegate.createProgressMonitorDelegate((new PrintingPM())))
-        val res = dia.mayHappenInParallel(writePos, readPos, ProgressMonitorDelegate.createProgressMonitorDelegate(new PrintingPM()))
+        dia.init(new PrintProgressMonitor)
+        val res = dia.mayHappenInParallel(writePos, readPos, new PrintProgressMonitor)
         assertFalse("there should be no flow", res)
 
     }
@@ -163,8 +163,8 @@ class DPN4IFCTest {
         assert(nodes.size == 1)
         node = nodes.head
         val readPos = StackSymbol(node, 5, 0)
-        dia.init(ProgressMonitorDelegate.createProgressMonitorDelegate((new PrintingPM())))
-        val res = dia.mayHappenInParallel(beforeWritePos, readPos, ProgressMonitorDelegate.createProgressMonitorDelegate(new PrintingPM()))
+        dia.init(new PrintProgressMonitor)
+        val res = dia.mayHappenInParallel(beforeWritePos, readPos, new PrintProgressMonitor)
         assertTrue("there should be no flow", res)
 
     }
