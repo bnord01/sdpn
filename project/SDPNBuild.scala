@@ -11,6 +11,8 @@ object SDPNBuild extends Build {
                            base = file("de.wwu.sdpn.wala")) dependsOn(sdpnCore)
     lazy val sdpnPFG = Project(id = "pfg",
                            base = file("de.wwu.sdpn.pfg")) dependsOn(sdpnCore,sdpnWala)
+//    lazy val sdpnEclipse = Project(id = "eclipse",
+//                           base = file("de.wwu.sdpn.eclipse")) dependsOn(sdpnCore,sdpnWala)
     lazy val sdpnTestapps = Project(id = "testapps",
                            base = file("de.wwu.sdpn.testapps")) 
 }
