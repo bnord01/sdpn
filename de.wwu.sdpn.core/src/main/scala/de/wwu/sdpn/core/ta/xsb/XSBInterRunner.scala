@@ -36,11 +36,12 @@ object XSBInterRunner extends XSBRunner {
         }
         xsbProcess
     }
-    private def tempDir = new File(SDPNProps.get.tempDir)
-    private def tempFile = {
-        assert(tempDir isDirectory)
-        new File(tempDir.getAbsolutePath() + File.separator + "check.P")
-    }
+//    private def tempDir = new File(SDPNProps.get.tempDir)
+    private lazy val tempFile = File.createTempFile("check", ".P")
+//    private def tempFile = {
+//        assert(tempDir isDirectory)
+//        new File(tempDir.getAbsolutePath() + File.separator + "check.P")
+//    }
 
     override def runCheck(check: IntersectionEmptinessCheck, pm: IProgressMonitor): Boolean = {
         runCheck(check,pm,0)
