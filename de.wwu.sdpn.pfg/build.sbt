@@ -1,6 +1,6 @@
 name := "sdpn.pfg"
 
-version := "1.0"
+version := "1.0-SNAPSHOT"
 
 organization := "de.wwu"
 
@@ -20,9 +20,9 @@ publishTo := Some(Resolver.file("file",  new File(Path.userHome.absolutePath+"/.
 
 //libraryDependencies += "org.eclipse.core" % "runtime" % "[3.5.0,)"
 
-libraryDependencies += "de.wwu" %% "sdpn.core" % "1.0"
+libraryDependencies += "de.wwu" %% "sdpn.core" % "1.0-SNAPSHOT"
 
-libraryDependencies += "de.wwu" %% "sdpn.wala" % "1.0"
+libraryDependencies += "de.wwu" %% "sdpn.wala" % "1.0-SNAPSHOT"
 
 libraryDependencies += "com.novocode" % "junit-interface" % "0.8" % "test"
 

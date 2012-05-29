@@ -18,6 +18,12 @@ resolvers += "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/
 
 publishTo := Some(Resolver.file("file",  new File(Path.userHome.absolutePath+"/.m2/repository")))
 
+libraryDependencies += "de.wwu" %% "sdpn.core" % "1.0-SNAPSHOT"
+
+libraryDependencies += "de.wwu" %% "sdpn.wala" % "1.0-SNAPSHOT"
+
+// eclipse stuff
+
 libraryDependencies += "org.eclipse.core" % "runtime" % "[3.5.0,)"
 
 libraryDependencies += "org.eclipse" % "ui" % "[3.5.0,)"

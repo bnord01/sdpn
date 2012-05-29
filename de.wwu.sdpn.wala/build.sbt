@@ -1,6 +1,6 @@
 name := "sdpn.wala"
 
-version := "1.0"
+version := "1.0-SNAPSHOT"
 
 organization := "de.wwu"
 
@@ -19,5 +19,7 @@ resolvers += "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/
 publishTo := Some(Resolver.file("file",  new File(Path.userHome.absolutePath+"/.m2/repository")))
 
 //libraryDependencies += "org.eclipse.core" % "runtime" % "[3.5.0,)"
+
+libraryDependencies += "de.wwu" %% "sdpn.core" % "1.0-SNAPSHOT"
 
 libraryDependencies += "com.novocode" % "junit-interface" % "0.8" % "test"
