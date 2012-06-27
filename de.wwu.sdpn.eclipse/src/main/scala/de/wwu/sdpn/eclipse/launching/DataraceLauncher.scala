@@ -17,7 +17,7 @@ import de.wwu.sdpn.eclipse.DataraceResultViewPart
 import de.wwu.sdpn.wala.analyses.datarace.DataraceAnalysis
 import de.wwu.sdpn.wala.analyses.SimpleAnalyses
 import de.wwu.sdpn.eclipse.util.WalaEclipseUtil
-import de.wwu.sdpn.core.util.EPMWrapper
+import de.wwu.sdpn.eclipse.util.EPMWrapper
 
 object DataraceLauncher {
 
