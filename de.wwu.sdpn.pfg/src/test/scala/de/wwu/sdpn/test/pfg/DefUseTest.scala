@@ -52,7 +52,8 @@ class DefUseTest {
         type DUVar = PFGVar[Facts]
         
 //        val du = new DefUse(cg, pa,subSolver=new ParFixedpointSolver[DUVar])
-        val du = new DefUse(cg, pa)
+        val du = new DefUse(cg,pa,subSolver=new SCCFixedpointSolver[DUVar])
+//        val du = new DefUse(cg, pa)
         
         
         val startSolve = now
