@@ -26,7 +26,7 @@ public class DataraceResultComposite extends Composite {
 	private Menu menu;
 	private Tree tree;
 	private MenuItem mntmShowWitness;
-	private MenuItem mntmSimmulateDpn;	
+	private MenuItem mntmSimulateDpn;	
 	
 	private Listener menuListener;
 	private SelectionListener menuShowWitnessListener;
@@ -81,9 +81,9 @@ public class DataraceResultComposite extends Composite {
 		mntmShowWitness.setText("Show witness");
 		mntmShowWitness.setEnabled(false);
 
-		mntmSimmulateDpn = new MenuItem(menu, SWT.NONE);
-		mntmSimmulateDpn.setText("Simulate DPN");
-		mntmSimmulateDpn.setEnabled(false);
+		mntmSimulateDpn = new MenuItem(menu, SWT.NONE);
+		mntmSimulateDpn.setText("Simulate DPN");
+		mntmSimulateDpn.setEnabled(false);
 		sashForm.setWeights(new int[] { 1 });
 
 	}
@@ -98,14 +98,14 @@ public class DataraceResultComposite extends Composite {
 		if(this.result != null) {
 			menu.removeListener(SWT.Show, menuListener);
 			mntmShowWitness.removeSelectionListener(menuShowWitnessListener);
-			mntmSimmulateDpn.removeSelectionListener(menuShowDPNListener);
+			mntmSimulateDpn.removeSelectionListener(menuShowDPNListener);
 			treeViewer.removeDoubleClickListener(result);		
 		}
 		
 		this.result = newResult;
 		this.menuShowWitnessListener = result.getShowWitnessListener(treeViewer);
 		this.menuShowDPNListener = result.getShowDPNListener(treeViewer);
-		this.menuListener = result.getMenuListener(treeViewer, mntmShowWitness, mntmSimmulateDpn);
+		this.menuListener = result.getMenuListener(treeViewer, mntmShowWitness, mntmSimulateDpn);
 		
 		treeViewer.setContentProvider(result);
 		treeViewer.setLabelProvider(result);
@@ -113,7 +113,7 @@ public class DataraceResultComposite extends Composite {
 		treeViewer.addDoubleClickListener(result);		
 		menu.addListener(SWT.Show, menuListener);
 		mntmShowWitness.addSelectionListener(this.menuShowWitnessListener);
-		mntmSimmulateDpn.addSelectionListener(this.menuShowDPNListener);
+		mntmSimulateDpn.addSelectionListener(this.menuShowDPNListener);
 		
 		lblNumRaceFree.setText("Race free: " + result.getNegativeCount() + "/"
 				+ result.getTotalCount());
