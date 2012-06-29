@@ -82,7 +82,7 @@ public class DataraceResultComposite extends Composite {
 		mntmShowWitness.setEnabled(false);
 
 		mntmSimmulateDpn = new MenuItem(menu, SWT.NONE);
-		mntmSimmulateDpn.setText("Simmulate DPN");
+		mntmSimmulateDpn.setText("Simulate DPN");
 		mntmSimmulateDpn.setEnabled(false);
 		sashForm.setWeights(new int[] { 1 });
 
