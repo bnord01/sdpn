@@ -13,7 +13,7 @@ Export-Package: de.wwu.sdpn.core.analyses,
  de.wwu.sdpn.core.ta.xsb.witness,
  de.wwu.sdpn.core.util
 Require-Bundle: org.junit;bundle-version="4.0.0",
- org.scala-ide.scala.library;bundle-version="2.9.1"
+ org.scala-ide.scala.library;bundle-version="[2.9.1,2.9.3]"
 Bundle-ClassPath: lib/interprolog.jar,
  .
 Main-Class: de.wwu.sdpn.core.textual.DPNParser
