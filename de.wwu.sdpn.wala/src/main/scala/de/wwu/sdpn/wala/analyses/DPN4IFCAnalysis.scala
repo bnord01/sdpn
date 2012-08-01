@@ -383,8 +383,19 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
             val readPos = getSS4NodeAndIndex(readNode, readIdx)
 
             val wi = writeNode.getIR().getInstructions()(writeIdx)
-            require(wi.isInstanceOf[SSAPutInstruction], "Write instruction isn't instance of SSAPutInstruction: " + wi)
             val ri = readNode.getIR().getInstructions()(readIdx)
+
+            val isRegularFieldAccess = wi.isInstanceOf[SSAPutInstruction] && ri.isInstanceOf[SSAGetInstruction]
+
+            // this must be some kind of array field or something
+            if (!isRegularFieldAccess) {
+            	val pm1 = new SubProgressMonitor(pm, 4)
+                val result = mayHappenSuccessively(writePos, readPos, pm1, timeout)
+                return result
+            }
+
+            
+            require(wi.isInstanceOf[SSAPutInstruction], "Write instruction isn't instance of SSAPutInstruction: " + wi)
             require(ri.isInstanceOf[SSAGetInstruction], "Read instruction isn't instance of SSAGetInstruction: " + ri)
 
             val writeInstr = wi.asInstanceOf[SSAPutInstruction]
@@ -402,7 +413,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
             val interObs = writeObs intersect readObs
 
             //no shared instance keys means no flow possible, but we would wan't joana to check for this!
-            require(!(interObs isEmpty),"No shared instance keys for field found!")
+            require(!(interObs isEmpty), "No shared instance keys for field found!")
 
 
             val uniqueInterObs = interObs filter(key => uniqueInstances(key) || isConstantKey(key))
@@ -447,6 +458,28 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
             val pm2 = new SubProgressMonitor(pm, 3)
 
             return !XSBInterRunner.runCheck(icheck, pm2,timeout)
+            		
+            /* Alternative using the new iterable analysis  
+             	val pruneSet = Set(writeNode, readNode)
+                val dpn = genMDPN(pruneSet)
+                val owTrans = dpn.transitions.filter({
+                    case BaseRule(_, StackSymbol(node, _, _), SSAAction(instr: SSAPutInstruction), _, _) =>
+                        val owrObs = FieldUtil.getIKS4FieldInstr(pa, node, instr)
+                        if (owrObs.size == 1 && owrObs(fieldObj) && instr.getDeclaredField().getName() == fieldName)
+                            //TODO this is unsound when there are different fields with the same name as juergen talked about on the mailing list
+                            true
+                        else
+                            false
+                    case _ =>
+                        false
+                })
+
+                val firstConf = Set(writePos)
+                val confs = List((owTrans, Set(readPos)))
+                val lockSens = !dpn.locks.isEmpty
+
+                return de.wwu.sdpn.core.analyses.DPNReachability.runAIRCheck(dpn, firstConf, confs, true)
+             */
         } finally {
             done(pm)
         }
