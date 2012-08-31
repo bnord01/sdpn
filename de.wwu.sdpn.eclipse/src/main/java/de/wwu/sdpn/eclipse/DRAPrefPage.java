@@ -31,6 +31,8 @@ public class DRAPrefPage extends FieldEditorPreferencePage implements
 		addField(new BooleanFieldEditor(DRAPreferences.B_PRUNE_WITNESS, "Prune generated witnesses", BooleanFieldEditor.DEFAULT, getFieldEditorParent()));
 		addField(new BooleanFieldEditor(DRAPreferences.B_DONT_USE_INTERPROLOG, "Don't use Interprolog for communication with XSB", BooleanFieldEditor.DEFAULT, getFieldEditorParent()));
 		addField(new BooleanFieldEditor(DRAPreferences.B_DEBUG, "Print debug output.", BooleanFieldEditor.DEFAULT, getFieldEditorParent()));
+		addField(new BooleanFieldEditor(DRAPreferences.B_RANDOMISOLATION, "Use random isolation.", BooleanFieldEditor.DEFAULT, getFieldEditorParent()));
+		addField(new BooleanFieldEditor(DRAPreferences.B_IGNORE_WAIT, "Ignore wait calls (usound).", BooleanFieldEditor.DEFAULT, getFieldEditorParent()));
 	}
 
 	/**

@@ -18,17 +18,25 @@ import de.wwu.sdpn.core.result._
 import com.ibm.wala.ipa.callgraph.CGNode
 import de.wwu.sdpn.core.util.IProgressMonitor
 import de.wwu.sdpn.core.util.NullProgressMonitor
+import de.wwu.sdpn.core.dpn.monitor.MonitorDPN
+import de.wwu.sdpn.wala.dpngen.symbols.DPNAction
+import de.wwu.sdpn.wala.dpngen.symbols.GlobalState
+import de.wwu.sdpn.wala.ri.RIDPN
+import de.wwu.sdpn.wala.ri.RISymbol
+import de.wwu.sdpn.wala.ri.Isolated
+import de.wwu.sdpn.wala.analyses.MyPreAnalysis
+import de.wwu.sdpn.wala.util.WaitMap
+import de.wwu.sdpn.wala.dpngen.MonitorDPNFactory
+import de.wwu.sdpn.core.analyses.TSRTask
+import scala.util.parsing.combinator.JavaTokenParsers
 
 object DataraceAnalysis {
-    class DRBaseResult(ik:InstanceKey,nodes: Set[(CGNode, SSAFieldAccessInstruction)]) 
-    	extends BaseResult[(InstanceKey, Set[(CGNode, SSAFieldAccessInstruction)],SimpleTSRResult)] ((ik,nodes,null),Undecidet)
-    class DRFieldResult(fr:FieldReference,srm: Map[InstanceKey,DRBaseResult])
-    	extends DisjunctiveResult[FieldReference, InstanceKey, DRBaseResult, (InstanceKey,Set[(CGNode, SSAFieldAccessInstruction)],SimpleTSRResult), Nothing, Nothing](fr,srm)
-    class DRResult(srm:Map[FieldReference,DRFieldResult]) extends DisjunctiveResult[Unit, FieldReference, DRFieldResult, FieldReference, InstanceKey, DRBaseResult]((),srm)
+
 }
 
 class DataraceAnalysis(cg: CallGraph, pa: PointerAnalysis, ops: DRAOptions) {
-    import DataraceAnalysis._
+    type MDPN = MonitorDPN[GlobalState, StackSymbol, DPNAction, InstanceKey]
+    type RIMDPN = RIDPN[GlobalState, StackSymbol]
 
     def this(cg: CallGraph, pa: PointerAnalysis) = this(cg, pa, new DRAOptions)
     ops.seal
@@ -37,6 +45,7 @@ class DataraceAnalysis(cg: CallGraph, pa: PointerAnalysis, ops: DRAOptions) {
     var fieldRefMap: Map[FieldReference, Set[(InstanceKey, Atom)]] = Map().withDefaultValue(Set())
 
     buildFieldMap()
+    val uniqueLocks = SimpleAnalyses.filterByClassLoader(SimpleAnalyses.getPossibleLocks(cg, pa))
 
     def possibleRaceOnField(ik: InstanceKey, atom: Atom): Boolean = {
         val (rs, ws, _) = fieldMap((ik, atom))
@@ -44,11 +53,11 @@ class DataraceAnalysis(cg: CallGraph, pa: PointerAnalysis, ops: DRAOptions) {
             return false;
         return !SimpleAnalyses.runTSRCheck(cg, pa, ws, ws ++ rs, true)
     }
-    
+
     def possibleRaceOnFieldDetailed(ik: InstanceKey, atom: Atom): SimpleTSRResult = {
         val (rs, ws, _) = fieldMap((ik, atom))
         if (ws.isEmpty)
-            return SimpleTSRResult(null,null,null,null,null,null,false,Negative);
+            return new SimpleTSRResult(null, null, null, null, null, null, false, Negative);
         return SimpleAnalyses.runDetailedTSRCheck(cg, pa, ws, ws ++ rs, true)
     }
 
@@ -82,32 +91,19 @@ class DataraceAnalysis(cg: CallGraph, pa: PointerAnalysis, ops: DRAOptions) {
             pm.beginTask("Preparing to run " + instances + "Analyes", instances)
             val subResults = for ((fr, iks) <- fieldRefMap) yield {
                 val subResults = for ((ik, atom) <- iks) yield {
-                    ik -> new DRBaseResult(ik, fieldMap((ik, atom))._3)
+                    ik -> new DRBaseResult(ik, atom)
                 }
                 fr -> (new DRFieldResult(fr, Map() ++ subResults))
             }
             val mainResult = new DRResult(subResults)
             fireUpdate(mainResult)
 
-            for ((fr, iks) <- fieldRefMap) {
-                for ((ik, atom) <- iks) {
-                    val path = List(fr, ik)
-                    val res = possibleRaceOnFieldDetailed(ik,atom)
-                    res.value match {
-                        case Positive =>
-                            mainResult.updateValue(path, Positive)
-                        case Negative =>	
-                            mainResult.updateValue(path, Negative)
-                        case _ =>
-                            mainResult.updateValue(path, ProcessingError)                            
-                    }
-                    val subResult = mainResult.lookUp(path).asInstanceOf[DRBaseResult]                    
-                    mainResult.updateDetail(path,(subResult.detail._1,subResult.detail._2,res))
-                    pm worked 1
-                    pm subTask ("Finished data race analyis " + current + " of " + instances + ".")
-                    current += 1
-                    fireUpdate(mainResult)
-                }
+            for ((_, fr) <- mainResult.subResults; (_, br) <- fr.subResults) {
+                br.run
+                pm worked 1
+                pm subTask ("Finished data race analyis " + current + " of " + instances + ".")
+                current += 1
+                fireUpdate(mainResult)
             }
             mainResult
         } finally {
@@ -146,14 +142,82 @@ class DataraceAnalysis(cg: CallGraph, pa: PointerAnalysis, ops: DRAOptions) {
         }
     }
 
+    class DRBaseResult(val ik: InstanceKey,
+                       val atom: Atom,
+                       val rs: Set[StackSymbol],
+                       val ws: Set[StackSymbol],
+                       val nodes: Set[(CGNode, SSAFieldAccessInstruction)])
+            extends BaseResult[(InstanceKey, Set[(CGNode, SSAFieldAccessInstruction)], SimpleTSRResult)]((ik, nodes, null), Undecidet) {
+        def this(ik0: InstanceKey, a0: Atom) {
+            this(ik0, a0, fieldMap(ik0, a0)._1, fieldMap(ik0, a0)._2, fieldMap(ik0, a0)._3)
+        }
+        type RIStack = RISymbol[InstanceKey, StackSymbol]
+        import de.wwu.sdpn.core.ta.xsb.{ HasTermRepresentation => HTR }
+        def ikTerm = "fobj"
+        private implicit def ikToTerm(ik0: InstanceKey) = new HTR {
+            def toTerm = {
+                assert(ik0 == ik, "Tried to convert instance key other than the one beeing isolated")
+                ikTerm
+            }
+        }
+
+        lazy val dpn: MDPN = {
+            val sliceSet = nodes.map(_._1)
+            var analysis = MyPreAnalysis(cg.getClassHierarchy(), cg, pa)
+            analysis += sliceSet
+            val wm = new WaitMap(analysis, uniqueLocks)
+            analysis = new MyPreAnalysis(analysis) {
+                override def safeLock(lock: InstanceKey, node: CGNode) = uniqueLocks.contains(lock) && (ops.ignoreWait || !wm(node)(lock))
+            }
+            val factory = new MonitorDPNFactory(analysis)
+            factory.getDPN
+        }
+        lazy val ridpn: RIMDPN = new RIDPN(dpn, ik, ikTerm, pa)
+        lazy val riRs: Set[RIStack] = ridpn.getIsolated(rs)
+        lazy val riWs: Set[RIStack] = ridpn.getIsolated(ws)
+
+        lazy val task = if (ops.randomIsolation) TSRTask.withoutActions(ridpn, riRs union riWs, riWs, !ridpn.locks.isEmpty) else
+            TSRTask.withoutActions(dpn, rs union ws, ws, !dpn.locks.isEmpty)
+
+        lazy val possible = !ws.isEmpty && task.run
+        lazy val witness = if (possible) task.runWitness else None
+
+        def run {
+            if (possible) {
+                this.value = Positive
+            } else {
+                this.value = Negative
+            }
+        }
+
+        def getCG = cg
+
+        def runSimulator {
+            if (ops.randomIsolation)
+                de.wwu.sdpn.core.gui.MonitorDPNView.show(ridpn)
+            else
+                de.wwu.sdpn.core.gui.MonitorDPNView.show(dpn)
+        }
+
+    }
+    class DRFieldResult(fr: FieldReference, srm: Map[InstanceKey, DRBaseResult])
+        extends DisjunctiveResult[FieldReference, InstanceKey, DRBaseResult, (InstanceKey, Set[(CGNode, SSAFieldAccessInstruction)], SimpleTSRResult), Nothing, Nothing](fr, srm)
+    class DRResult(srm: Map[FieldReference, DRFieldResult]) extends DisjunctiveResult[Unit, FieldReference, DRFieldResult, FieldReference, InstanceKey, DRBaseResult]((), srm)
+
 }
 
 class DRAOptions {
     private var ao = true
     private var isSealed = false;
+    private var ri = false
+    private var igWait = false
 
     def applicationOnly: Boolean = ao
     def applicationOnly_=(t: Boolean) = { checkSealed; ao = t }
+    def randomIsolation: Boolean = ri
+    def randomIsolation_=(t: Boolean) = { checkSealed; ri = t }
+    def ignoreWait: Boolean = igWait
+    def ignoreWait_=(t: Boolean) = { checkSealed; igWait = t }
 
     def seal {
         isSealed = true;
@@ -162,4 +226,55 @@ class DRAOptions {
         if (isSealed)
             throw new IllegalStateException("Tried to update sealed DRAOptions!")
     }
-} 
+}
+
+object DRStateParser extends JavaTokenParsers {
+    def xsbAtomOrVar: Parser[String] = "[a-zA-Z0-9_]+".r
+    def xsbTerm: Parser[String] = (xsbAtomOrVar ~ opt(xsbTuple) ^^ { case a ~ None => a; case a ~ Some(t) => a + t }) | xsbTuple
+    def xsbTuple: Parser[String] = "(" ~> repsep(xsbTerm, ",") <~ ")" ^^ { case ls => ls.mkString("(", ",", ")") }
+    def lnr = wholeNumber ^^ (_.toLong)
+    def inr = wholeNumber ^^ (_.toInt)
+    def tb = "top" ^^ (_ => true) | "bot" ^^ (_ => false)
+    def tf10 = "1" ^^ (_ => true) | "0" ^^ (_ => false)
+    def state: Parser[State] =
+        (
+            "c(" ~> cfState <~ ("," ~ xsbTerm ~ ")")
+            |
+            "c(i(" ~> cfState <~ ("," ~ xsbTerm ~ ")," ~ xsbTerm ~ ")")
+        )
+
+    def cfState = "c(" ~ inr ~ "," ~ stackSym ~ "," ~ inr ~ "," ~ tf10 ~ ")" ^^ {
+        case "c(" ~ g ~ "," ~ ss ~ "," ~ gf ~ "," ~ t ~ ")" =>
+            State(GlobalState(g), ss, GlobalState(gf), t)
+    }
+
+    def stackSym: Parser[StackSymbol] = "s("~inr~","~inr~","~inr~")" ^^ {
+        case "s(" ~ cg ~ "," ~ bb ~ "," ~ nr ~ ")" => BasicStackSymbol(cg, bb, nr)
+    } |  "ri("~xsbTerm~",s("~inr~","~inr~","~inr~"))" ^^ {
+        case "ri("~ key ~ ",s(" ~ cg ~ "," ~ bb ~ "," ~ nr ~ "))" => Isolated(key,cg, bb, nr)
+    } |  "nri(s("~inr~","~inr~","~inr~"))" ^^ {
+        case "nri(s(" ~ cg ~ "," ~ bb ~ "," ~ nr ~ "))" => NotIsolated(cg, bb, nr)
+    } |  "rs(s("~inr~","~inr~","~inr~"))" ^^ {
+        case "rs(s(" ~ cg ~ "," ~ bb ~ "," ~ nr ~ "))" => Summary(cg, bb, nr)
+    }
+
+    case class State(
+        g: GlobalState,
+        ss: StackSymbol,
+        gf: GlobalState,
+        term: Boolean)
+
+    case class GlobalState(num: Int)
+
+    trait StackSymbol{def cg:Int;def bb:Int;def instr:Int}
+    
+    case class BasicStackSymbol(cg: Int, bb: Int, instr: Int) extends StackSymbol
+    case class Isolated(key:String, cg: Int, bb: Int, instr: Int) extends StackSymbol
+    case class NotIsolated(cg: Int, bb: Int, instr: Int) extends StackSymbol
+    case class Summary(cg: Int, bb: Int, instr: Int) extends StackSymbol
+
+    def parseState(u: String): State = {
+        parseAll(state, u).get
+    }
+
+}

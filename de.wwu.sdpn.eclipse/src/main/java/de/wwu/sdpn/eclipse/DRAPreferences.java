@@ -10,5 +10,7 @@ public class DRAPreferences {
 	public static final String B_PRUNE_WITNESS = "prune_witness";
 	public static final String B_DONT_USE_INTERPROLOG = "dont_use_interprolog";
 	public static final String B_DEBUG = "sdpn_debug";
+	public static final String B_RANDOMISOLATION = "sdpn_dr_random_isolation";
+	public static final String B_IGNORE_WAIT = "sdpn_dr_ignore_wait";
 
 }

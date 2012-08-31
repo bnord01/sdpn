@@ -42,6 +42,15 @@ class RIDPN[GS , SS <% HTR <% CGNode](
     private var ttransitions = Set[DPNRule[GS, RS, DPNAction]]()
     private var ttransmap = Map[(GS, RS), Set[DPNRule[GS, RS, DPNAction]]]()
     private var tlocks = dpn.locks
+    
+    def getIsolated(sss:Set[SS]) : Set[RS] = {
+        for (ss <- sss) yield {
+            if(canBeIsolated(ss))
+                Isolated(isolationKey,ss)
+            else 
+                NotIsolated[InstanceKey,SS](ss)
+        }
+    }
 
     for (rule <- dpn.getTransitions) {
         rule match {
@@ -65,7 +74,7 @@ class RIDPN[GS , SS <% HTR <% CGNode](
                 if (canBeIsolated(s1)) {
                     if (isCallOnSameObject(s1, a)) {
                         if (canBeIsolated(sc)) {
-                            if (isLockOnThisPointer(a, sc)) {
+                            if (isLockOnThisPointer(a, sc)) { // TODO: Check wait map! Unsound!
                                 tlocks += isolationKey
                                 addTransition(PushRule(g1, Isolated(isolationKey, s1),
                                     actionForThisLock(a),
@@ -217,7 +226,7 @@ class RIDPN[GS , SS <% HTR <% CGNode](
     /* 
      * Helper Methods
      */
-    private def canBeIsolated(s: SS): Boolean = {
+    def canBeIsolated(s: SS): Boolean = {
         val ir = s.getIR
         val method = s.getMethod()
 

@@ -13,7 +13,7 @@ object AbstractFullWitnessParser extends JavaTokenParsers {
   // The Parser 
   // format: OFF
       
-  def xsbAtomOrVar: Parser[String] = "[a-zA-Z0-9_]+".r
+  def xsbAtomOrVar: Parser[String] = wholeNumber | "[a-zA-Z0-9_]+".r
   def xsbTerm: Parser[String] = (xsbAtomOrVar ~ opt(xsbTuple) ^^ {case a~None => a; case a~Some(t) => a + t}) | xsbTuple
   def xsbTuple: Parser[String] = "("~>repsep(xsbTerm,",")<~")"^^{case ls => ls.mkString("(",",",")")}
 

@@ -31,8 +31,8 @@ class PrintProgressMonitor(out:PrintStream) extends IProgressMonitor {
 
     def subTask(name: String): Unit = {nl; out.print(name + " ")}
 
-    def worked(work: Int): Unit = {out.println(".")}
+    def worked(work: Int): Unit = {out.print(".")}
     
-    def worked(work: Double): Unit = {out.println(".")}
+    def worked(work: Double): Unit = {out.print(".")}
 
 }

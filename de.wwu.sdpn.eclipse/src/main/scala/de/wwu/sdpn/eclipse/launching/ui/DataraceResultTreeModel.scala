@@ -32,8 +32,7 @@ import org.eclipse.jface.viewers.TreeViewer
 import org.eclipse.swt.widgets.MenuItem
 import org.eclipse.swt.events.SelectionListener
 import org.eclipse.swt.events.SelectionEvent
-import de.wwu.sdpn.core.ta.xsb.witness.WitnessTree
-import de.wwu.sdpn.gui.ta.witness.zest.WTGraph
+import de.wwu.sdpn.core.ta.xsb.witness.iterable.WitnessTree
 import org.eclipse.ui.PlatformUI
 import org.eclipse.swt.widgets.Shell
 import org.eclipse.swt.layout.FillLayout
@@ -43,9 +42,13 @@ import org.eclipse.core.runtime.IStatus
 import org.eclipse.core.runtime.IProgressMonitor
 import org.eclipse.core.runtime.jobs.Job
 import org.eclipse.core.runtime.Status
+import de.wwu.sdpn.gui.ta.witness.zest.IWTGraph
 
-class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITreeContentProvider with ILabelProvider with IDoubleClickListener {
+class DataraceResultTreeModel(jproj: IJavaProject, result: DataraceAnalysis#DRResult) extends ITreeContentProvider with ILabelProvider with IDoubleClickListener {
 
+    type DRResult = DataraceAnalysis#DRResult
+    type DRBaseResult = DataraceAnalysis#DRBaseResult
+    type DRFieldResult = DataraceAnalysis#DRFieldResult
     def getRoot: Object = result
     def getTotalResult = result.value
 
@@ -70,8 +73,8 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
         inputElement match {
             case null => Array()
             case dbr: DRBaseResult =>
-                val rv: Array[Object] = new Array(dbr.detail._2.size)
-                for ((kv, nr) <- dbr.detail._2.zipWithIndex)
+                val rv: Array[Object] = new Array(dbr.nodes.size)
+                for ((kv, nr) <- dbr.nodes.zipWithIndex)
                     rv(nr) = (dbr, kv)
                 rv
             case res: Result[AnyRef, AnyRef, AnyRef] => {
@@ -93,7 +96,7 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
 
     def hasChildren(element: Object): Boolean = {
         element match {
-            case dbr: DRBaseResult => !dbr.detail._2.isEmpty
+            case dbr: DRBaseResult => !dbr.nodes.isEmpty
             case res: Result[_, _, _] => res.hasSubResults
             case (baseResult: DRBaseResult, (node: CGNode, instr: SSAFieldAccessInstruction)) => false
         }
@@ -129,7 +132,7 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
         obj match {
             case drr: DRResult     => "Overview"
             case fr: DRFieldResult => "Field: " + nn(fr.detail.getDeclaringClass()) + "." + fr.detail.getName() + " of type: " + nn(fr.detail.getFieldType())
-            case br: DRBaseResult => br.detail._1 match {
+            case br: DRBaseResult => br.ik match {
                 case nk: InstanceKeyWithNode => "Object created in: " + nk.getNode().getMethod().getSignature()
                 case ck: ConstantKey[_]      => "Field on static object: " + ck.getValue()
                 case k                       => k.toString()
@@ -214,21 +217,12 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
                     case ts: ITreeSelection =>
                         ts.getFirstElement() match {
                             case br: DRBaseResult =>
-                                println("Starting DPN View")
-                                val dpn = br.detail._3.dpn
-                                println("DPN size: " + dpn.getTransitions.size)
-                                de.wwu.sdpn.core.gui.MonitorDPNView.show(dpn)
+                                br.runSimulator
                             case (br: DRBaseResult, (node: CGNode, instr: SSAFieldAccessInstruction)) =>
-                                println("Starting DPN View")
-                                val dpn = br.detail._3.dpn
-                                println("DPN size: " + dpn.getTransitions.size)
-                                de.wwu.sdpn.core.gui.MonitorDPNView.show(dpn)
+                                br.runSimulator
                             case fr: DRFieldResult if fr.subResults.size == 1 =>
                                 val br = fr.subResults.values.head
-                                println("Starting DPN View")
-                                val dpn = br.detail._3.dpn
-                                println("DPN size: " + dpn.getTransitions.size)
-                                de.wwu.sdpn.core.gui.MonitorDPNView.show(dpn)
+                                br.runSimulator
                             case _ =>
                         }
                     case _ =>
@@ -250,12 +244,12 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
                             case ts: ITreeSelection =>
                                 ts.getFirstElement() match {
                                     case br: DRBaseResult =>
-                                        Some(br.detail._3.cg, br.detail._3.getWitness)
+                                        Some(br.getCG, br.witness)
                                     case (br: DRBaseResult, (node: CGNode, instr: SSAFieldAccessInstruction)) =>
-                                        Some(br.detail._3.cg, br.detail._3.getWitness)
+                                        Some(br.getCG, br.witness)
                                     case fr: DRFieldResult if fr.subResults.size == 1 =>
                                         val br = fr.subResults.values.head
-                                        Some(br.detail._3.cg, br.detail._3.getWitness)
+                                        Some(br.getCG, br.witness)
                                     case _ => None
                                 }
                             case _ => None
@@ -265,7 +259,7 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
                                 val doPrune = Activator.getDefault().getPreferenceStore().getBoolean(DRAPreferences.B_PRUNE_WITNESS);
 
                                 val decorator = (t: WitnessTree) => {
-                                    val ss = t.state.ss
+                                    val ss = DRStateParser.parseState(t.state.toString).ss
                                     val nr = ss.cg
                                     val node = cg.getNode(nr)
                                     val name = node.getMethod().getDeclaringClass().getName().toString().drop(1).split("/").last + "." + node.getMethod().getName()
@@ -279,7 +273,7 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
                                 }
 
                                 val selectionListener = (t: WitnessTree) => {
-                                    val num = t.state.ss.cg
+                                    val num = DRStateParser.parseState(t.state.toString).ss.cg
                                     val cgnode = cg.getNode(num)
                                     val imeth = WalaEclipseUtil.cgnode2IMethod(jproj, cgnode)
                                     if (imeth != null)
@@ -295,7 +289,7 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DRResult) extends ITr
                                         shell.setText("Witness View");
                                         shell.setLayout(new FillLayout());
                                         shell.setSize(800, 400);
-                                        new WTGraph(witnessTree, shell, decorator = decorator, selectionListener = selectionListener)
+                                        new IWTGraph(witnessTree, shell, decorator = decorator, selectionListener = selectionListener)
                                         shell.open();
                                     }
                                 })

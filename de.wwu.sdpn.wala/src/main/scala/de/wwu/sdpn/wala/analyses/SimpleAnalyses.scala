@@ -202,7 +202,14 @@ object SimpleAnalyses {
     def runTSRCheck(cg: CallGraph, pa: PointerAnalysis, confSet1: Set[StackSymbol], confSet2: Set[StackSymbol], sliceSet: Set[CGNode], lockSens: Boolean): Boolean =
         runTSRCheck(cg, pa, confSet1, confSet2, sliceSet, lockSens, null)
 
-    def runDetailedTSRCheck(cg: CallGraph, pa: PointerAnalysis, confSet1: Set[StackSymbol], confSet2: Set[StackSymbol], lockSens: Boolean, sliceSet0: Set[CGNode] = null, pm: IProgressMonitor = null): SimpleTSRResult = {
+    def runDetailedTSRCheck(
+            cg: CallGraph, 
+            pa: PointerAnalysis, 
+            confSet1: Set[StackSymbol], 
+            confSet2: Set[StackSymbol], 
+            lockSens: Boolean, 
+            sliceSet0: Set[CGNode] = null, 
+            pm: IProgressMonitor = null): SimpleTSRResult = {
         try {
             beginTask(pm, "Running two set reachability check.", 4)
             subTask(pm, "Generating DPN and tree automata.")
@@ -220,7 +227,7 @@ object SimpleAnalyses {
             subTask(pm, "Running XSB based emptiness check")
             val pms = new SubProgressMonitor(pm, 3)
             val empty = runCheck(check, pms)
-            return SimpleTSRResult(dpn: SimpleAnalyses.MDPN,
+            return new SimpleTSRResult(dpn: SimpleAnalyses.MDPN,
                 cg: CallGraph, pa: PointerAnalysis,
                 confSet1: Set[StackSymbol], confSet2: Set[StackSymbol],
                 sliceSet: Set[CGNode],
@@ -230,6 +237,8 @@ object SimpleAnalyses {
             done(pm)
         }
     }
+    
+   
 
     /**
      * Method to run a SingleSetReachability analysis and return the result of the
@@ -536,12 +545,12 @@ org\/openide\/.*
 
 }
 
-case class SimpleTSRResult(dpn: SimpleAnalyses.MDPN,
-                           cg: CallGraph, pa: PointerAnalysis,
-                           confSet1: Set[StackSymbol], confSet2: Set[StackSymbol],
-                           sliceSet: Set[CGNode],
-                           lockSens: Boolean,
-                           resVal: ResultValue) extends BaseResult((), resVal) {
+class SimpleTSRResult(val dpn: SimpleAnalyses.MDPN,
+                           val cg: CallGraph, val pa: PointerAnalysis,
+                           val confSet1: Set[StackSymbol], val confSet2: Set[StackSymbol],
+                           val sliceSet: Set[CGNode],
+                           val lockSens: Boolean,
+                           val resVal: ResultValue) extends BaseResult((), resVal) {
     lazy val getWitness: Option[WitnessTree] = {
         if (resVal != Positive)
             None

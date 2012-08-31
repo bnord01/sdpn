@@ -6,7 +6,6 @@ import org.eclipse.jdt.core.IJavaProject
 import org.eclipse.jface.dialogs.MessageDialog
 import org.eclipse.swt.widgets.Shell
 import org.eclipse.ui.PlatformUI
-
 import de.wwu.sdpn.core.analyses.SDPNProps
 import de.wwu.sdpn.core.result.Negative
 import de.wwu.sdpn.core.result.Positive
@@ -18,6 +17,7 @@ import de.wwu.sdpn.wala.analyses.datarace.DataraceAnalysis
 import de.wwu.sdpn.wala.analyses.SimpleAnalyses
 import de.wwu.sdpn.eclipse.util.WalaEclipseUtil
 import de.wwu.sdpn.eclipse.util.EPMWrapper
+import de.wwu.sdpn.wala.analyses.datarace.DRAOptions
 
 object DataraceLauncher {
 
@@ -67,7 +67,10 @@ object DataraceLauncher {
 
             check(pm)
             pm subTask "Identifying field access points."
-            val rda = new DataraceAnalysis(cg, pa)
+            val ops = new DRAOptions 
+            ops.randomIsolation = Activator.getDefault().getPreferenceStore().getBoolean(DRAPreferences.B_RANDOMISOLATION)
+            ops.ignoreWait = Activator.getDefault().getPreferenceStore().getBoolean(DRAPreferences.B_IGNORE_WAIT)
+            val rda = new DataraceAnalysis(cg, pa,ops)
             pm worked 1
 
             check(pm)

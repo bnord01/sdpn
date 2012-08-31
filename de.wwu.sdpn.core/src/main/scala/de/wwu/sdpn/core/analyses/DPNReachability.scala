@@ -206,7 +206,7 @@ object DPNReachability {
 
     def runTSRCheck[C <% HTR, S <% HTR, A <% HTR, L](dpn: MonitorDPN[C, S, A, L], cset1: Set[S], cset2: Set[S], lockSens: Boolean = true): Boolean = {
         val ss = dpn.getStackSymbols
-        require(ss.containsAll(cset1 union cset2), "Some symbols are not contained in the DPN!")
+        require(ss.containsAll(cset1 union cset2), "Some symbols are not contained in the DPN!\n"+(cset1 union cset2).removeAll(ss))
         val (td, bu, lo) = genTSRAutomata(dpn, cset1, cset2, lockSens, false)
 
         val check = new IntersectionEmptinessCheck(td, bu, lo, "check")
