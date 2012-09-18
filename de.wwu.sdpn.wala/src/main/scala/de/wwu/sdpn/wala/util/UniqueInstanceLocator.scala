@@ -6,6 +6,7 @@ import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 import com.ibm.wala.ssa.SSANewInstruction
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import com.ibm.wala.ipa.callgraph.CallGraph
+import com.ibm.wala.ipa.callgraph.propagation.ConstantKey
 
 /**
  * Trait to be mixed into a PreAnalysis.
@@ -19,7 +20,7 @@ trait UniqueInstanceLocator {
     def pa:PointerAnalysis
     
     lazy val uniqueInstances = calcUniqueInstances
-
+    	
     private def calcUniqueInstances: Set[InstanceKey] = {
         var ui = Set[InstanceKey]()
         val ucnodes = new CGCycleCounter(cg).getUCNodes
@@ -50,7 +51,7 @@ trait UniqueInstanceLocator {
 
 object UniqueInstanceLocator {
   def instances(cg1: CallGraph, pa1: PointerAnalysis):Set[InstanceKey] = {
-    val uic = new AnyRef() with UniqueInstanceLocator {def cg = cg1;def pa=pa1};
+    val uic = new UniqueInstanceLocator {def cg = cg1;def pa=pa1};
     return uic.uniqueInstances
     
   }
