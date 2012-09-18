@@ -20,6 +20,7 @@ import de.wwu.sdpn.wala.ri.RISymbol
 import de.wwu.sdpn.core.ta.xsb.HasTermRepresentation
 import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
 import junit.framework.JUnit4TestAdapter
+import de.wwu.sdpn.wala.util.WaitMap
 
 object SimpleRITest {
 
@@ -71,7 +72,7 @@ class SimpleRITest {
         val sliceSet = cg.getNodes(mr)
         val cgnode = sliceSet.head
         val mdpn = SimpleAnalyses.getMDPN(cg, pa, sliceSet, false)
-        val ridpn = new RIDPN(mdpn, ik, "0", pa)
+        val ridpn = new RIDPN(mdpn, ik, "0", pa,WaitMap.empty)
 
         val ss = ridpn.getStackSymbols
 
@@ -97,7 +98,7 @@ class SimpleRITest {
         val sliceSet = cg.getNodes(mr)
         val cgnode = sliceSet.head
         val mdpn = SimpleAnalyses.getMDPN(cg, pa, sliceSet, false)
-        val ridpn = new RIDPN(mdpn, ik, "0", pa)
+        val ridpn = new RIDPN(mdpn, ik, "0", pa,WaitMap.empty)
 
         val ss = ridpn.getStackSymbols
 

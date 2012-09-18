@@ -5,7 +5,6 @@ import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import com.ibm.wala.ipa.callgraph.CGNode
 import com.ibm.wala.ssa.SSAAbstractInvokeInstruction
 import com.ibm.wala.ssa.SSAMonitorInstruction
-
 import de.wwu.sdpn.core.dpn.monitor.MonitorDPN
 import de.wwu.sdpn.core.dpn.monitor.BaseRule
 import de.wwu.sdpn.core.dpn.monitor.DPNRule
@@ -15,14 +14,15 @@ import de.wwu.sdpn.core.dpn.monitor.SpawnRule
 import de.wwu.sdpn.wala.dpngen.symbols.DPNAction
 import de.wwu.sdpn.wala.dpngen.symbols.MonitorEnter
 import de.wwu.sdpn.wala.dpngen.symbols.SyncMethodEnter
-
 import de.wwu.sdpn.core.ta.xsb.{ HasTermRepresentation => HTR }
+import de.wwu.sdpn.wala.util.WaitMap
 
-class RIDPN[GS , SS <% HTR <% CGNode](
+class RIDPN[GS, SS <% HTR <% CGNode](
     dpn: MonitorDPN[GS, SS, DPNAction, InstanceKey],
     isolationKey: InstanceKey,
     ikTerm: String,
-    pa: PointerAnalysis)
+    pa: PointerAnalysis,
+    wm: WaitMap)
         extends MonitorDPN[GS, RISymbol[InstanceKey, SS], DPNAction, InstanceKey] {
 
     type RS = RISymbol[InstanceKey, SS]
@@ -42,13 +42,13 @@ class RIDPN[GS , SS <% HTR <% CGNode](
     private var ttransitions = Set[DPNRule[GS, RS, DPNAction]]()
     private var ttransmap = Map[(GS, RS), Set[DPNRule[GS, RS, DPNAction]]]()
     private var tlocks = dpn.locks
-    
-    def getIsolated(sss:Set[SS]) : Set[RS] = {
+
+    def getIsolated(sss: Set[SS]): Set[RS] = {
         for (ss <- sss) yield {
-            if(canBeIsolated(ss))
-                Isolated(isolationKey,ss)
-            else 
-                NotIsolated[InstanceKey,SS](ss)
+            if (canBeIsolated(ss))
+                Isolated(isolationKey, ss)
+            else
+                NotIsolated[InstanceKey, SS](ss)
         }
     }
 
@@ -74,10 +74,10 @@ class RIDPN[GS , SS <% HTR <% CGNode](
                 if (canBeIsolated(s1)) {
                     if (isCallOnSameObject(s1, a)) {
                         if (canBeIsolated(sc)) {
-                            if (isLockOnThisPointer(a, sc)) { // TODO: Check wait map! Unsound!
+                            if (isLockOnThisPointer(a, sc)) { 
                                 tlocks += isolationKey
                                 addTransition(PushRule(g1, Isolated(isolationKey, s1),
-                                    actionForThisLock(a),
+                                    actionForThisLock(a,sc),
                                     g2, Isolated(isolationKey, sc),
                                     Isolated(isolationKey, sr)))
                             } else {
@@ -87,15 +87,15 @@ class RIDPN[GS , SS <% HTR <% CGNode](
                         } else {
                             addTransition(PushRule(g1, Summary(s1), a, g2, NotIsolated(sc), Summary(sr)))
                         }
-                    } else {
+                    } else { // no call on same object
                         if (canBeIsolated(sc)) {
                             if (isLockOnThisPointer(a, sc)) {
                                 addTransition(PushRule(g1, Isolated(isolationKey, s1),
-                                    actionForThisLock(a),
+                                    actionForThisLock(a,sc),
                                     g2, Isolated(isolationKey, sc),
                                     Isolated(isolationKey, sr)))
                                 addTransition(PushRule(g1, Summary(s1),
-                                    actionForThisLock(a),
+                                    actionForThisLock(a,sc),
                                     g2, Isolated(isolationKey, sc),
                                     Summary(sr)))
                             } else {
@@ -216,8 +216,8 @@ class RIDPN[GS , SS <% HTR <% CGNode](
             case PushRule(_, _, a, _, _, _) =>
                 a match {
                     case SyncMethodEnter(_, ik) => Some(ik)
-                    case MonitorEnter(_, ik) => Some(ik)
-                    case _ => None
+                    case MonitorEnter(_, ik)    => Some(ik)
+                    case _                      => None
                 }
             case _ => None
         }
@@ -258,12 +258,15 @@ class RIDPN[GS , SS <% HTR <% CGNode](
         }
     }
 
-    private def actionForThisLock(a: DPNAction): DPNAction = {
-        a.getSSAInstruction match {
-            case Some(ii: SSAAbstractInvokeInstruction) => SyncMethodEnter(ii, isolationKey)
-            case Some(mi: SSAMonitorInstruction) => MonitorEnter(mi, isolationKey)
-            case _ => sys.error("Tried to convert non Invoke nor MonitorInstruction to LockAction")
-        }
+    private def actionForThisLock(a: DPNAction, node: CGNode): DPNAction = {
+        if (wm(node)(isolationKey))
+            a
+        else
+            a.getSSAInstruction match {
+                case Some(ii: SSAAbstractInvokeInstruction) => SyncMethodEnter(ii, isolationKey)
+                case Some(mi: SSAMonitorInstruction)        => MonitorEnter(mi, isolationKey)
+                case _                                      => sys.error("Tried to convert non Invoke nor MonitorInstruction to LockAction")
+            }
 
     }
 

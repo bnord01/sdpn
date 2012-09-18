@@ -161,18 +161,17 @@ class DataraceAnalysis(cg: CallGraph, pa: PointerAnalysis, ops: DRAOptions) {
             }
         }
 
-        lazy val dpn: MDPN = {
-            val sliceSet = nodes.map(_._1)
-            var analysis = MyPreAnalysis(cg.getClassHierarchy(), cg, pa)
-            analysis += sliceSet
-            val wm = new WaitMap(analysis, uniqueLocks)
-            analysis = new MyPreAnalysis(analysis) {
-                override def safeLock(lock: InstanceKey, node: CGNode) = uniqueLocks.contains(lock) && (ops.ignoreWait || !wm(node)(lock))
-            }
-            val factory = new MonitorDPNFactory(analysis)
-            factory.getDPN
+        lazy val sliceSet = nodes.map(_._1)
+        lazy val analysis0 = MyPreAnalysis(cg.getClassHierarchy(), cg, pa) + sliceSet
+
+        lazy val wm = new WaitMap(analysis0, uniqueLocks + ik)
+        lazy val analysis = new MyPreAnalysis(analysis0) {
+            override def safeLock(lock: InstanceKey, node: CGNode) = uniqueLocks.contains(lock) && (ops.ignoreWait || !wm(node)(lock))
         }
-        lazy val ridpn: RIMDPN = new RIDPN(dpn, ik, ikTerm, pa)
+        lazy val factory = new MonitorDPNFactory(analysis)
+        lazy val dpn = factory.getDPN
+
+        lazy val ridpn: RIMDPN = new RIDPN(dpn, ik, ikTerm, pa, wm)
         lazy val riRs: Set[RIStack] = ridpn.getIsolated(rs)
         lazy val riWs: Set[RIStack] = ridpn.getIsolated(ws)
 
@@ -248,13 +247,13 @@ object DRStateParser extends JavaTokenParsers {
             State(GlobalState(g), ss, GlobalState(gf), t)
     }
 
-    def stackSym: Parser[StackSymbol] = "s("~inr~","~inr~","~inr~")" ^^ {
+    def stackSym: Parser[StackSymbol] = "s(" ~ inr ~ "," ~ inr ~ "," ~ inr ~ ")" ^^ {
         case "s(" ~ cg ~ "," ~ bb ~ "," ~ nr ~ ")" => BasicStackSymbol(cg, bb, nr)
-    } |  "ri("~xsbTerm~",s("~inr~","~inr~","~inr~"))" ^^ {
-        case "ri("~ key ~ ",s(" ~ cg ~ "," ~ bb ~ "," ~ nr ~ "))" => Isolated(key,cg, bb, nr)
-    } |  "nri(s("~inr~","~inr~","~inr~"))" ^^ {
+    } | "ri(" ~ xsbTerm ~ ",s(" ~ inr ~ "," ~ inr ~ "," ~ inr ~ "))" ^^ {
+        case "ri(" ~ key ~ ",s(" ~ cg ~ "," ~ bb ~ "," ~ nr ~ "))" => Isolated(key, cg, bb, nr)
+    } | "nri(s(" ~ inr ~ "," ~ inr ~ "," ~ inr ~ "))" ^^ {
         case "nri(s(" ~ cg ~ "," ~ bb ~ "," ~ nr ~ "))" => NotIsolated(cg, bb, nr)
-    } |  "rs(s("~inr~","~inr~","~inr~"))" ^^ {
+    } | "rs(s(" ~ inr ~ "," ~ inr ~ "," ~ inr ~ "))" ^^ {
         case "rs(s(" ~ cg ~ "," ~ bb ~ "," ~ nr ~ "))" => Summary(cg, bb, nr)
     }
 
@@ -266,10 +265,10 @@ object DRStateParser extends JavaTokenParsers {
 
     case class GlobalState(num: Int)
 
-    trait StackSymbol{def cg:Int;def bb:Int;def instr:Int}
-    
+    trait StackSymbol { def cg: Int; def bb: Int; def instr: Int }
+
     case class BasicStackSymbol(cg: Int, bb: Int, instr: Int) extends StackSymbol
-    case class Isolated(key:String, cg: Int, bb: Int, instr: Int) extends StackSymbol
+    case class Isolated(key: String, cg: Int, bb: Int, instr: Int) extends StackSymbol
     case class NotIsolated(cg: Int, bb: Int, instr: Int) extends StackSymbol
     case class Summary(cg: Int, bb: Int, instr: Int) extends StackSymbol
 

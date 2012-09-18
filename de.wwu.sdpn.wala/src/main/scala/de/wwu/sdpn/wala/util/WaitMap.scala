@@ -18,6 +18,7 @@ import com.ibm.wala.ipa.callgraph.CallGraph
 import scala.collection.immutable.Map
 import scala.collection.JavaConversions._
 import scala.collection.Set
+import com.ibm.wala.ipa.cha.IClassHierarchy
 
 //TODO maybe change to BitVectors instead of Scala sets.
 
@@ -29,110 +30,110 @@ import scala.collection.Set
  * @author Benedikt Nordhoff
  */
 class WaitMap(analysis: PreAnalysis, locks: InstanceKey => Boolean) {
-  import analysis.{ cg, pa, isThreadStart }
+    import analysis.{ cg, pa, isThreadStart }
 
-  //on which instance keys does a method call wait directly 
-  private lazy val directWaitMap = {
-    var wm = Map[CGNode, Set[InstanceKey]]().withDefaultValue(Set())
-    for (node <- cg if node.getIR != null && !isWait(node.getMethod().getReference)) {
-      for (statement <- node.getIR.iterateNormalInstructions) {
-        statement match {
-          case st: SSAAbstractInvokeInstruction if isWait(st.getDeclaredTarget) =>
-            val pk = pa.getHeapModel.getPointerKeyForLocal(node, st.getReceiver)
-            wm += node -> (wm(node) ++ pa.getPointsToSet(pk).filter(locks))
-          case _ =>
+    //on which instance keys does a method call wait directly 
+    private lazy val directWaitMap = {
+        var wm = Map[CGNode, Set[InstanceKey]]().withDefaultValue(Set())
+        for (node <- cg if node.getIR != null && !isWait(node.getMethod().getReference)) {
+            for (statement <- node.getIR.iterateNormalInstructions) {
+                statement match {
+                    case st: SSAAbstractInvokeInstruction if isWait(st.getDeclaredTarget) =>
+                        val pk = pa.getHeapModel.getPointerKeyForLocal(node, st.getReceiver)
+                        wm += node -> (wm(node) ++ pa.getPointsToSet(pk).filter(locks))
+                    case _ =>
+                }
+            }
         }
-      }
-    }
-    wm
-  }
-
-  /**
-   * Represents a method reference one of the java.lang.Object.wait methods?
-   * @param mr a method reference
-   * @return true iff mr represents java.lang.Object.wait()
-   */
-  def isWait(mr: MethodReference) = {
-    val sig = mr.getSignature
-    sig == "java.lang.Object.wait()V" ||
-      sig == "java.lang.Object.wait(J)V" ||
-      sig == "java.lang.Object.wait(JI)V"
-  }
-
-  /**
-   *
-   * @param node any CGNode
-   * @return the set of InstanceKeys on which a wait() may be called
-   */
-  def apply(node: CGNode) = waitMap.getOrElse(node, Set())
-
-  /**
-   * This lazy val holds the result of the flow analysis as an immutable map.
-   * The map contains only keys for which there exists an non empty wait set.
-   *
-   * apply(node:CGNode) returns an empty Set for keys not contained.
-   */
-  lazy val waitMap: Map[CGNode, Set[InstanceKey]] = {
-    //setup the transfer functions
-    val transFun = new ITransferFunctionProvider[CGNode, SetVariable] {
-      def getNodeTransferFunction(node: CGNode): UnaryOperator[SetVariable] = {
-        if (isThreadStart(node))
-          EmptySetOperator //we don't propagate over threadStarts
-        else
-          new SetAddOperator(directWaitMap(node))
-      }
-
-      def hasNodeTransferFunctions() = true
-
-      def getEdgeTransferFunction(from: CGNode, to: CGNode) = null
-
-      def hasEdgeTransferFunctions() = false
-
-      def getMeetOperator() = SetUnion
+        wm
     }
 
-    //invert the graph for backwards propagation
-    val cgInv = new InvertedGraph(cg)
-
-    //setup the problem
-    val problem = new IKilldallFramework[CGNode, SetVariable] {
-      def getFlowGraph = cgInv
-      def getTransferFunctionProvider = transFun
+    /**
+     * Represents a method reference one of the java.lang.Object.wait methods?
+     * @param mr a method reference
+     * @return true iff mr represents java.lang.Object.wait()
+     */
+    def isWait(mr: MethodReference) = {
+        val sig = mr.getSignature
+        sig == "java.lang.Object.wait()V" ||
+            sig == "java.lang.Object.wait(J)V" ||
+            sig == "java.lang.Object.wait(JI)V"
     }
 
-    val solver = new DataflowSolver[CGNode, SetVariable] (problem) {
-      def makeEdgeVariable(src: CGNode, dst: CGNode): SetVariable = {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("No");
+    /**
+     *
+     * @param node any CGNode
+     * @return the set of InstanceKeys on which a wait() may be called
+     */
+    def apply(node: CGNode) = waitMap.getOrElse(node, Set())
 
-      }
+    /**
+     * This lazy val holds the result of the flow analysis as an immutable map.
+     * The map contains only keys for which there exists an non empty wait set.
+     *
+     * apply(node:CGNode) returns an empty Set for keys not contained.
+     */
+    lazy val waitMap: Map[CGNode, Set[InstanceKey]] = {
+        //setup the transfer functions
+        val transFun = new ITransferFunctionProvider[CGNode, SetVariable] {
+            def getNodeTransferFunction(node: CGNode): UnaryOperator[SetVariable] = {
+                if (isThreadStart(node))
+                    EmptySetOperator //we don't propagate over threadStarts
+                else
+                    new SetAddOperator(directWaitMap(node))
+            }
 
-      def makeNodeVariable(n: CGNode, in: Boolean): SetVariable = {
-        // TODO Auto-generated method stub
-        return new SetVariable();
-      }
+            def hasNodeTransferFunctions() = true
 
-      def makeStmtRHS(size: Int): Array[SetVariable] = {
-        val v = new Array[SetVariable](size);
-        for (i <- 0 until size)
-          v(i) = new SetVariable();
-        return v;
-      }
+            def getEdgeTransferFunction(from: CGNode, to: CGNode) = null
+
+            def hasEdgeTransferFunctions() = false
+
+            def getMeetOperator() = SetUnion
+        }
+
+        //invert the graph for backwards propagation
+        val cgInv = new InvertedGraph(cg)
+
+        //setup the problem
+        val problem = new IKilldallFramework[CGNode, SetVariable] {
+            def getFlowGraph = cgInv
+            def getTransferFunctionProvider = transFun
+        }
+
+        val solver = new DataflowSolver[CGNode, SetVariable](problem) {
+            def makeEdgeVariable(src: CGNode, dst: CGNode): SetVariable = {
+                // TODO Auto-generated method stub
+                throw new UnsupportedOperationException("No");
+
+            }
+
+            def makeNodeVariable(n: CGNode, in: Boolean): SetVariable = {
+                // TODO Auto-generated method stub
+                return new SetVariable();
+            }
+
+            def makeStmtRHS(size: Int): Array[SetVariable] = {
+                val v = new Array[SetVariable](size);
+                for (i <- 0 until size)
+                    v(i) = new SetVariable();
+                return v;
+            }
+        }
+
+        solver.solve(null);
+
+        //copy results into immutable map
+        var wm = Map[CGNode, Set[InstanceKey]]().withDefaultValue(Set())
+
+        for (x <- cg) {
+            val set = solver.getOut(x).getSet
+            if (!set.isEmpty)
+                wm += x -> set
+        }
+
+        wm
     }
-
-    solver.solve(null);
-
-    //copy results into immutable map
-    var wm = Map[CGNode, Set[InstanceKey]]().withDefaultValue(Set())
-
-    for (x <- cg) {
-      val set = solver.getOut(x).getSet
-      if (!set.isEmpty)
-        wm += x -> set
-    }
-
-    wm
-  }
 
 }
 
@@ -141,15 +142,15 @@ class WaitMap(analysis: PreAnalysis, locks: InstanceKey => Boolean) {
  * @author Benedikt Nordhoff
  */
 class SetVariable(private var set: Set[InstanceKey]) extends AbstractVariable[SetVariable] {
-  def this() = {
-    this(Set())
-  }
+    def this() = {
+        this(Set())
+    }
 
-  def getSet = set
-  def setSet(set2: Set[InstanceKey]) { set = set2 }
-  def copyState(other: SetVariable) {
-    set = other.getSet
-  }
+    def getSet = set
+    def setSet(set2: Set[InstanceKey]) { set = set2 }
+    def copyState(other: SetVariable) {
+        set = other.getSet
+    }
 
 }
 
@@ -158,19 +159,19 @@ class SetVariable(private var set: Set[InstanceKey]) extends AbstractVariable[Se
  * @author Benedikt Nordhoff
  */
 class SetAddOperator(aSet: Set[InstanceKey]) extends UnaryOperator[SetVariable] {
-  def evaluate(lhs: SetVariable, rhs: SetVariable): Byte = {
+    def evaluate(lhs: SetVariable, rhs: SetVariable): Byte = {
 
-    val set = rhs.getSet ++ aSet
-    val notchanged = set == lhs.getSet
-    lhs.setSet(set)
-    if (notchanged)
-      return com.ibm.wala.fixpoint.FixedPointConstants.NOT_CHANGED
-    else
-      return com.ibm.wala.fixpoint.FixedPointConstants.CHANGED
+        val set = rhs.getSet ++ aSet
+        val notchanged = set == lhs.getSet
+        lhs.setSet(set)
+        if (notchanged)
+            return com.ibm.wala.fixpoint.FixedPointConstants.NOT_CHANGED
+        else
+            return com.ibm.wala.fixpoint.FixedPointConstants.CHANGED
 
-  }
+    }
 
-  override lazy val hashCode = aSet.hashCode()
+    override lazy val hashCode = aSet.hashCode()
 }
 
 /**
@@ -178,17 +179,17 @@ class SetAddOperator(aSet: Set[InstanceKey]) extends UnaryOperator[SetVariable] 
  * @author Benedikt Nordhoff
  */
 object EmptySetOperator extends UnaryOperator[SetVariable] {
-  def evaluate(lhs: SetVariable, rhs: SetVariable): Byte = {
-    val notchanged = lhs.getSet.isEmpty
-    lhs.setSet(Set.empty)
-    if (notchanged)
-      return com.ibm.wala.fixpoint.FixedPointConstants.NOT_CHANGED
-    else
-      return com.ibm.wala.fixpoint.FixedPointConstants.CHANGED
+    def evaluate(lhs: SetVariable, rhs: SetVariable): Byte = {
+        val notchanged = lhs.getSet.isEmpty
+        lhs.setSet(Set.empty)
+        if (notchanged)
+            return com.ibm.wala.fixpoint.FixedPointConstants.NOT_CHANGED
+        else
+            return com.ibm.wala.fixpoint.FixedPointConstants.CHANGED
 
-  }
+    }
 
-  override lazy val hashCode = 2367 //randomly chosen by fair cat
+    override lazy val hashCode = 2367 //randomly chosen by fair cat
 }
 
 /**
@@ -196,19 +197,38 @@ object EmptySetOperator extends UnaryOperator[SetVariable] {
  * @author Benedikt Nordhoff
  */
 object SetUnion extends AbstractMeetOperator[SetVariable] {
-  def evaluate(lhs: SetVariable, rhs: Array[SetVariable]): Byte = {
-    var set = lhs.getSet
-    for (sv <- rhs) {
-      set ++= sv.asInstanceOf[SetVariable].getSet
+    def evaluate(lhs: SetVariable, rhs: Array[SetVariable]): Byte = {
+        var set = lhs.getSet
+        for (sv <- rhs) {
+            set ++= sv.asInstanceOf[SetVariable].getSet
+        }
+        val notchanged = set == lhs.getSet
+        lhs.setSet(set)
+        if (notchanged)
+            return com.ibm.wala.fixpoint.FixedPointConstants.NOT_CHANGED
+        else
+            return com.ibm.wala.fixpoint.FixedPointConstants.CHANGED
     }
-    val notchanged = set == lhs.getSet
-    lhs.setSet(set)
-    if (notchanged)
-      return com.ibm.wala.fixpoint.FixedPointConstants.NOT_CHANGED
-    else
-      return com.ibm.wala.fixpoint.FixedPointConstants.CHANGED
-  }
 
-  override def hashCode() = 42;
+    override def hashCode() = 42;
 }
 
+object WaitMap {
+    private val emptyPA = new PreAnalysis {
+        def cha: IClassHierarchy = null
+        def cg: CallGraph = null
+
+        def pa: PointerAnalysis = null
+        def isThreadStart(cgnode: CGNode): Boolean = false
+
+        def entryNode: CGNode = null
+
+        def isInteresting(n: CGNode): Boolean = false
+
+        def safeLock(ik: InstanceKey, node: CGNode): Boolean = false
+
+    }
+    lazy val empty: WaitMap = new WaitMap(emptyPA, _ => false) {
+        override def apply(x: CGNode) = Set[InstanceKey]()
+    }
+}
