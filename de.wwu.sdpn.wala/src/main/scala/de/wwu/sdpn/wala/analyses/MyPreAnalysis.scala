@@ -52,7 +52,7 @@ case class MyPreAnalysis(
     }
     def +(sliceSet: Set[CGNode]): MyPreAnalysis = {
         new MyPreAnalysis(this) with BackwardSliceFilter {
-            override val initialSet = sliceSet
+            override val initialSet = sliceSet.toSet
         }
     }
 

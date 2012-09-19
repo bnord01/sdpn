@@ -28,7 +28,7 @@ object DPNExplorerRunner {
         val confSet: scala.collection.Set[CGNode] = asScalaSet(cg.getNodes(mr))
 
         val analysis2 = if (SDPNTestProps.get.slicing) new MyPreAnalysis(analysis) with BackwardSliceFilter {
-            val initialSet = confSet
+            val initialSet = confSet.toSet
         }
         else analysis
 

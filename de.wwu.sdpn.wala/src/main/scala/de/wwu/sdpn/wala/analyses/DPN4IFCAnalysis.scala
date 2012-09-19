@@ -42,7 +42,7 @@ import de.wwu.sdpn.core.ta.xsb.cuts.IFlowNoOverwrite
 import de.wwu.sdpn.core.util.IProgressMonitor
 import de.wwu.sdpn.core.util.SubProgressMonitor
 import de.wwu.sdpn.core.util.ProgressMonitorUtil._
-
+import com.codahale.logula.Logging
 /**
  * Interface class to use for integration of sDPN with Joana.
  *
@@ -75,14 +75,16 @@ import de.wwu.sdpn.core.util.ProgressMonitorUtil._
  *
  * @author Benedikt Nordhoff
  */
-class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
+class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
     type MDPN = MonitorDPN[GlobalState, StackSymbol, DPNAction, InstanceKey]
 
     protected var possibleLocks: Set[InstanceKey] = null
-    protected var lockUsages: Map[InstanceKey, (Set[CGNode], Boolean)] = null
+    protected var lockUsages: Map[InstanceKey, Set[CGNode]] = null
+    protected var unsafeLockUsages: Map[InstanceKey, Set[CGNode]] = null
     protected var waitMap: Map[CGNode, scala.collection.Set[InstanceKey]] = null
     protected var includeLockLocations = true
     protected var uniqueInstances: Set[InstanceKey] = null
+    protected var randomIsolation = false
 
     protected var lockFilter: InstanceKey => Boolean = defaultLockFilter
 
@@ -96,13 +98,10 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
             ClassLoaderReference.Application.equals(x.getConcreteType().getClassLoader().getReference())
         case _ => false
     }
-    
-    protected def isConstantKey: InstanceKey => Boolean = _.isInstanceOf[ConstantKey[_]]
-    
 
     /**
      * Should locations of used locks be factored in when pruning the call graph for DPN generation.
-     * This increases precision and cost of the analysis.
+     * This increases precision and cost of the analysis. This doesn't introduce new locks to the DPN.
      * @param value The new value for includeLockLocations.
      */
     def setIncludeLockLocations(value: Boolean) { includeLockLocations = value }
@@ -169,30 +168,60 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
     def getLockFilter = lockFilter
 
     /**
+     * Set whether random isolation should be applied to the object corresponding to the field.
+     */
+    def setRandomIsolation(value: Boolean) {
+        randomIsolation = value
+    }
+
+    def getRandomIsolation = randomIsolation
+
+    /**
      * Initialize this analysis by calculating possible locks and the wait map.
      * @param pm0 The progress monitor used to report progress, with default value null.
      */
     def init(pm: IProgressMonitor = null) {
-
+        log.trace("Entered init")
         try {
+            log.info("Initializing DPN-based analysis")
+            log.debug("""Settings are
+! lockLocations:     %s
+! randomIsolation:   %s
+! defaultLockFilter: %s""", includeLockLocations, randomIsolation, lockFilter == defaultLockFilter)
             beginTask(pm, "Initialyizing DPN-based analyses", 3)
 
+            log.info("Identifying unique instances")
             subTask(pm, "Identifying unique instances")
             val ui = UniqueInstanceLocator.instances(cg, pa)
             uniqueInstances = ui
+            log.info("Identified %d unique instances", ui.size)
+            if (log.isDebugEnabled)
+                log.debug("Uniques instances are: %n! %s", ui.mkString(",\n! "))
+
             worked(pm, 1)
 
+            log.info("Identifying lock usages")
             subTask(pm, "Identifying lock usages")
-            val loi = LockWithOriginLocator.instances(cg, pa)
-            lockUsages = loi.filter(p => (p._2._2 || ui(p._1)))
+            unsafeLockUsages = LockWithOriginLocator.instances(cg, pa)
+            lockUsages = unsafeLockUsages.filterKeys(x => UniqueInstanceLocator.isConstantKey(x) || ui(x))
             possibleLocks = lockUsages.keySet
+            log.info("Identified %d lock usages (also unsafe)", unsafeLockUsages.size)
+            if (log.isDebugEnabled)
+                log.debug("Lock usages are: %n! %s", unsafeLockUsages.mkString(",\n! "))
+            log.info("Identified %d possible locks", possibleLocks.size)
+            if (log.isDebugEnabled)
+                log.debug("Possible locks are: %n! %s", possibleLocks.mkString(",! \n"))
             worked(pm, 1)
 
+            log.info("Identifying wait() calls")
             subTask(pm, "Locating wait() calls")
-            val wmc = new WaitMap(new MyPreAnalysis(cg, pa), possibleLocks)
+            val wmLocks = if (randomIsolation) unsafeLockUsages.keySet else possibleLocks
+            val wmc = new WaitMap(new MyPreAnalysis(cg, pa), wmLocks)
             waitMap = wmc.waitMap
+            log.info("Done identifying wait() calls")
             worked(pm, 1)
         } finally { done(pm) }
+        log.trace("Exiting init")
     }
 
     /**
@@ -201,19 +230,29 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
      * @return a Monitor DPN
      */
     def genMDPN(pruneSet: Set[CGNode]): MDPN = {
+        log.trace("Entered genMDPN")
         var ss0 = pruneSet
         if (includeLockLocations) {
-            for ((ik, (nodes, _)) <- lockUsages; node <- nodes)
-                if (lockFilter(ik)
-                    && !waitMap(node)(ik))
-                    ss0 += node
+            log.info("Identifying relevant locks")
+            // Nodes from which the pruning criteria is reachable
+            ss0 = BackwardSliceFilter.backwardSlice(cg, pruneSet)
+            // Collect locks which are used in these nodes and add all nodes in which they are also used 
+            val lockNodes = for {
+                (ik, nodes) <- lockUsages if !(nodes intersect ss0 isEmpty); // a lock with is used in an interesting node
+                node <- nodes if (lockFilter(ik) && !waitMap(node)(ik)) // without an wati
+            } yield node
+            ss0 ++= lockNodes
         }
+
         val prea = new MyPreAnalysis(cg, pa) with BackwardSliceFilter {
             override def initialSet = ss0
             override def safeLock(ik: InstanceKey, node: CGNode) = possibleLocks(ik) && lockFilter(ik) && !waitMap(node)(ik)
         }
-        val dpnFac = new MonitorDPNFactory(prea,false)
-        return dpnFac.getDPN
+        val dpnFac = new MonitorDPNFactory(prea, false)
+        val dpn = dpnFac.getDPN
+        log.debug("Generated MDPN size: %s, locks %s", dpn.transitions.size, dpn.locks.size)
+        log.trace("Exiting genMDPN")
+        return dpn
     }
 
     /**
@@ -237,15 +276,19 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
     @throws(classOf[IllegalArgumentException])
     @throws(classOf[RuntimeException])
     @throws(classOf[CancelException])
-    def mayHappenSuccessively(writePos: StackSymbol, readPos: StackSymbol, pm: IProgressMonitor = null, timeout:Long = 0): Boolean = {
+    def mayHappenSuccessively(writePos: StackSymbol, readPos: StackSymbol, pm: IProgressMonitor = null, timeout: Long = 0): Boolean = {
+        log.trace("Entered mayHappenSuccessively")
         beginTask(pm, "Running DPN-based interference check", 3)
         try {
             val pm1 = new SubProgressMonitor(pm, 1)
             val (td, bu) = genWeakAutomata(writePos, readPos, pm1)
             val icheck = new IntersectionEmptinessCheck(td, bu) { override val name = "ifccheck" }
             val pm2 = new SubProgressMonitor(pm, 2)
-
-            return !XSBInterRunner.runCheck(icheck, pm2,timeout)
+            log.debug("Calling emptiness check")
+            val res = !XSBInterRunner.runCheck(icheck, pm2, timeout)
+            log.debug("Empiness check returned %s (%sflow possible)", !res, if (res) "" else "no ")
+            log.trace("Exiting mayHappenSuccessively")
+            return res
         } finally {
             done(pm)
         }
@@ -273,7 +316,8 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
     @throws(classOf[IllegalArgumentException])
     @throws(classOf[RuntimeException])
     @throws(classOf[CancelException])
-    def mayHappenInParallel(posOne: StackSymbol, posTwo: StackSymbol, pm: IProgressMonitor = null,timeout:Long=0): Boolean = {
+    def mayHappenInParallel(posOne: StackSymbol, posTwo: StackSymbol, pm: IProgressMonitor = null, timeout: Long = 0): Boolean = {
+        log.trace("Entered mayHappenInParallel")
         beginTask(pm, "Running DPN-based MHP check", 5)
         try {
             subTask(pm, "Generating MonitorDPN")
@@ -286,8 +330,11 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
             val icheck = new IntersectionEmptinessCheck(td, bu) { override val name = "mhpcheck" }
             worked(pm, 1)
             val pm2 = new SubProgressMonitor(pm, 3)
-
-            return !XSBInterRunner.runCheck(icheck, pm2,timeout)
+            log.debug("Calling emptienss check")
+            val res = !XSBInterRunner.runCheck(icheck, pm2, timeout)
+            log.debug("Emptiness check returned %s (may %shappen in parellel)", !res, if (res) "" else "not ")
+            log.trace("Exiting mayHappenInParallel")
+            return res
         } finally {
             done(pm)
         }
@@ -305,15 +352,18 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
     protected def genWeakAutomata(writePos: StackSymbol, readPos: StackSymbol, pm: IProgressMonitor = null): (ScriptTreeAutomata, ScriptTreeAutomata) = {
 
         try {
-            beginTask(pm, "Generating automata for interference check", 2)
-
+            beginTask(pm, "Generating weak automata for interference check", 2)
+            log.info("Generating MonitorDPN for interference check")
             subTask(pm, "Generating MonitorDPN")
             val dpn = genMDPN(Set(readPos.node, writePos.node))
             worked(pm, 1)
 
+            log.info("DPN generated size: %d, locks: %d", dpn.getTransitions.size, dpn.locks.size)
+
             val lockSens = !dpn.locks.isEmpty
 
             subTask(pm, "Generating tree automata")
+            log.info("Generating tree automata")
 
             //The automata representing the lock insensitive  control flow of the DPN 
             val cflow = new MDPN2CutTA(dpn)
@@ -369,17 +419,22 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
 
             worked(pm, 1)
 
+            log.info("Tree automata generated")
+
             return (topDown, bottomUp)
 
         } finally { done(pm) }
 
     }
 
-    def mayFlowFromTo(writeNode: CGNode, writeIdx: Int, readNode: CGNode, readIdx: Int, pm: IProgressMonitor = null,timeout:Long = 0): Boolean = {
+    def mayFlowFromTo(writeNode: CGNode, writeIdx: Int, readNode: CGNode, readIdx: Int, pm: IProgressMonitor = null, timeout: Long = 0): Boolean = {
+        log.debug("Entered mayFlowFromTo")
+        log.debug("writeNode: (%s,%d), readNode: (%s,%d), timeout: %d", writeNode, writeIdx, readNode, readIdx, timeout)
         beginTask(pm, "Running DPN-based interference check", 5)
         try {
+            log.info("Running DPN-based interference check")
             subTask(pm, "Identifying fields")
-            val writePos = getSS4NodeAndIndex(writeNode, writeIdx,true)
+            val writePos = getSS4NodeAndIndex(writeNode, writeIdx, true)
             val readPos = getSS4NodeAndIndex(readNode, readIdx)
 
             val wi = writeNode.getIR().getInstructions()(writeIdx)
@@ -389,12 +444,12 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
 
             // this must be some kind of array field or something
             if (!isRegularFieldAccess) {
-            	val pm1 = new SubProgressMonitor(pm, 4)
+                log.info("Non regular field, running weak check")
+                val pm1 = new SubProgressMonitor(pm, 4)
                 val result = mayHappenSuccessively(writePos, readPos, pm1, timeout)
                 return result
             }
-
-            
+            log.info("Regular field, identifiying field")
             require(wi.isInstanceOf[SSAPutInstruction], "Write instruction isn't instance of SSAPutInstruction: " + wi)
             require(ri.isInstanceOf[SSAGetInstruction], "Read instruction isn't instance of SSAGetInstruction: " + ri)
 
@@ -406,29 +461,36 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
 
             require(readName == writeName, "Instructions refer to differently named fields read: " + readName + " write: " + writeName)
             val fieldName = readName
+            log.info("Field name: %s", fieldName)
 
             val writeObs = FieldUtil.getIKS4FieldInstr(pa, writeNode, writeInstr)
             val readObs = FieldUtil.getIKS4FieldInstr(pa, readNode, readInstr)
 
             val interObs = writeObs intersect readObs
+            log.debug("Abstract objects for write:       %s", writeObs)
+            log.debug("Abstract objects for read:        %s", readObs)
+            log.debug("Abstract objects in intersection: %s", interObs)
 
             //no shared instance keys means no flow possible, but we would wan't joana to check for this!
             require(!(interObs isEmpty), "No shared instance keys for field found!")
 
-
-            val uniqueInterObs = interObs filter(key => uniqueInstances(key) || isConstantKey(key))
+            val uniqueInterObs = interObs filter (key => uniqueInstances(key) || UniqueInstanceLocator.isConstantKey(key))
             if ((interObs size) > 1 || (uniqueInterObs isEmpty)) {
                 System.err.println("No safe killings, running weak check. %n interObs: %s %n uniqueInterObs: %s".
-                        format(interObs.mkString("\n\t","\n\t",""),
-                                uniqueInterObs.mkString("\n\t","\n\t","\n")))
+                    format(interObs.mkString("\n\t", "\n\t", ""),
+                        uniqueInterObs.mkString("\n\t", "\n\t", "\n")))
                 val pm1 = new SubProgressMonitor(pm, 4)
                 // There may be multiple instances which correspond to this interference we can't interpret any killing definitions
-                return mayHappenSuccessively(writePos, readPos, pm1,timeout)
+                log.info("No single unique object in intersection running weak check")
+                return mayHappenSuccessively(writePos, readPos, pm1, timeout)
             }
 
             assert(uniqueInterObs.size == 1, "I'm with stupid. I've written rubish above.")
 
             val fieldObj = uniqueInterObs head
+
+            log.info("Single unique object running strong check")
+            log.debug("Unique object: %s", fieldObj)
 
             object FieldOverwriteAnnotater extends DPNAnnotater[GlobalState, StackSymbol, DPNAction] {
                 override type RuleAnnotation = String
@@ -457,8 +519,11 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
             val icheck = new IntersectionEmptinessCheck(td, bu) { override val name = "ifccheck" }
             val pm2 = new SubProgressMonitor(pm, 3)
 
-            return !XSBInterRunner.runCheck(icheck, pm2,timeout)
-            		
+            log.info("Calling emptiness check")
+            val res = !XSBInterRunner.runCheck(icheck, pm2, timeout)
+            log.info("Emptiness check returned %s (%sflow possible)", !res, if (res) "" else "no ")
+            return res
+
             /* Alternative using the new iterable analysis  
              	val pruneSet = Set(writeNode, readNode)
                 val dpn = genMDPN(pruneSet)
@@ -586,7 +651,6 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
      */
     def getSS4Node(node: CGNode) = StackSymbol(node, 0, 0)
 
-    
     /**
      * Obtains the StackSymbol representing the point just ''before'' the
      * instruction corresponding to the given instructionIndex or ''after'' if ''afterInstruction'' is true.
@@ -595,9 +659,8 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
      * @param instructionIndex An index of an instruction within the array node.getIR.getInstructions
      * @return A corresponding stack symbol
      */
-    def getSS4NodeAndIndex(node: CGNode, instructionIndex: Int): StackSymbol = getSS4NodeAndIndex(node,instructionIndex,false)
-        
-    
+    def getSS4NodeAndIndex(node: CGNode, instructionIndex: Int): StackSymbol = getSS4NodeAndIndex(node, instructionIndex, false)
+
     /**
      * Obtains the StackSymbol representing the point just ''before'' the
      * instruction corresponding to the given instructionIndex or ''after'' if ''afterInstruction'' is true.
@@ -606,7 +669,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
      * @param instructionIndex An index of an instruction within the array node.getIR.getInstructions
      * @return A corresponding stack symbol
      */
-    def getSS4NodeAndIndex(node: CGNode, instructionIndex: Int,afterInstruction:Boolean): StackSymbol = {
+    def getSS4NodeAndIndex(node: CGNode, instructionIndex: Int, afterInstruction: Boolean): StackSymbol = {
         val ir = node.getIR
         val cfg = ir.getControlFlowGraph
 
@@ -627,7 +690,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) {
                 index += 1
             }
         }
-        if(afterInstruction)
+        if (afterInstruction)
             index += 1
         return StackSymbol(node, bb.getNumber, index)
     }

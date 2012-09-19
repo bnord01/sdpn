@@ -51,3 +51,13 @@ trait PreAnalysis {
     def safeLock(ik: InstanceKey, node: CGNode):Boolean
 
 }
+
+class EmptyPA extends PreAnalysis {
+    def cha: IClassHierarchy = null
+    def cg: CallGraph = null
+    def pa: PointerAnalysis = null
+    def isThreadStart(cgnode: CGNode): Boolean = false
+    def entryNode : CGNode = null
+    def isInteresting(n: CGNode):Boolean = false
+    def safeLock(ik: InstanceKey, node: CGNode):Boolean = false
+}

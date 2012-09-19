@@ -20,6 +20,8 @@ libraryDependencies += "org.scala-lang" % "scala-swing" % "2.9.2"
 
 libraryDependencies += "com.novocode" % "junit-interface" % "0.8" % "test"
 
+libraryDependencies += "com.declarativa" % "interprolog" % "2.1.2a4"
+
 publishTo := Some(Resolver.file("file",  new File(Path.userHome.absolutePath+"/.m2/repository")))
 
 //addCompilerPlugin("org.scala-tools.sxr" %% "sxr" % "0.2.7")

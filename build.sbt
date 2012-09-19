@@ -6,14 +6,16 @@ organization := "de.wwu"
 
 scalaVersion := "2.9.2"
 
-fork in (Test,run) := true
-
-javaOptions in (Test,run) += "-Xmx2G"
 
 // sets the working directory for `test:run` and `test:run-main` only
 // doesn't work as expected
-//baseDirectory in (Test,run) <<= baseDirectory( _ /"de.wwu.sdpn.core")
+baseDirectory in (Test,run) <<= baseDirectory( _ /"de.wwu.sdpn.core")
 
+baseDirectory in test <<= baseDirectory( _ /"de.wwu.sdpn.core")
+
+fork in (Test,run) := true
+
+javaOptions in (Test,run) += "-Xmx2G"
 
 resolvers += "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/.m2/repository"
 

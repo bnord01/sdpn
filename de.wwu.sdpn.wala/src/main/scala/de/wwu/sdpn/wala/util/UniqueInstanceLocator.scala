@@ -52,7 +52,7 @@ trait UniqueInstanceLocator {
 object UniqueInstanceLocator {
   def instances(cg1: CallGraph, pa1: PointerAnalysis):Set[InstanceKey] = {
     val uic = new UniqueInstanceLocator {def cg = cg1;def pa=pa1};
-    return uic.uniqueInstances
-    
+    return uic.uniqueInstances    
   }
+  def isConstantKey(x:InstanceKey) = x.isInstanceOf[ConstantKey[_]]
 }

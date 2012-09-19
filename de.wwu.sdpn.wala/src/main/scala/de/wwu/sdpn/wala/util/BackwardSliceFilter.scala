@@ -1,9 +1,8 @@
 package de.wwu.sdpn.wala.util
 
 import scala.collection.JavaConversions.asScalaIterator
-import scala.collection.Set
-
 import com.ibm.wala.ipa.callgraph.CGNode
+import com.ibm.wala.ipa.callgraph.CallGraph
 
 /**
  * Trait to be mixed in with a PreAnalysis.
@@ -16,7 +15,7 @@ trait BackwardSliceFilter {
     this: PreAnalysis =>
     def initialSet: Set[CGNode]
 
-    private lazy val accessibleNodes = calcAccessibleNodes
+    lazy val accessibleNodes = calcAccessibleNodes
 
     def calcAccessibleNodes: Set[CGNode] = {
         val taNodes = scala.collection.mutable.Set[CGNode]()
@@ -27,12 +26,20 @@ trait BackwardSliceFilter {
                 cg.getPredNodes(node).foreach(addNode(_))
             }
         }
-
         initialSet.foreach(addNode(_))
-        return taNodes
-
+        return taNodes.toSet
     }
 
     override def isInteresting(node: CGNode) = accessibleNodes(node)
 
+}
+
+object BackwardSliceFilter {
+    def backwardSlice(cg0:CallGraph, init:Set[CGNode]): Set[CGNode] = {
+        val bsf = new EmptyPA with BackwardSliceFilter {
+            val initialSet = init
+            override val cg = cg0            
+        }
+        bsf.accessibleNodes
+    }
 }
