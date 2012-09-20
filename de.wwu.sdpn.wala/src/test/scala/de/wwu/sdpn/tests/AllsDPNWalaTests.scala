@@ -7,6 +7,7 @@ import de.wwu.sdpn.tests.analyses.DPN4IFCTest
 import de.wwu.sdpn.tests.analyses.SimpleAnalysesTest
 import de.wwu.sdpn.tests.randomisolation.SimpleRITest
 import de.wwu.sdpn.tests.util.UtilTest
+import de.wwu.sdpn.tests.analyses.DPN4IFCAnalysisMFTest
 
 /**
  * Suit to run all wala specific sdpn tests.
@@ -18,6 +19,7 @@ import de.wwu.sdpn.tests.util.UtilTest
     classOf[SimpleAnalysesTest],
     classOf[DataraceAnalysisTest],
     classOf[DPN4IFCTest],
+    classOf[DPN4IFCAnalysisMFTest],
     classOf[SimpleRITest],
     classOf[UtilTest]
 ))

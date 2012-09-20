@@ -566,7 +566,18 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
 
             subTask(pm, "Generating MonitorDPN")
             val dpn = genMDPN(Set(readPos.node, writePos.node))
+            //Debug code explore DPN 
+            //            de.wwu.sdpn.core.gui.MonitorDPNView.show(dpn, true);
+            //            Thread.sleep(10000000)
+            //End debug code
             worked(pm, 1)
+
+            if (log.isTraceEnabled) {
+                val rs = for (r <- dpn.transitions; if r.inSymbol == readPos) yield r.action
+                val ws = dpn.transitions.collect{case r@BaseRule(_,_,a,_,s) if s == writePos => a}
+                log.trace("Incoming transitions for write sack symbol: %s", ws)
+                log.trace("Outgoing transitions for read sack symbol:  %s", rs)
+            }
 
             val lockSens = !dpn.locks.isEmpty
 

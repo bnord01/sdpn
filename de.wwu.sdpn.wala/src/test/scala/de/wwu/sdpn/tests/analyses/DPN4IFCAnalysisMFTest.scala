@@ -25,13 +25,13 @@ import com.ibm.wala.ipa.callgraph.CGNode
  * Utilizes classes bnord.unittests.dpn4ifc.BSP0x
  * Assumes read in p1()V and write in p2()V
  */
-object DPN4IFCTest2 {
+object DPN4IFCAnalysisMFTest {
 
     var stuff: Map[Int, (CallGraph, PointerAnalysis, CGNode, CGNode)] = Map()
 
     @BeforeClass
     def setUp() {
-        for (i <- 1 to 3) {
+        for (i <- 1 to 6) {
             val (cg, pa) = SimpleAnalyses.getCGandPAfromCP(SDPNTestProps.get.classPath, "Lbnord/unittests/dpn4ifc/BSP0" + i)
             val ip1 = mrr("bnord.unittests.dpn4ifc.BSP0" + i + ".p1()V", cg.getClassHierarchy())
             val ip2 = mrr("bnord.unittests.dpn4ifc.BSP0" + i + ".p2()V", cg.getClassHierarchy())
@@ -87,11 +87,11 @@ object DPN4IFCTest2 {
     def suite(): junit.framework.Test = new JUnit4TestAdapter(classOf[DPN4IFCTest])
 }
 
-class DPN4IFCTest2 {
-    import DPN4IFCTest2.stuff
+class DPN4IFCAnalysisMFTest {
+    import DPN4IFCAnalysisMFTest.stuff
 
     @Test
-    def printIR1 = printIR(1)
+    def printIRNr = printIR(6)
 
     def printIR(i: Int) {
         val (cg, pa) = SimpleAnalyses.getCGandPAfromCP(SDPNTestProps.get.classPath, "Lbnord/unittests/dpn4ifc/BSP0" + i)
@@ -109,14 +109,32 @@ class DPN4IFCTest2 {
     }
 
     @Test
-    def testBSP01MF {
-        val (cg, pa, readNode, writeNode) = stuff(1)
+    def testBSP01MF = testMF(1,10,5,false)
+    
+    @Test
+    def testBSP02MF = testMF(2,16,5,true)
+    
+    @Test
+    def testBSP03MF = testMF(3,2,1,false)
+    
+    @Test
+    def testBSP04MF = testMF(4,2,1,false)
+    
+    @Test // No exceptions on static fields, no flow if writer kills afterwards
+    def testBSP05MF = testMF(5,0,1,false)
+    
+    @Test // Exceptions on non static fields allow flow if writer kills afterwards
+    def testBSP06MF = testMF(6,1,2,true)
+
+    def testMF(nr: Int, readIdxP1: Int, writeIdxP2: Int, flowExpected: Boolean) {
+        val (cg, pa, readNode, writeNode) = stuff(nr)
         val dia = new DPN4IFCAnalysis(cg, pa)
         dia.init()
-        val readIdx = 10
-        val writeIdx = 5
-        val res = dia.mayFlowFromTo(writeNode, writeIdx, readNode, readIdx)
-        assertFalse("there should be no flow", res)
+        val res = dia.mayFlowFromTo(writeNode, writeIdxP2, readNode, readIdxP1)
+        if (flowExpected)
+            assertEquals("there should be flow", flowExpected, res)
+        else
+            assertEquals("there should be no flow", flowExpected, res)
     }
 
     def mrr(methodSig: String, cha: IClassHierarchy): IMethod = {
