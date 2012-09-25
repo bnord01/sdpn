@@ -28,7 +28,7 @@ class RIDPN[GS, SS <% HTR <% CGNode](
     type RS = RISymbol[InstanceKey, SS]
     type Lock = InstanceKey
 
-    private implicit def ikToTerm(ik: InstanceKey) = new HTR {
+    implicit def ikToTerm(ik: InstanceKey) = new HTR {
         def toTerm = {
             assert(ik == isolationKey, "Tried to convert instance key other than the one beeing isolated")
             ikTerm
@@ -50,6 +50,13 @@ class RIDPN[GS, SS <% HTR <% CGNode](
             else
                 NotIsolated[InstanceKey, SS](ss)
         }
+    }
+
+    def getIsolated(ss: SS): RS = {
+        if (canBeIsolated(ss))
+            Isolated(isolationKey, ss)
+        else
+            NotIsolated[InstanceKey, SS](ss)
     }
 
     for (rule <- dpn.getTransitions) {
@@ -74,48 +81,56 @@ class RIDPN[GS, SS <% HTR <% CGNode](
                 if (canBeIsolated(s1)) {
                     if (isCallOnSameObject(s1, a)) {
                         if (canBeIsolated(sc)) {
-                            if (isLockOnThisPointer(a, sc)) { 
+                            if (isLockOnThisPointer(a, sc)) {
                                 tlocks += isolationKey
                                 addTransition(PushRule(g1, Isolated(isolationKey, s1),
-                                    actionForThisLock(a,sc),
+                                    actionForThisLock(a, sc),
                                     g2, Isolated(isolationKey, sc),
                                     Isolated(isolationKey, sr)))
-                            } else {
+                            } else { // no lock on this pointer
                                 addTransition(PushRule(g1, Isolated(isolationKey, s1), a, g2, Isolated(isolationKey, sc), Isolated(isolationKey, sr)))
                             }
                             addTransition(PushRule(g1, Summary(s1), a, g2, Summary(sc), Summary(sr)))
-                        } else {
+                        } else { // called method can't be isolated
                             addTransition(PushRule(g1, Summary(s1), a, g2, NotIsolated(sc), Summary(sr)))
                         }
                     } else { // no call on same object
                         if (canBeIsolated(sc)) {
                             if (isLockOnThisPointer(a, sc)) {
+                                tlocks += isolationKey
                                 addTransition(PushRule(g1, Isolated(isolationKey, s1),
-                                    actionForThisLock(a,sc),
+                                    actionForThisLock(a, sc),
                                     g2, Isolated(isolationKey, sc),
                                     Isolated(isolationKey, sr)))
                                 addTransition(PushRule(g1, Summary(s1),
-                                    actionForThisLock(a,sc),
+                                    actionForThisLock(a, sc),
                                     g2, Isolated(isolationKey, sc),
                                     Summary(sr)))
-                            } else {
+                            } else { // no lock on this pointer
                                 addTransition(PushRule(g1, Isolated(isolationKey, s1), a, g2, Isolated(isolationKey, sc), Isolated(isolationKey, sr)))
                                 addTransition(PushRule(g1, Summary(s1), a, g2, Isolated(isolationKey, sc), Summary(sr)))
-                            }
+                            } // still be isolated 
                             addTransition(PushRule(g1, Isolated(isolationKey, s1), a, g2, Summary(sc), Isolated(isolationKey, sr)))
                             addTransition(PushRule(g1, Summary(s1), a, g2, Summary(sc), Summary(sr)))
-
-                        } else {
+                        } else { //called method can't be isolated
                             addTransition(PushRule(g1, Isolated(isolationKey, s1), a, g2, NotIsolated(sc), Isolated(isolationKey, sr)))
                             addTransition(PushRule(g1, Summary(s1), a, g2, NotIsolated(sc), Summary(sr)))
                         }
 
                     }
-                } else {
+                } else { // the calling method can't be isolated
                     if (canBeIsolated(sc)) {
-                        addTransition(PushRule(g1, NotIsolated(s1), a, g2, Isolated(isolationKey, sc), NotIsolated(sr)))
+                        if (isLockOnThisPointer(a, sc)) {
+                            tlocks += isolationKey
+                            addTransition(PushRule(g1, NotIsolated(s1),
+                                actionForThisLock(a, sc),
+                                g2, Isolated(isolationKey, sc),
+                                NotIsolated(sr)))
+                        } else { // no lock on this pointer
+                            addTransition(PushRule(g1, NotIsolated(s1), a, g2, Isolated(isolationKey, sc), NotIsolated(sr)))
+                        }
                         addTransition(PushRule(g1, NotIsolated(s1), a, g2, Summary(sc), NotIsolated(sr)))
-                    } else {
+                    } else { // called method can't be isolated
                         addTransition(PushRule(g1, NotIsolated(s1), a, g2, NotIsolated(sc), NotIsolated(sr)))
                         addTransition(PushRule(g1, NotIsolated(s1), a, g2, NotIsolated(sc), NotIsolated(sr)))
                     }
@@ -277,7 +292,7 @@ class RIDPN[GS, SS <% HTR <% CGNode](
                 sa match {
                     case ii: SSAAbstractInvokeInstruction =>
                         val vn = node.getIR.getSymbolTable().getParameter(0)
-                        vn == ii.getReceiver()
+                        !(node.getMethod().isStatic()) && vn == ii.getReceiver()
                     case _ => true
                 }
         }

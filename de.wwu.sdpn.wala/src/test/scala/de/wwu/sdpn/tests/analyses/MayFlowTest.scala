@@ -25,13 +25,13 @@ import com.ibm.wala.ipa.callgraph.CGNode
  * Utilizes classes bnord.unittests.dpn4ifc.BSP0x
  * Assumes read in p1()V and write in p2()V
  */
-object DPN4IFCAnalysisMFTest {
+object MayFlowTest {
 
     var stuff: Map[Int, (CallGraph, PointerAnalysis, CGNode, CGNode)] = Map()
 
     @BeforeClass
     def setUp() {
-        for (i <- 1 to 6) {
+        for (i <- 1 to 9) {
             val (cg, pa) = SimpleAnalyses.getCGandPAfromCP(SDPNTestProps.get.classPath, "Lbnord/unittests/dpn4ifc/BSP0" + i)
             val ip1 = mrr("bnord.unittests.dpn4ifc.BSP0" + i + ".p1()V", cg.getClassHierarchy())
             val ip2 = mrr("bnord.unittests.dpn4ifc.BSP0" + i + ".p2()V", cg.getClassHierarchy())
@@ -84,14 +84,14 @@ object DPN4IFCAnalysisMFTest {
     /**
      * test suite for JUnit3 and SBT compatibility
      */
-    def suite(): junit.framework.Test = new JUnit4TestAdapter(classOf[DPN4IFCTest])
+    def suite(): junit.framework.Test = new JUnit4TestAdapter(classOf[MayFlowTest])
 }
 
-class DPN4IFCAnalysisMFTest {
-    import DPN4IFCAnalysisMFTest.stuff
+class MayFlowTest {
+    import MayFlowTest.stuff
 
     @Test
-    def printIRNr = printIR(6)
+    def printIRNr = printIR(8)
 
     def printIR(i: Int) {
         val (cg, pa) = SimpleAnalyses.getCGandPAfromCP(SDPNTestProps.get.classPath, "Lbnord/unittests/dpn4ifc/BSP0" + i)
@@ -125,6 +125,15 @@ class DPN4IFCAnalysisMFTest {
     
     @Test // Exceptions on non static fields allow flow if writer kills afterwards
     def testBSP06MF = testMF(6,1,2,true)
+    
+    @Test // Killing in method called by reader
+    def testBSP07MF = testMF(7,3,2,false)
+    
+    @Test // Killed by reader utilizing random isolation
+    def testBSP08MF = testMF(8,4,2,false)
+    
+    @Test // Killing in method called by reader utilizing random isolation
+    def testBSP09MF = testMF(9,4,2,false)
 
     def testMF(nr: Int, readIdxP1: Int, writeIdxP2: Int, flowExpected: Boolean) {
         val (cg, pa, readNode, writeNode) = stuff(nr)

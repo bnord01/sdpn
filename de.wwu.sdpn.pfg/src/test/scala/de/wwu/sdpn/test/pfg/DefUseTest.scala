@@ -20,7 +20,6 @@ import de.wwu.sdpn.pfg.lattices.LMap
 import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 import de.wwu.sdpn.pfg.wala.SSAAction
 import com.ibm.wala.ssa.SSAPutInstruction
-import com.ibm.wala.types.FieldReference
 import DefUseTestUtil._
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import com.ibm.wala.ipa.callgraph.CallGraph
@@ -34,6 +33,7 @@ import de.wwu.sdpn.wala.util.DefUseUtil
 import com.ibm.wala.types.ClassLoaderReference
 import de.wwu.sdpn.pfg.fixedpoint._
 import de.wwu.sdpn.pfg.genkill.PFGVar
+import com.ibm.wala.classLoader.IField
 
 class DefUseTest {
 
@@ -48,7 +48,7 @@ class DefUseTest {
         val preAnalysis = MyPreAnalysis.getStd(cp, mc)
         val (cg, pa) = (preAnalysis.cg, preAnalysis.pa)
         
-        type Facts = LMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]]
+        type Facts = LMap[(InstanceKey, IField), LMap[BaseEdge, Boolean]]
         type DUVar = PFGVar[Facts]
         
 //        val du = new DefUse(cg, pa,subSolver=new ParFixedpointSolver[DUVar])

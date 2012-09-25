@@ -42,7 +42,14 @@ import de.wwu.sdpn.core.ta.xsb.cuts.IFlowNoOverwrite
 import de.wwu.sdpn.core.util.IProgressMonitor
 import de.wwu.sdpn.core.util.SubProgressMonitor
 import de.wwu.sdpn.core.util.ProgressMonitorUtil._
+import de.wwu.sdpn.core.ta.xsb.HasTermRepresentation
 import com.codahale.logula.Logging
+import com.ibm.wala.classLoader.IField
+import de.wwu.sdpn.wala.ri.Isolated
+import de.wwu.sdpn.wala.ri.RISymbol
+import de.wwu.sdpn.wala.ri.NotIsolated
+import de.wwu.sdpn.wala.ri.Summary
+import de.wwu.sdpn.wala.ri.RIDPN
 /**
  * Interface class to use for integration of sDPN with Joana.
  *
@@ -83,10 +90,15 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
     protected var unsafeLockUsages: Map[InstanceKey, Set[CGNode]] = null
     protected var waitMap: Map[CGNode, scala.collection.Set[InstanceKey]] = null
     protected var includeLockLocations = true
+    protected var includeOverwriteLocations = true
     protected var uniqueInstances: Set[InstanceKey] = null
     protected var randomIsolation = false
 
     protected var lockFilter: InstanceKey => Boolean = defaultLockFilter
+
+    protected lazy val cha = cg.getClassHierarchy()
+
+    protected var wm: WaitMap = null
 
     protected def defaultLockFilter: InstanceKey => Boolean = {
         case x: ConstantKey[_] =>
@@ -105,6 +117,13 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
      * @param value The new value for includeLockLocations.
      */
     def setIncludeLockLocations(value: Boolean) { includeLockLocations = value }
+
+    /**
+     * Should locations of other writes be factored in when pruning the call graph for DPN generation.
+     * This increases precision and cost of the analysis.
+     * @param value The new value for includeOverwriteLocations.
+     */
+    def setIncludeOverwriteLocations(value: Boolean) { includeOverwriteLocations = value }
 
     /**
      * Set a filter which decides for abstractable locks whether they should
@@ -163,6 +182,11 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
     def getIncludeLockLocations = includeLockLocations
 
     /**
+     * @return the value of includeOverwriteLocations
+     */
+    def getIncludeOverwriteLocations = includeOverwriteLocations
+
+    /**
      * @return the currently used lock filter
      */
     def getLockFilter = lockFilter
@@ -216,8 +240,8 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
             log.info("Identifying wait() calls")
             subTask(pm, "Locating wait() calls")
             val wmLocks = if (randomIsolation) unsafeLockUsages.keySet else possibleLocks
-            val wmc = new WaitMap(new MyPreAnalysis(cg, pa), wmLocks)
-            waitMap = wmc.waitMap
+            wm = new WaitMap(new MyPreAnalysis(cg, pa), wmLocks)
+            waitMap = wm.waitMap
             log.info("Done identifying wait() calls")
             worked(pm, 1)
         } finally { done(pm) }
@@ -430,7 +454,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
     def mayFlowFromTo(writeNode: CGNode, writeIdx: Int, readNode: CGNode, readIdx: Int, pm: IProgressMonitor = null, timeout: Long = 0): Boolean = {
         log.debug("Entered mayFlowFromTo")
         log.debug("writeNode: (%s,%d), readNode: (%s,%d), timeout: %d", writeNode, writeIdx, readNode, readIdx, timeout)
-        beginTask(pm, "Running DPN-based interference check", 5)
+        beginTask(pm, "Running DPN-based interference check", 6)
         try {
             log.info("Running DPN-based interference check")
             subTask(pm, "Identifying fields")
@@ -456,12 +480,12 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
             val writeInstr = wi.asInstanceOf[SSAPutInstruction]
             val readInstr = ri.asInstanceOf[SSAGetInstruction]
 
-            val readName = readInstr.getDeclaredField().getName()
-            val writeName = writeInstr.getDeclaredField().getName()
+            val readField = cha.resolveField(readInstr.getDeclaredField())
+            val writeField = cha.resolveField(writeInstr.getDeclaredField())
 
-            require(readName == writeName, "Instructions refer to differently named fields read: " + readName + " write: " + writeName)
-            val fieldName = readName
-            log.info("Field name: %s", fieldName)
+            require(readField == writeField, "Instructions refer to differently named fields read: " + readField + " write: " + writeField)
+            val field = readField
+            log.info("Field: %s", field)
 
             val writeObs = FieldUtil.getIKS4FieldInstr(pa, writeNode, writeInstr)
             val readObs = FieldUtil.getIKS4FieldInstr(pa, readNode, readInstr)
@@ -476,75 +500,36 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
 
             val uniqueInterObs = interObs filter (key => uniqueInstances(key) || UniqueInstanceLocator.isConstantKey(key))
             if ((interObs size) > 1 || (uniqueInterObs isEmpty)) {
-                System.err.println("No safe killings, running weak check. %n interObs: %s %n uniqueInterObs: %s".
-                    format(interObs.mkString("\n\t", "\n\t", ""),
-                        uniqueInterObs.mkString("\n\t", "\n\t", "\n")))
+                if (log.isDebugEnabled)
+                    log.debug("No safe killings, running weak check. %n! interObs: %s %n! uniqueInterObs: %s", interObs.mkString("\n!\t", "\n!\t", ""),
+                        uniqueInterObs.mkString("\n!\t", "\n!\t", ""))
+
+                // Check if random isolation can be used
+                val wvn = writeNode.getIR().getSymbolTable().getParameter(0)
+                val rvn = readNode.getIR().getSymbolTable().getParameter(0)
+                if (!readNode.getMethod().isStatic() && !writeNode.getMethod().isStatic() &&
+                    wvn == writeInstr.getRef() && rvn == readInstr.getRef()) { // read and write on thispointer
+                    log.info("Applying random isolation for field accesses to this-pointer")
+                    for (fieldObj <- interObs) {
+                        if (this.runRICheckOnInstanceKey(writePos, readPos, fieldObj, field, uniqueInterObs(fieldObj), pm, timeout))
+                            return true
+                    }
+                    return false
+                }
                 val pm1 = new SubProgressMonitor(pm, 4)
+
                 // There may be multiple instances which correspond to this interference we can't interpret any killing definitions
-                log.info("No single unique object in intersection running weak check")
+                log.info("No single unique object in intersection and no possibility for random isolation -> running weak check")
                 return mayHappenSuccessively(writePos, readPos, pm1, timeout)
             }
 
-            assert(uniqueInterObs.size == 1, "I'm with stupid. I've written rubish above.")
+            assert(uniqueInterObs.size == 1, "I'm with stupid. I've written rubbish above.")
 
             val fieldObj = uniqueInterObs head
 
             log.info("Single unique object running strong check")
-            log.debug("Unique object: %s", fieldObj)
+            return runStrongCheckOnInstanceKey(writePos, readPos, fieldObj, field, pm, timeout)
 
-            object FieldOverwriteAnnotater extends DPNAnnotater[GlobalState, StackSymbol, DPNAction] {
-                override type RuleAnnotation = String
-                override def annotateRule(rule: DPNRule[GlobalState, StackSymbol, DPNAction]): String = {
-                    rule match {
-                        case BaseRule(_, StackSymbol(node, _, _), SSAAction(instr: SSAPutInstruction), _, _) =>
-                            val owrObs = FieldUtil.getIKS4FieldInstr(pa, node, instr)
-                            if (owrObs.size == 1 &&
-                                owrObs(fieldObj) &&
-                                instr.getDeclaredField().getName() == fieldName)
-                                //TODO this is unsound when there are different fields with the same name as juergen talked about on the mailing list
-                                return "write"
-                            else
-                                return "none"
-                        case _ =>
-                            return "none"
-                    }
-                }
-
-            }
-
-            worked(pm, 1)
-
-            val pm1 = new SubProgressMonitor(pm, 1)
-            val (td, bu) = genStrongAutomata(writePos, readPos, FieldOverwriteAnnotater, pm1)
-            val icheck = new IntersectionEmptinessCheck(td, bu) { override val name = "ifccheck" }
-            val pm2 = new SubProgressMonitor(pm, 3)
-
-            log.info("Calling emptiness check")
-            val res = !XSBInterRunner.runCheck(icheck, pm2, timeout)
-            log.info("Emptiness check returned %s (%sflow possible)", !res, if (res) "" else "no ")
-            return res
-
-            /* Alternative using the new iterable analysis  
-             	val pruneSet = Set(writeNode, readNode)
-                val dpn = genMDPN(pruneSet)
-                val owTrans = dpn.transitions.filter({
-                    case BaseRule(_, StackSymbol(node, _, _), SSAAction(instr: SSAPutInstruction), _, _) =>
-                        val owrObs = FieldUtil.getIKS4FieldInstr(pa, node, instr)
-                        if (owrObs.size == 1 && owrObs(fieldObj) && instr.getDeclaredField().getName() == fieldName)
-                            //TODO this is unsound when there are different fields with the same name as juergen talked about on the mailing list
-                            true
-                        else
-                            false
-                    case _ =>
-                        false
-                })
-
-                val firstConf = Set(writePos)
-                val confs = List((owTrans, Set(readPos)))
-                val lockSens = !dpn.locks.isEmpty
-
-                return de.wwu.sdpn.core.analyses.DPNReachability.runAIRCheck(dpn, firstConf, confs, true)
-             */
         } finally {
             done(pm)
         }
@@ -559,22 +544,14 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
      * @return Two [[de.wwu.sdpn.ta.ScriptTreeAutomata]] the first one to be evaluated top down the second one to be evaluated bottom up
      * by an intersection emptiness test.
      */
-    protected def genStrongAutomata(writePos: StackSymbol, readPos: StackSymbol, annotater: DPNAnnotater[GlobalState, StackSymbol, DPNAction], pm: IProgressMonitor = null): (ScriptTreeAutomata, ScriptTreeAutomata) = {
+    protected def genStrongAutomata[SS <% HasTermRepresentation, A](dpn: MonitorDPN[GlobalState, SS, A, InstanceKey], writePos: SS, readPos: SS, annotater: DPNAnnotater[GlobalState, SS, A], pm: IProgressMonitor = null): (ScriptTreeAutomata, ScriptTreeAutomata) = {
 
         try {
-            beginTask(pm, "Generating automata for interference check", 2)
-
-            subTask(pm, "Generating MonitorDPN")
-            val dpn = genMDPN(Set(readPos.node, writePos.node))
-            //Debug code explore DPN 
-            //            de.wwu.sdpn.core.gui.MonitorDPNView.show(dpn, true);
-            //            Thread.sleep(10000000)
-            //End debug code
-            worked(pm, 1)
+            beginTask(pm, "Generating automata for interference check", 1)
 
             if (log.isTraceEnabled) {
                 val rs = for (r <- dpn.transitions; if r.inSymbol == readPos) yield r.action
-                val ws = dpn.transitions.collect{case r@BaseRule(_,_,a,_,s) if s == writePos => a}
+                val ws = dpn.transitions.collect { case r @ BaseRule(_, _, a, _, s) if s == writePos => a }
                 log.trace("Incoming transitions for write sack symbol: %s", ws)
                 log.trace("Outgoing transitions for read sack symbol:  %s", rs)
             }
@@ -644,6 +621,134 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
         } finally { done(pm) }
 
     }
+
+    protected def runRICheckOnInstanceKey(writePos: StackSymbol, readPos: StackSymbol, fieldObj: InstanceKey, field: IField, isUniqueField: Boolean = false, pm: IProgressMonitor = null, timeout: Long = 0): Boolean = {
+        log.debug("Running random isolation based check on object: %s", fieldObj)
+
+        log.debug("Identifying overwrites")
+
+        val writes = FieldUtil.getFieldWrites(cg, pa, fieldObj, field) filter {
+            case (node, instr) =>
+                var res = false
+                if (isUniqueField) { // It's a unique field, check whether it's referred to by this write
+                    val owrObs = FieldUtil.getIKS4FieldInstr(pa, node, instr)
+                    if (owrObs.size == 1 &&
+                        owrObs(fieldObj) &&
+                        field == cha.resolveField(instr.getDeclaredField()))
+                        res = true
+                }
+                if (!node.getMethod().isStatic()) { // Some field check for random isolation.
+                    val vn = node.getIR.getSymbolTable().getParameter(0)
+                    if (vn == instr.getRef())
+                        res = true
+                }
+                res
+        }
+        log.debug("Identified %d possible overwrites: %s", writes.size, writes)
+
+        worked(pm, 1)
+
+        subTask(pm, "Generating MonitorDPN")
+        val dpn = genMDPN(writes.map(_._1) ++ Set(readPos.node, writePos.node))
+        //            //Debug code explore DPN 
+        //                        de.wwu.sdpn.core.gui.MonitorDPNView.show(dpn, true);
+        //                        Thread.sleep(10000000)
+        //            //End debug code
+
+        val ridpn = new RIDPN(dpn, fieldObj, "fieldObj", pa, wm)
+//        //Debug code explore RIDPN 
+//        de.wwu.sdpn.core.gui.MonitorDPNView.show(ridpn, true);
+//        Thread.sleep(10000000)
+//        //End debug code
+        log.trace("Generated RIDPN of size: %d, locks: %d", ridpn.transitions.size, ridpn.locks.size)
+        worked(pm, 1)
+
+        val pm1 = new SubProgressMonitor(pm, 1)
+
+        val annot = getRIOverwriteAnnotator(fieldObj, field, isUniqueField)
+        val iWritePos = ridpn.getIsolated(writePos)
+        val iReadPos = ridpn.getIsolated(readPos)
+        log.trace("New stack symbol for write: %s", iWritePos)
+        log.trace("New stack symbol for read:  %s", iReadPos)
+
+        val (td, bu) = genStrongAutomata(ridpn, iWritePos, iReadPos, annot, pm1)
+        val icheck = new IntersectionEmptinessCheck(td, bu) { override val name = "ifccheck" }
+        val pm2 = new SubProgressMonitor(pm, 3)
+
+        log.info("Calling emptiness check")
+        val res = !XSBInterRunner.runCheck(icheck, pm2, timeout)
+        log.info("Emptiness check returned %s (%sflow possible)", !res, if (res) "" else "no ")
+        return res
+    }
+
+    /**
+     * Runs a strong may flow check on a given field on a given instance key.
+     *
+     * It's assumed that the instance key represents a unique object.
+     * It checks whether writePos can be reached before readPos
+     * without an intervening write to the given field.
+     *
+     */
+    protected def runStrongCheckOnInstanceKey(writePos: StackSymbol, readPos: StackSymbol, fieldObj: InstanceKey, field: IField, pm: IProgressMonitor = null, timeout: Long = 0): Boolean = {
+        log.debug("Running strong check on unique object: %s", fieldObj)
+
+        log.debug("Identifying overwrites")
+
+        val writes = FieldUtil.getFieldWrites(cg, pa, fieldObj, field) filter {
+            case (node, instr) =>
+                val owrObs = FieldUtil.getIKS4FieldInstr(pa, node, instr)
+                (owrObs.size == 1 &&
+                    owrObs(fieldObj) &&
+                    field == cha.resolveField(instr.getDeclaredField()))
+        }
+        log.debug("Identified %d possible overwrites: %s", writes.size, writes)
+
+        worked(pm, 1)
+
+        subTask(pm, "Generating MonitorDPN")
+        val dpn = genMDPN(writes.map(_._1) ++ Set(readPos.node, writePos.node))
+        //            //Debug code explore DPN 
+        //                        de.wwu.sdpn.core.gui.MonitorDPNView.show(dpn, true);
+        //                        Thread.sleep(10000000)
+        //            //End debug code
+        worked(pm, 1)
+
+        val pm1 = new SubProgressMonitor(pm, 1)
+
+        val annot = getRegularOverwriteAnnotator(fieldObj, field)
+
+        val (td, bu) = genStrongAutomata(dpn, writePos, readPos, annot, pm1)
+        val icheck = new IntersectionEmptinessCheck(td, bu) { override val name = "ifccheck" }
+        val pm2 = new SubProgressMonitor(pm, 3)
+
+        log.info("Calling emptiness check")
+        val res = !XSBInterRunner.runCheck(icheck, pm2, timeout)
+        log.info("Emptiness check returned %s (%sflow possible)", !res, if (res) "" else "no ")
+        return res
+
+        /* Alternative using the new iterable analysis  
+             	val pruneSet = Set(writeNode, readNode)
+                val dpn = genMDPN(pruneSet)
+                val owTrans = dpn.transitions.filter({
+                    case BaseRule(_, StackSymbol(node, _, _), SSAAction(instr: SSAPutInstruction), _, _) =>
+                        val owrObs = FieldUtil.getIKS4FieldInstr(pa, node, instr)
+                        if (owrObs.size == 1 && owrObs(fieldObj) && instr.getDeclaredField().getName() == fieldName)
+                            //TODO this is unsound when there are different fields with the same name as juergen talked about on the mailing list
+                            true
+                        else
+                            false
+                    case _ =>
+                        false
+                })
+
+                val firstConf = Set(writePos)
+                val confs = List((owTrans, Set(readPos)))
+                val lockSens = !dpn.locks.isEmpty
+
+                return de.wwu.sdpn.core.analyses.DPNReachability.runAIRCheck(dpn, firstConf, confs, true)
+             */
+    }
+
     /**
      * Convert a CGNode plus BasicBlock index into the StackSymbol(node,bbNr,0) representing
      * the entry point of the basic block within the control flow graph corresponding to the node.
@@ -704,6 +809,76 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
         if (afterInstruction)
             index += 1
         return StackSymbol(node, bb.getNumber, index)
+    }
+
+    def getRegularOverwriteAnnotator(fieldObj: InstanceKey, field: IField) = {
+        object FieldOverwriteAnnotater extends DPNAnnotater[GlobalState, StackSymbol, DPNAction] {
+            override type RuleAnnotation = String
+            override def annotateRule(rule: DPNRule[GlobalState, StackSymbol, DPNAction]): String = {
+                rule match {
+                    case BaseRule(_, StackSymbol(node, _, _), SSAAction(instr: SSAPutInstruction), _, _) =>
+                        val owrObs = FieldUtil.getIKS4FieldInstr(pa, node, instr)
+                        if (owrObs.size == 1 &&
+                            owrObs(fieldObj) &&
+                            field == cha.resolveField(instr.getDeclaredField()))
+                            return "write"
+                        else
+                            return "none"
+                    case _ =>
+                        return "none"
+                }
+            }
+        }
+        FieldOverwriteAnnotater
+    }
+    def getRIOverwriteAnnotator(fieldObj: InstanceKey, field: IField, isUniqueField: Boolean = false) = {
+        object FieldRIOverwriteAnnotater extends DPNAnnotater[GlobalState, RISymbol[InstanceKey, StackSymbol], DPNAction] {
+            override type RuleAnnotation = String
+            override def annotateRule(rule: DPNRule[GlobalState, RISymbol[InstanceKey, StackSymbol], DPNAction]): String = {
+                val THEKEY = fieldObj // upper case identifyier for pattern matching 
+                rule match {
+                    case BaseRule(_, Isolated(THEKEY, StackSymbol(node, _, _)), SSAAction(instr: SSAPutInstruction), _, _) =>
+                        val vn = node.getIR.getSymbolTable().getParameter(0)
+                        if (!node.getMethod().isStatic() && vn == instr.getRef()) {
+                            log.trace("Added write annotation for transition on isolated object in node %s and instruction %s", node, instr)
+                            return "write"
+                        } else if (isUniqueField) {
+                            val owrObs = FieldUtil.getIKS4FieldInstr(pa, node, instr)
+                            if (owrObs.size == 1 &&
+                                owrObs(fieldObj) &&
+                                field == cha.resolveField(instr.getDeclaredField())) {
+                                log.trace("Added write annotation for transition on isolated, unique object in node %s and instruction %s", node, instr)
+                                return "write"
+                            } else return "none"
+                        } else
+                            return "none"
+                    case BaseRule(_, NotIsolated(StackSymbol(node, _, _)), SSAAction(instr: SSAPutInstruction), _, _) =>
+                        if (isUniqueField) {
+                            val owrObs = FieldUtil.getIKS4FieldInstr(pa, node, instr)
+                            if (owrObs.size == 1 &&
+                                owrObs(fieldObj) &&
+                                field == cha.resolveField(instr.getDeclaredField())) {
+                                log.trace("Added write annotation for transition on not-isolated object in node %s and instruction %s", node, instr)
+                                return "write"
+                            } else return "none"
+                        } else
+                            return "none"
+                    case BaseRule(_, Summary(StackSymbol(node, _, _)), SSAAction(instr: SSAPutInstruction), _, _) =>
+                        if (isUniqueField) {
+                            val owrObs = FieldUtil.getIKS4FieldInstr(pa, node, instr)
+                            if (owrObs.size == 1 &&
+                                owrObs(fieldObj) &&
+                                field == cha.resolveField(instr.getDeclaredField()))
+                                return "write"
+                            else return "none"
+                        } else
+                            return "none"
+                    case _ =>
+                        return "none"
+                }
+            }
+        }
+        FieldRIOverwriteAnnotater
     }
 
     def shutdown() {

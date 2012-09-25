@@ -4,7 +4,6 @@ import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import com.ibm.wala.ipa.callgraph.CallGraph
 import com.ibm.wala.ssa.SSAPutInstruction
-import com.ibm.wala.types.FieldReference
 import de.wwu.sdpn.pfg.genkill.PFGForwardGenKillSolver
 import de.wwu.sdpn.pfg.fixedpoint.BasicFixedpointSolver
 import de.wwu.sdpn.pfg.lattices.genkill.GenKill
@@ -23,20 +22,21 @@ import de.wwu.sdpn.pfg.fixedpoint.ConcurrentFixedpointSolver
 import com.ibm.wala.types.ClassLoaderReference
 import de.wwu.sdpn.pfg.fixedpoint.FixedpointSolver
 import de.wwu.sdpn.pfg.genkill.LGKStatement
+import com.ibm.wala.classLoader.IField
 
 /**
  * We calculate def/use dependencies on wala parallel flow graphs.
  *
- * For every CFGPoint we calculate for every FieldReference for every FieldReference
+ * For every CFGPoint we calculate for every IField for every IField
  * which defs (represented by BaseEdges (which contain a SSAPutInstruction)) may flow there.
  *
  */
-class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true, subSolver: FixedpointSolver[PFGVar[LMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]]],LGKStatement[LMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]]]] = null, onlyApplication:Boolean=true) {
-	type Facts = LMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]]
+class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true, subSolver: FixedpointSolver[PFGVar[LMap[(InstanceKey, IField), LMap[BaseEdge, Boolean]]],LGKStatement[LMap[(InstanceKey, IField), LMap[BaseEdge, Boolean]]]] = null, onlyApplication:Boolean=true) {
+	type Facts = LMap[(InstanceKey, IField), LMap[BaseEdge, Boolean]]
     type DUVar = PFGVar[Facts]
 	
     
-    private var p_result: Map[Node, LMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]]] = null
+    private var p_result: Map[Node, LMap[(InstanceKey, IField), LMap[BaseEdge, Boolean]]] = null
 
     private lazy val isUnique: Set[InstanceKey] = if (interpretKill) UniqueInstanceLocator.instances(cg, pa) else Set()
 
@@ -48,7 +48,8 @@ class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true, 
         new PFGForwardGenKillSolver[Facts,CGNode,Node,Action,State,Edge](pfg, getGenKill,Some(subSolver))
 
     private lazy val hm = pa.getHeapModel()
-
+    private lazy val cha = cg.getClassHierarchy()
+    
     def solve(canceled: => Boolean = false) {
         solver.solve(canceled)
         p_result = solver.results
@@ -65,9 +66,20 @@ class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true, 
 
         (srcInstr, snkInstr) match {
             case (put: SSAPutInstruction, get: SSAGetInstruction) =>
-                val field = put.getDeclaredField()
-                if(onlyApplication && field.getDeclaringClass().getClassLoader() != ClassLoaderReference.Application)
+                val fieldRef = put.getDeclaredField()                
+                if(onlyApplication && fieldRef.getDeclaringClass().getClassLoader() != ClassLoaderReference.Application)
                     return true;
+                
+                val putField = cha.resolveField(put.getDeclaredField())
+                val getField = cha.resolveField(get.getDeclaredField())
+                
+                if (getField != putField) {
+                    System.err.println("Fields don't match: " + (put, get))
+                    return false
+                }           
+                
+                val field = putField
+                
                 val putIks = getIKS4FieldInstr(srcNode, put)
                 val getIks = getIKS4FieldInstr(snkNode, get)
                 val iks = putIks intersect getIks
@@ -76,11 +88,8 @@ class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true, 
                     System.err.println("Field put and get instruktions share no common instance key: " + (put, get) + " iks: " + (putIks, getIks))
                     return false
                 }
-
-                if (field.getName() != get.getDeclaredField().getName()) {
-                    System.err.println("Field names don't match: " + (put, get))
-                    return false
-                }
+                
+                
 
                 for {
                     node <- List(Node(N, snkPnt), Node(E, snkPnt));
@@ -115,11 +124,11 @@ class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true, 
      * @param isUnique a predicate use to identify unique instance keys on which killings are interpreted
      * @param edge an edge of a WalaPFG which corresponds to the given pointer analysis
      */
-    def getGenKill(edge: Edge): GenKill[LMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]]] = {
-        val lat = implicitly[Lattice[LMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]]]]
+    def getGenKill(edge: Edge): GenKill[LMap[(InstanceKey, IField), LMap[BaseEdge, Boolean]]] = {
+        val lat = implicitly[Lattice[LMap[(InstanceKey, IField), LMap[BaseEdge, Boolean]]]]
         edge match {
             case be @ BaseEdge(Node(_, src @ CFGPoint(cgnode, _, _)), SSAAction(put: SSAPutInstruction), Node(nstate, _)) =>
-                val field = put.getDeclaredField()
+                val field = cha.resolveField(put.getDeclaredField())
                 
                 if(onlyApplication && field.getDeclaringClass().getClassLoader() != ClassLoaderReference.Application)
                     return GenKill(lat.bottom, lat.top)
@@ -128,11 +137,11 @@ class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true, 
 
                 val defs = Map() ++ (for (ik <- iks) yield ((ik, field) -> BottomMap(Map(be -> true))))
                 val kill = nstate match {
-                    case N => TopMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]](defs filterKeys { case (ik, _) => isUnique(ik) })
+                    case N => TopMap[(InstanceKey, IField), LMap[BaseEdge, Boolean]](defs filterKeys { case (ik, _) => isUnique(ik) })
                     case E => lat.top
                 }
                 GenKill(
-                    BottomMap[(InstanceKey, FieldReference), LMap[BaseEdge, Boolean]](defs),
+                    BottomMap[(InstanceKey, IField), LMap[BaseEdge, Boolean]](defs),
                     kill
                 )
 

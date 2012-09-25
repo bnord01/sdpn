@@ -30,18 +30,22 @@ import de.wwu.sdpn.wala.util.PreAnalysis
 import de.wwu.sdpn.wala.util.UniqueInstanceLocator
 import de.wwu.sdpn.wala.util.WaitMap
 import junit.framework.JUnit4TestAdapter
+import com.ibm.wala.util.strings.Atom
+import de.wwu.sdpn.wala.util.FieldUtil
 
 object UtilTest {
   var analysis: PreAnalysis = null
-
+  var fieldAnalysis: PreAnalysis = null
   @BeforeClass
   def setUp() {
     analysis = MyPreAnalysis.getStd(SDPNTestProps.get.classPath, "Lbnord/unittests/Main")
+    fieldAnalysis = MyPreAnalysis.getStd(SDPNTestProps.get.classPath, "Lbnord/unittests/fields/Test01")
   }
 
   @AfterClass
   def tearDown() {
     analysis = null
+    fieldAnalysis = null
   }
 //  
 //  /**
@@ -279,5 +283,29 @@ class UtilTest {
       assertEquals(ir.getNumberOfParameters ,1)
       assertEquals(ir.getParameter(0),1)
       
+  }
+  @Test
+  def testFieldWrites() {
+      val a = UtilTest.fieldAnalysis
+      import a.{cg,pa,cha}
+      val name = Atom.findOrCreateUnicodeAtom("field")
+      val fa = FieldUtil.getFieldWritesForName(cg, pa, name)
+      for ((nd,pi) <- fa) {
+          assert(pi.getDeclaredField().getFieldType() == pi.getDeclaredFieldType())
+          printf("""Field write
+  method of class:       %s
+  field name:            %s
+  field type:            %s
+  field declaring class: %s
+  instruction:           %s
+  ifield:                %s
+""",nd.getMethod().getDeclaringClass(),
+	pi.getDeclaredField().getName(),
+	pi.getDeclaredField().getFieldType(),
+	pi.getDeclaredField().getDeclaringClass(),
+	pi,
+	cha.resolveField(pi.getDeclaredField())
+	)
+      }
   }
 }
