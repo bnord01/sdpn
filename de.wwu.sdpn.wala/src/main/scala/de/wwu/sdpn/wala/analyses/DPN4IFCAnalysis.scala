@@ -234,7 +234,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
                 log.debug("Lock usages are: %n! %s", unsafeLockUsages.mkString(",\n! "))
             log.info("Identified %d possible locks", possibleLocks.size)
             if (log.isDebugEnabled)
-                log.debug("Possible locks are: %n! %s", possibleLocks.mkString(",! \n"))
+                log.debug("Possible locks are: %n! %s", possibleLocks.mkString(",\n! "))
             worked(pm, 1)
 
             log.info("Identifying wait() calls")
@@ -308,9 +308,9 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
             val (td, bu) = genWeakAutomata(writePos, readPos, pm1)
             val icheck = new IntersectionEmptinessCheck(td, bu) { override val name = "ifccheck" }
             val pm2 = new SubProgressMonitor(pm, 2)
-            log.debug("Calling emptiness check")
+            log.info("Calling emptiness check")
             val res = !XSBInterRunner.runCheck(icheck, pm2, timeout)
-            log.debug("Empiness check returned %s (%sflow possible)", !res, if (res) "" else "no ")
+            log.info("Empiness check returned %s (%sflow possible)", !res, if (res) "" else "no ")
             log.trace("Exiting mayHappenSuccessively")
             return res
         } finally {
@@ -354,9 +354,9 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
             val icheck = new IntersectionEmptinessCheck(td, bu) { override val name = "mhpcheck" }
             worked(pm, 1)
             val pm2 = new SubProgressMonitor(pm, 3)
-            log.debug("Calling emptienss check")
+            log.info("Calling emptienss check")
             val res = !XSBInterRunner.runCheck(icheck, pm2, timeout)
-            log.debug("Emptiness check returned %s (may %shappen in parellel)", !res, if (res) "" else "not ")
+            log.info("Emptiness check returned %s (may %shappen in parellel)", !res, if (res) "" else "not ")
             log.trace("Exiting mayHappenInParallel")
             return res
         } finally {
