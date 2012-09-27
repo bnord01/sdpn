@@ -49,8 +49,9 @@ object FieldUtil extends Logging {
         return r
     }
         
-    def getFieldWritesForName(cg: CallGraph, pa: PointerAnalysis, fieldName: Atom): Set[(CGNode, SSAPutInstruction)] = {
-        log.trace("Locating writes to field %s on object %s", fieldName)
+    def getFieldWrites(cg: CallGraph, pa: PointerAnalysis, field: IField): Set[(CGNode, SSAPutInstruction)] = {
+        log.trace("Locating all writes to field %s", field)
+        val cha = cg.getClassHierarchy()
         val s = for (
             node <- cg;
             x = node.getIR();
@@ -58,11 +59,11 @@ object FieldUtil extends Logging {
             i0 <- x.getInstructions();
             if i0.isInstanceOf[SSAPutInstruction];
             instr = i0.asInstanceOf[SSAPutInstruction];
-            if instr.getDeclaredField().getName() == fieldName 
+            if cha.resolveField(instr.getDeclaredField()) == field
         ) yield (node, instr)
         val r = s.toSet
         if (log.isTraceEnabled)
-            log.trace("Located %d writes for field %s on object %s:  %s", r.size, fieldName, r)
+            log.trace("Located %d writes for field %s:  %s", r.size, field, r)
         return r
     }        
 }

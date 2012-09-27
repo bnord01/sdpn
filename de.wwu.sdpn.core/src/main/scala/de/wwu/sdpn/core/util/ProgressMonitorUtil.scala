@@ -4,8 +4,9 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.ScheduledFuture
 import scala.sys.ShutdownHookThread
 import java.util.concurrent.ThreadFactory
+import com.codahale.logula.Logging
 
-object ProgressMonitorUtil {
+object ProgressMonitorUtil extends Logging {
 
     /**
      * Sets the main task of this progress monitor.
@@ -90,6 +91,11 @@ object ProgressMonitorUtil {
             def run() {
                 if ((pm != null && pm.isCanceled()) || kill <= System.currentTimeMillis) {
                     try {
+                        if(kill <= System.currentTimeMillis) {
+                            log.debug("Job exceeded given timeout, calling callback.")
+                        } else {
+                            log.debug("Progress monitor indicated canceling, calling callback.")
+                        }
                         cb()
                     } finally {
                         throw new Exception("Unschedule the ugly way.")

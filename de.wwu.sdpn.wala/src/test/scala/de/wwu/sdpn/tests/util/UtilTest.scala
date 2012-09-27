@@ -284,28 +284,4 @@ class UtilTest {
       assertEquals(ir.getParameter(0),1)
       
   }
-  @Test
-  def testFieldWrites() {
-      val a = UtilTest.fieldAnalysis
-      import a.{cg,pa,cha}
-      val name = Atom.findOrCreateUnicodeAtom("field")
-      val fa = FieldUtil.getFieldWritesForName(cg, pa, name)
-      for ((nd,pi) <- fa) {
-          assert(pi.getDeclaredField().getFieldType() == pi.getDeclaredFieldType())
-          printf("""Field write
-  method of class:       %s
-  field name:            %s
-  field type:            %s
-  field declaring class: %s
-  instruction:           %s
-  ifield:                %s
-""",nd.getMethod().getDeclaringClass(),
-	pi.getDeclaredField().getName(),
-	pi.getDeclaredField().getFieldType(),
-	pi.getDeclaredField().getDeclaringClass(),
-	pi,
-	cha.resolveField(pi.getDeclaredField())
-	)
-      }
-  }
 }

@@ -91,7 +91,7 @@ class MayFlowTest {
     import MayFlowTest.stuff
 
     @Test
-    def printIRNr = printIR(8)
+    def printIRNr = printIR(9)
 
     def printIR(i: Int) {
         val (cg, pa) = SimpleAnalyses.getCGandPAfromCP(SDPNTestProps.get.classPath, "Lbnord/unittests/dpn4ifc/BSP0" + i)
@@ -133,7 +133,7 @@ class MayFlowTest {
     def testBSP08MF = testMF(8,4,2,false)
     
     @Test // Killing in method called by reader utilizing random isolation
-    def testBSP09MF = testMF(9,4,2,false)
+    def testBSP09MF = testMF(9,3,2,false)
 
     def testMF(nr: Int, readIdxP1: Int, writeIdxP2: Int, flowExpected: Boolean) {
         val (cg, pa, readNode, writeNode) = stuff(nr)

@@ -17,6 +17,7 @@ import com.declarativa.interprolog.XSBSubprocessEngine
 import com.declarativa.interprolog.PrologEngine
 import scala.sys.ShutdownHookThread
 import com.codahale.logula.Logging
+import com.declarativa.interprolog.util.IPInterruptedException
 
 /**
  * This Object contains helper functions to run an XSB process and interpret the result.
@@ -29,11 +30,12 @@ object XSBInterRunner extends XSBRunner with Logging {
     private def debug = SDPNProps.get.debug
     import ProgressMonitorUtil._
     private var xsbProcess: PrologEngine = null
+    private var shutdownHook: ShutdownHookThread = null
     def XSB = {
         if (xsbProcess == null) {
             val proc = getXSBEngine(SDPNProps.get.xsbExe)
             xsbProcess = proc
-            ShutdownHookThread({ proc.shutdown() })
+            shutdownHook = ShutdownHookThread({ proc.shutdown() })
         }
         xsbProcess
     }
@@ -46,81 +48,74 @@ object XSBInterRunner extends XSBRunner with Logging {
 
     override def runCheck(check: IntersectionEmptinessCheck, pm: IProgressMonitor): Boolean = {
         runCheck(check, pm, 0)
-        //        try {
-        //            beginTask(pm, "Running XSB-based emptiness check", 5)
-        //            val out = new PrintWriter(new BufferedWriter(new FileWriter(tempFile)));
-        //            out.println(check.emptiness)
-        //            out.close()
-        //            worked(pm, 1)
-        //            val abolished = XSB.deterministicGoal("abolish_all_tables")
-        //            assert(abolished, "Could not abolish all tables. Expect wrong results!")
-        //
-        //            val loaded = XSB.consultAbsolute(tempFile)
-        //            assert(loaded, "Could not load the ")
-        //            worked(pm, 1)
-        //            if (isCanceled(pm))
-        //                throw new RuntimeException("Canceled!")
-        //            val future = listenOnCancel(pm, () => XSB.interrupt(), 1000)
-        //            try {
-        //                val rev = !XSB.deterministicGoal(check.name + "_notEmpty")
-        //                worked(pm, 3)
-        //                return rev
-        //            } finally {
-        //                delisten(future)
-        //            }
-        //        } finally {
-        //            done(pm)
-        //        }
     }
 
     def runCheck(check: IntersectionEmptinessCheck, pm: IProgressMonitor, timeout: Long): Boolean = {
         log.trace("Entered runCheck")
         try {
             beginTask(pm, "Running XSB-based emptiness check", 5)
+            // just touch XSB so that an instance get's created if this is the first time.
+            XSB
+            // try to abolish tables within 2 seconds to reuse xsb instance 
+            val abolishListener = listenOnCancel(2000, pm, () => XSB.interrupt(), 500)
+            try {
+                log.trace("Abolishing all XSB tables")
+                val abolished = XSB.deterministicGoal("abolish_all_tables")
+                assert(abolished, "Could not abolish all XSB tables. Stopping here. Expect wrong results!")
+                log.trace("XSB abolished all tables")
+            } catch {
+                case ipe: IPInterruptedException =>
+                    log.warn( /*ipe, */ "Abolishing all XSB tables was interrupted, shutting down instance.")
+                    log.trace("Shutting down XSB instance.")
+                    shutdown()
+            } finally {
+                delisten(abolishListener)
+            }
             val out = new PrintWriter(new BufferedWriter(new FileWriter(tempFile)));
-            log.trace("Opened output stream")
+            log.trace("Opened output stream for emptiness check")
             try {
                 out.println(check.emptiness)
             } finally {
                 out.close()
             }
-            log.trace("Written check to temp file")
-            if (debug) {
-                var i = 1
-                var f = new File("/tmp/check" + i + ".P")
-                while (f.exists) {
-                    i += 1
-                    f = new File("/tmp/check" + i + ".P")
-                }
-                val outDB = new PrintWriter(new BufferedWriter(new FileWriter(f)));
-                try {
-                    outDB.println(check.emptiness)
-                } finally {
-                    outDB.close()
-                }
-            }
+            log.trace("Written emptiness check to tempfile: %s", tempFile.getAbsolutePath())
+            //            if (debug) {
+            //                var i = 1
+            //                var f = new File("/tmp/check" + i + ".P")
+            //                while (f.exists) {
+            //                    i += 1
+            //                    f = new File("/tmp/check" + i + ".P")
+            //                }
+            //                val outDB = new PrintWriter(new BufferedWriter(new FileWriter(f)));
+            //                try {
+            //                    outDB.println(check.emptiness)
+            //                } finally {
+            //                    outDB.close()
+            //                }
+            //            }
             worked(pm, 1)
-            log.debug("Loading temp file into XSB")
+            log.debug("Loading tempfile into XSB")
             val loaded = XSB.consultAbsolute(tempFile)
-            assert(loaded, "Could not load the tempFile into XSB")
-            log.debug("Loaded temp file into XSB")
+            assert(loaded, "Could not load the tempfile into XSB")
+            log.debug("Loaded tempfile into XSB")
             worked(pm, 1)
             if (isCanceled(pm))
-                throw new RuntimeException("Canceled!")
-            val future = listenOnCancel(timeout, pm, () => XSB.interrupt(), 500)
+                throw new RuntimeException("Emptiness check was canceled!")
+
+            val empinessListener = listenOnCancel(timeout, pm, () => XSB.interrupt(), 500)
             try {
-                log.trace("Abolishing all tables in XSB")
-                val abolished = XSB.deterministicGoal("abolish_all_tables")
-                assert(abolished, "Could not abolish all tables. Expect wrong results!")
-                log.trace("XSB abolished all tables")
-                log.debug("Calling XSB on nonemptiness predicate")
+                log.debug("Calling XSB on non-emptiness predicate")
                 val rev = !XSB.deterministicGoal(check.name + "_notEmpty")
-                log.debug("XSB finished run on nonemptiness predicate, result: %s (%s empty)", !rev, if (rev) "" else "not ")
+                log.debug("XSB finished run on non-emptiness predicate, result: %s (%s empty)", !rev, if (rev) "" else "not ")
                 worked(pm, 3)
                 log.trace("Exiting runCheck")
                 return rev
+            } catch {
+                case ipe: IPInterruptedException =>
+                    log.warn(ipe, "Check was interrupted, probably by timeout.")
+                    throw new RuntimeException("Emptiness check was canceled!", ipe)
             } finally {
-                delisten(future)
+                delisten(empinessListener)
             }
         } finally {
             done(pm)
@@ -135,24 +130,54 @@ object XSBInterRunner extends XSBRunner with Logging {
         log.trace("Entered runFullWitnessCheck")
         try {
             beginTask(pm, "Running XSB-based emptiness check", 5)
-            val out = new PrintWriter(new BufferedWriter(new FileWriter(tempFile)));
-            out.println(check.emptiness)
-            out.close()
-            worked(pm, 1)
-            XSB.consultAbsolute(tempFile)
-            worked(pm, 1)
-            val future = listenOnCancel(pm, () => XSB.interrupt(), 1000)
+            val abolishListener = listenOnCancel(2000, pm, () => XSB.interrupt(), 500)
             try {
+                log.trace("Abolishing all XSB tables")
                 val abolished = XSB.deterministicGoal("abolish_all_tables")
-                assert(abolished, "Could not abolish all tables. Expect wrong results!")
+                assert(abolished, "Could not abolish all XSB tables. Stopping here. Expect wrong results!")
+                log.trace("XSB abolished all tables")
+            } catch {
+                case ipe: IPInterruptedException =>
+                    log.warn( /*ipe, */ "Abolishing all XSB tables was interrupted, shutting down instance.")
+                    log.trace("Shutting down XSB instance.")
+                    shutdown()
+            } finally {
+                delisten(abolishListener)
+            }
+            val out = new PrintWriter(new BufferedWriter(new FileWriter(tempFile)));
+            log.trace("Opened output stream for emptiness check")
+            try {
+                out.println(check.emptiness)
+            } finally {
+                out.close()
+            }
+
+            worked(pm, 1)
+            log.trace("Written emptiness check to tempfile: %s", tempFile.getAbsolutePath())
+            log.debug("Loading tempfile into XSB")
+            val loaded = XSB.consultAbsolute(tempFile)
+            assert(loaded, "Could not load the tempfile into XSB")
+            log.debug("Loaded tempfile into XSB")
+            worked(pm, 1)
+            if (isCanceled(pm))
+                throw new RuntimeException("Emptiness check was canceled!")
+            val empinessListener = listenOnCancel(pm, () => XSB.interrupt(), 1000)
+            try {
+                log.debug("Calling XSB on non-emptiness predicate")
                 val rev = XSB.deterministicGoal(check.name + "_notEmptyWitness(W)", null)
+                log.debug("XSB finished run on non-emptiness predicate, result: (%s empty)", if (rev == null) "" else "not ")
                 worked(pm, 3)
+                log.trace("Exiting runCheck")
                 if (rev == null)
                     return None
                 else
                     return Some(rev(0).toString())
+            } catch {
+                case ipe: IPInterruptedException =>
+                    log.warn(ipe, "Check was interrupted, probably by timeout.")
+                    throw new RuntimeException("Emptiness check was canceled!", ipe)
             } finally {
-                delisten(future)
+                delisten(empinessListener)
             }
         } finally {
             done(pm)
@@ -160,12 +185,15 @@ object XSBInterRunner extends XSBRunner with Logging {
     }
 
     def shutdown() {
-        if (xsbProcess != null)
+        if (xsbProcess != null) {
             xsbProcess.shutdown()
+            shutdownHook.remove()
+        }
         xsbProcess = null
+        shutdownHook = null
     }
 
-    private def findXSBConfigBin(xsbBin: String): Set[File] = {
+    private def findXSBConfigBin(xsbBin: String): List[File] = {
         //TODO This is still not very flexible.
         import File.separator
         val xsbExeMatcher = """^(.*)[/\\]bin[/\\]xsb(?:\.bat|\.exe)?$""".r
@@ -175,22 +203,22 @@ object XSBInterRunner extends XSBRunner with Logging {
                 val xf = new File(xsbBin)
                 assert(xf.exists() && xf.canExecute(), "Path within xsb config dir given but file isn't executable: " + xsbBin)
                 log.trace("Possible XSB confic exe candidate: %s", xf.getAbsolutePath)
-                return Set(new File(xsbBin))
+                return List(new File(xsbBin))
             case xsbExeMatcher(base) =>
                 val croot = new File(base + separator + "config")
 
                 assert(croot.isDirectory(), "No config dir found in dir(xsb_exe)/../config")
 
                 val subDirs = croot.listFiles().filter(_.isDirectory())
-                var candidates = Set[File]()
+                var candidates = List[File]()
                 for (dir <- subDirs) {
                     val candidate = new File(dir.getAbsolutePath() + separator + "bin" + separator + "xsb")
                     if (candidate.exists() && candidate.canExecute()) {
-                        candidates += candidate
+                        candidates ::= candidate
                     }
                     val candidate2 = new File(dir.getAbsolutePath() + separator + "bin" + separator + "xsb.exe")
                     if (candidate2.exists() && candidate2.canExecute()) {
-                        candidates += candidate2
+                        candidates ::= candidate2
                     }
                 }
                 return candidates
