@@ -93,6 +93,9 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
     protected var includeOverwriteLocations = true
     protected var uniqueInstances: Set[InstanceKey] = null
     protected var randomIsolation = false
+    protected var skipNonRegularFields = true
+    protected var skipWeakChecks = true
+    protected var skipWithoutLocks = true
 
     protected var lockFilter: InstanceKey => Boolean = defaultLockFilter
 
@@ -192,6 +195,15 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
     def getLockFilter = lockFilter
 
     /**
+     * Set whether non regular fields, e.g. array accesses should be ignored.
+     */
+    def setSkipNonRegularFields(value: Boolean) {
+        skipNonRegularFields = value
+    }
+
+    def getSkipNonRegularFields = skipNonRegularFields
+
+    /**
      * Set whether random isolation should be applied to the object corresponding to the field.
      */
     def setRandomIsolation(value: Boolean) {
@@ -199,6 +211,24 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
     }
 
     def getRandomIsolation = randomIsolation
+
+    /**
+     * Set whether regular fields where no unique instance can be found an no random isolation can be applied should be skipped.
+     */
+    def setSkipWeakChecks(value: Boolean) {
+        skipWeakChecks = value
+    }
+
+    def getSkipWeakChecks = skipWeakChecks
+
+    /**
+     * Set whether checks where no locks identified should be skipped.
+     */
+    def setSkipWithoutLocks(value: Boolean) {
+        skipWithoutLocks = value
+    }
+
+    def getSkipWithoutLocks = skipWithoutLocks
 
     /**
      * Initialize this analysis by calculating possible locks and the wait map.
@@ -453,7 +483,12 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
 
     def mayFlowFromTo(writeNode: CGNode, writeIdx: Int, readNode: CGNode, readIdx: Int, pm: IProgressMonitor = null, timeout: Long = 0): Boolean = {
         log.debug("Entered mayFlowFromTo")
-        log.debug("writeNode: (%s,%d), readNode: (%s,%d), timeout: %d", writeNode, writeIdx, readNode, readIdx, timeout)
+        log.info("Checking between writeNode: ( %s , %d ) and readNode: ( %s , %d ), timeout: %d", writeNode, writeIdx, readNode, readIdx, timeout)
+        if (skipWithoutLocks && unsafeLockUsages.isEmpty) {
+            log.info("No locks found in whole application skipping check!")
+            return true
+        }
+
         beginTask(pm, "Running DPN-based interference check", 6)
         try {
             log.info("Running DPN-based interference check")
@@ -468,12 +503,16 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
 
             // this must be some kind of array field or something
             if (!isRegularFieldAccess) {
+                if (skipNonRegularFields) {
+                    log.info("Non regular field, skipping check")
+                    return true
+                }
                 log.info("Non regular field, running weak check")
                 val pm1 = new SubProgressMonitor(pm, 4)
                 val result = mayHappenSuccessively(writePos, readPos, pm1, timeout)
                 return result
             }
-            log.info("Regular field, identifiying field")
+            log.debug("Regular field, identifying field")
             require(wi.isInstanceOf[SSAPutInstruction], "Write instruction isn't instance of SSAPutInstruction: " + wi)
             require(ri.isInstanceOf[SSAGetInstruction], "Read instruction isn't instance of SSAGetInstruction: " + ri)
 
@@ -485,7 +524,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
 
             require(readField == writeField, "Instructions refer to differently named fields read: " + readField + " write: " + writeField)
             val field = readField
-            log.info("Field: %s", field)
+            log.info("Regular field: %s", field)
 
             val writeObs = FieldUtil.getIKS4FieldInstr(pa, writeNode, writeInstr)
             val readObs = FieldUtil.getIKS4FieldInstr(pa, readNode, readInstr)
@@ -501,7 +540,7 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
             val uniqueInterObs = interObs filter (key => uniqueInstances(key) || UniqueInstanceLocator.isConstantKey(key))
             if ((interObs size) > 1 || (uniqueInterObs isEmpty)) {
                 if (log.isDebugEnabled)
-                    log.debug("No safe killings, running weak check. %n! interObs: %s %n! uniqueInterObs: %s", interObs.mkString("\n!\t", "\n!\t", ""),
+                    log.debug("No single unique object. %n! interObs: %s %n! uniqueInterObs: %s", interObs.mkString("\n!\t", "\n!\t", ""),
                         uniqueInterObs.mkString("\n!\t", "\n!\t", ""))
 
                 // Check if random isolation can be used
@@ -519,7 +558,11 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
                 val pm1 = new SubProgressMonitor(pm, 4)
 
                 // There may be multiple instances which correspond to this interference we can't interpret any killing definitions
-                log.info("No single unique object in intersection and no possibility for random isolation -> running weak check")
+                if (skipWeakChecks) {
+                    log.info("No possibility for random isolation, skipping check")
+                    return true
+                }
+                log.info("No possibility for random isolation, applying weak check")
                 return mayHappenSuccessively(writePos, readPos, pm1, timeout)
             }
 
@@ -656,11 +699,20 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
         //            //End debug code
 
         val ridpn = new RIDPN(dpn, fieldObj, "fieldObj", pa, wm)
-//        //Debug code explore RIDPN 
-//        de.wwu.sdpn.core.gui.MonitorDPNView.show(ridpn, true);
-//        Thread.sleep(10000000)
-//        //End debug code
         log.trace("Generated RIDPN of size: %d, locks: %d", ridpn.transitions.size, ridpn.locks.size)
+        if (skipWithoutLocks && ridpn.locks.isEmpty) {
+            log.info("No locks in DPN skipping random isolation based check.")
+            return true
+        }
+        //        //Debug code explore RIDPN 
+        //        import java.io._
+        //        val out = new PrintStream(new BufferedOutputStream(new FileOutputStream("/tmp/sdpn/jgf-calls.dpn")))
+        //        out.println(de.wwu.sdpn.core.dpn.monitor.DPNUtil.printNumberedDPN(ridpn))
+        //        out.close
+        //        //de.wwu.sdpn.core.gui.MonitorDPNView.show(ridpn, true);
+        //        //Thread.sleep(10000000)
+        //        //End debug code
+
         worked(pm, 1)
 
         val pm1 = new SubProgressMonitor(pm, 1)
@@ -711,6 +763,10 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
         //                        de.wwu.sdpn.core.gui.MonitorDPNView.show(dpn, true);
         //                        Thread.sleep(10000000)
         //            //End debug code
+        if (skipWithoutLocks && dpn.locks.isEmpty) {
+            log.info("No locks in DPN skipping strong check.")
+            return true
+        }
         worked(pm, 1)
 
         val pm1 = new SubProgressMonitor(pm, 1)
@@ -839,7 +895,8 @@ class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
                 rule match {
                     case BaseRule(_, Isolated(THEKEY, StackSymbol(node, _, _)), SSAAction(instr: SSAPutInstruction), _, _) =>
                         val vn = node.getIR.getSymbolTable().getParameter(0)
-                        if (!node.getMethod().isStatic() && vn == instr.getRef()) {
+                        if (!node.getMethod().isStatic() && vn == instr.getRef() &&
+                            field == cha.resolveField(instr.getDeclaredField())) {
                             log.trace("Added write annotation for transition on isolated object in node %s and instruction %s", node, instr)
                             return "write"
                         } else if (isUniqueField) {
