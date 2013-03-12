@@ -22,3 +22,4 @@ Bundle-ClassPath: lib/interprolog.jar,
  lib/simplespec_2.9.1-0.5.1.jar
 Main-Class: de.wwu.sdpn.core.textual.DPNParser
 Class-Path: lib/interprolog.jar
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
