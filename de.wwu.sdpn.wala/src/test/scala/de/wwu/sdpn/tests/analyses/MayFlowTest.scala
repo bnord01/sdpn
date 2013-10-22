@@ -42,7 +42,7 @@ object MayFlowTest {
             val p2 = n2s.head
             stuff += i -> (cg, pa, p1, p2)
         }
-        import com.codahale.logula.Logging
+        /*import com.codahale.logula.Logging
         import org.apache.log4j.Level
 
         Logging.configure { log =>
@@ -64,6 +64,8 @@ object MayFlowTest {
             //log.syslog.host = "syslog-001.internal.example.com"
             //log.syslog.facility = "local3"
         }
+        * 
+        */
     }
 
     @AfterClass

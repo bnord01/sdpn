@@ -172,6 +172,8 @@ class SetAddOperator(aSet: Set[InstanceKey]) extends UnaryOperator[SetVariable] 
     }
 
     override lazy val hashCode = aSet.hashCode()
+    override def toString():String= "SetAddOperator("+aSet+")"
+    override def equals(other:Any) = other match {case x:SetAddOperator => x.eq(this) case _ => false}
 }
 
 /**
@@ -190,6 +192,9 @@ object EmptySetOperator extends UnaryOperator[SetVariable] {
     }
 
     override lazy val hashCode = 2367 //randomly chosen by fair cat
+    
+    override def toString():String= "EmptySetOperator"
+    override def equals(other:Any) = other match {case EmptySetOperator => true case _ => false}
 }
 
 /**
@@ -211,6 +216,8 @@ object SetUnion extends AbstractMeetOperator[SetVariable] {
     }
 
     override def hashCode() = 42;
+    override def toString():String= "SetUnion"
+    override def equals(other:Any) = other match {case SetUnion => true case _ => false}
 }
 
 object WaitMap {

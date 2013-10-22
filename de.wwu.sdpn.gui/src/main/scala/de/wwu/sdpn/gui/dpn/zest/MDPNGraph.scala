@@ -1,6 +1,6 @@
 package de.wwu.sdpn.gui.dpn.zest
 
-import org.eclipse.zest.core.widgets.Graph
+import org.eclipse.gef4.zest.core.widgets.Graph
 import de.wwu.sdpn.core.dpn.monitor.MonitorDPN
 import de.wwu.sdpn.core.dpn.monitor.DPNRule
 import de.wwu.sdpn.core.dpn.monitor.PushRule
@@ -8,15 +8,15 @@ import de.wwu.sdpn.core.dpn.monitor.BaseRule
 import de.wwu.sdpn.core.dpn.monitor.SpawnRule
 import de.wwu.sdpn.core.dpn.monitor.PopRule
 import org.eclipse.swt.widgets.Composite
-import org.eclipse.zest.core.widgets.ZestStyles
-import org.eclipse.zest.core.widgets.GraphNode
-import org.eclipse.zest.core.widgets.GraphConnection
+import org.eclipse.gef4.zest.core.widgets.ZestStyles
+import org.eclipse.gef4.zest.core.widgets.GraphNode
+import org.eclipse.gef4.zest.core.widgets.GraphConnection
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
 import org.eclipse.swt.layout.FillLayout
-import org.eclipse.zest.layouts.algorithms.DirectedGraphLayoutAlgorithm
-import org.eclipse.zest.layouts.algorithms.SpringLayoutAlgorithm
-import org.eclipse.zest.layouts.algorithms.RadialLayoutAlgorithm
+import org.eclipse.gef4.zest.layouts.algorithms.DirectedGraphLayoutAlgorithm
+import org.eclipse.gef4.zest.layouts.algorithms.SpringLayoutAlgorithm
+import org.eclipse.gef4.zest.layouts.algorithms.RadialLayoutAlgorithm
 
 class MDPNGraph[G, S, A, L](
   mdpn: MonitorDPN[G, S, A, L],

@@ -29,6 +29,7 @@ object DPN4IFCTest {
             val (cg, pa) = SimpleAnalyses.getCGandPAfromCP(SDPNTestProps.get.classPath, "Lbnord/unittests/dpn4ifc/BSP0" + i)
             stuff += i -> (cg, pa, cg.getClassHierarchy)
         }
+        /*
         import com.codahale.logula.Logging
         import org.apache.log4j.Level
 
@@ -51,6 +52,8 @@ object DPN4IFCTest {
             //log.syslog.host = "syslog-001.internal.example.com"
             //log.syslog.facility = "local3"
         }
+        * 
+        */
     }
 
     @AfterClass
