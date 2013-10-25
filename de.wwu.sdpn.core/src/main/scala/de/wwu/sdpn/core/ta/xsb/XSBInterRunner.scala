@@ -18,6 +18,7 @@ import com.declarativa.interprolog.PrologEngine
 import scala.sys.ShutdownHookThread
 import com.declarativa.interprolog.util.IPInterruptedException
 import de.wwu.sdpn.core.util.Logging
+//import com.typesafe.scalalogging.slf4j.Logging
 
 /**
  * This Object contains helper functions to run an XSB process and interpret the result.
@@ -78,7 +79,7 @@ object XSBInterRunner extends XSBRunner with Logging {
             } finally {
                 out.close()
             }
-            logger.trace("Written emptiness check to tempfile: %s", tempFile.getAbsolutePath())
+            logger.trace("Written emptiness check to tempfile: {}", tempFile.getAbsolutePath())
             //            if (debug) {
             //                var i = 1
             //                var f = new File("/tmp/check" + i + ".P")
@@ -153,7 +154,7 @@ object XSBInterRunner extends XSBRunner with Logging {
             }
 
             worked(pm, 1)
-            logger.trace("Written emptiness check to tempfile: %s", tempFile.getAbsolutePath())
+            logger.trace("Written emptiness check to tempfile: {}", tempFile.getAbsolutePath())
             logger.debug("Loading tempfile into XSB")
             val loaded = XSB.consultAbsolute(tempFile)
             assert(loaded, "Could not load the tempfile into XSB")
@@ -165,7 +166,7 @@ object XSBInterRunner extends XSBRunner with Logging {
             try {
                 logger.debug("Calling XSB on non-emptiness predicate")
                 val rev = XSB.deterministicGoal(check.name + "_notEmptyWitness(W)", null)
-                logger.debug("XSB finished run on non-emptiness predicate, result: (%s empty)", if (rev == null) "" else "not ")
+                logger.debug("XSB finished run on non-emptiness predicate, result: ({} empty)", if (rev == null) "" else "not ")
                 worked(pm, 3)
                 logger.trace("Exiting runCheck")
                 if (rev == null)
@@ -202,7 +203,7 @@ object XSBInterRunner extends XSBRunner with Logging {
             case xsbConfigExeMatcher(_) =>
                 val xf = new File(xsbBin)
                 assert(xf.exists() && xf.canExecute(), "Path within xsb config dir given but file isn't executable: " + xsbBin)
-                logger.trace("Possible XSB confic exe candidate: %s", xf.getAbsolutePath)
+                logger.trace("Possible XSB confic exe candidate: {}", xf.getAbsolutePath)
                 return List(new File(xsbBin))
             case xsbExeMatcher(base) =>
                 val croot = new File(base + separator + "config")
@@ -228,15 +229,15 @@ object XSBInterRunner extends XSBRunner with Logging {
     }
 
     private def getXSBEngine(xsbBin: String): PrologEngine = {
-        logger.debug("Obtaining XSB engine for bin dir: %s", xsbBin)
+        logger.debug("Obtaining XSB engine for bin dir: {}", xsbBin)
         val candidates = findXSBConfigBin(xsbBin)
-        logger.trace("Candidates for xsb dir: %s", candidates)
+        logger.trace("Candidates for xsb dir: {}", candidates)
         val it = candidates.iterator
         while (it.hasNext) {
             val xsbExe = it.next()
             try {
                 val ret = new XSBSubprocessEngine(xsbExe.getAbsolutePath())
-                logger.debug("Successfully created XSB engine from: %s", xsbExe.getAbsolutePath())
+                logger.debug("Successfully created XSB engine from: {}", xsbExe.getAbsolutePath())
                 return ret
             } catch {
                 case e: Exception =>

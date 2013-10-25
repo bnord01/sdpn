@@ -2,3 +2,4 @@
 /.cache
 /jreLib
 /project/target
+/.scala_dependencies
