@@ -9,11 +9,11 @@ import org.eclipse.swt.widgets.Composite
 import org.eclipse.swt.widgets.Display
 import org.eclipse.swt.widgets.Shell
 import org.eclipse.swt.SWT
-import org.eclipse.zest.core.widgets.Graph
-import org.eclipse.zest.core.widgets.GraphConnection
-import org.eclipse.zest.core.widgets.GraphNode
-import org.eclipse.zest.core.widgets.ZestStyles
-import org.eclipse.zest.layouts.algorithms.TreeLayoutAlgorithm
+import org.eclipse.gef4.zest.core.widgets.Graph
+import org.eclipse.gef4.zest.core.widgets.GraphConnection
+import org.eclipse.gef4.zest.core.widgets.GraphNode
+import org.eclipse.gef4.zest.core.widgets.ZestStyles
+import org.eclipse.gef4.zest.layouts.algorithms.TreeLayoutAlgorithm
 import com.ibm.wala.ipa.callgraph.CallGraph
 import annotation.elidable.ASSERTION
 import de.wwu.sdpn.core.ta.xsb.witness.WitnessTree
