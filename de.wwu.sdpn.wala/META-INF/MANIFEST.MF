@@ -16,3 +16,4 @@ Export-Package: de.wwu.sdpn.wala.analyses,
  de.wwu.sdpn.wala.mnfs,
  de.wwu.sdpn.wala.runner,
  de.wwu.sdpn.wala.util
+Bundle-RequiredExecutionEnvironment: JavaSE-1.7
