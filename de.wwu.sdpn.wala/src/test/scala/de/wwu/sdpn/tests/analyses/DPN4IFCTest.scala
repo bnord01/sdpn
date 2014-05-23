@@ -1,27 +1,34 @@
 package de.wwu.sdpn.tests.analyses
-import org.junit.Test
-import org.junit.BeforeClass
+
+import java.io.IOException
+
+import scala.collection.JavaConversions.asScalaSet
+
 import org.junit.AfterClass
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
+import org.junit.BeforeClass
+import org.junit.Test
+
 import com.ibm.wala.classLoader.IMethod
-import scala.collection.JavaConversions._
-import com.ibm.wala.util.strings.StringStuff
-import org.junit.Assert._
 import com.ibm.wala.ipa.callgraph.CallGraph
+import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
-import com.ibm.wala.types.MethodReference
 import com.ibm.wala.ipa.cha.IClassHierarchy
-import de.wwu.sdpn.wala.analyses.SimpleAnalyses
-import de.wwu.sdpn.wala.analyses.SDPNTestProps
+import com.ibm.wala.util.CancelException
+import com.ibm.wala.util.strings.StringStuff
+
+import de.wwu.sdpn.core.ta.xsb.XSBInterRunner
 import de.wwu.sdpn.wala.analyses.DPN4IFCAnalysis
-import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
+import de.wwu.sdpn.wala.analyses.SDPNTestProps
+import de.wwu.sdpn.wala.analyses.SimpleAnalyses
 import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
 import junit.framework.JUnit4TestAdapter
-import de.wwu.sdpn.core.ta.xsb.XSBInterRunner
-import de.wwu.sdpn.core.util.PrintProgressMonitor
 
 object DPN4IFCTest {
 
-    var stuff: Map[Int, (CallGraph, PointerAnalysis, IClassHierarchy)] = Map()
+    var stuff: Map[Int, (CallGraph, PointerAnalysis[InstanceKey], IClassHierarchy)] = Map()
 
     @BeforeClass
     def setUp() {

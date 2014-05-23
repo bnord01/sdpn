@@ -27,7 +27,7 @@ import java.io.File
 case class MyPreAnalysis(
         cha: IClassHierarchy,
         cg: CallGraph,
-        pa: PointerAnalysis,
+        pa: PointerAnalysis[InstanceKey],
         ii: CGNode => Boolean = _ => true,
         sl: (InstanceKey, CGNode) => Boolean = (_, _) => false) extends PreAnalysis {
     def isThreadStart(cgnode: CGNode): Boolean = {
@@ -39,7 +39,7 @@ case class MyPreAnalysis(
     def this(a: PreAnalysis) = {
         this(a.cha, a.cg, a.pa, a.isInteresting, a.safeLock)
     }
-    def this(cg: CallGraph, pa: PointerAnalysis) = this(cg.getClassHierarchy, cg, pa)
+    def this(cg: CallGraph, pa: PointerAnalysis[InstanceKey]) = this(cg.getClassHierarchy, cg, pa)
 
     def entryNode = cg.getFakeRootNode
     def isInteresting(node: CGNode) = ii(node)

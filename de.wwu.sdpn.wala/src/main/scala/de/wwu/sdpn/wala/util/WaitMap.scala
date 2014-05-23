@@ -225,7 +225,7 @@ object WaitMap {
         def cha: IClassHierarchy = null
         def cg: CallGraph = null
 
-        def pa: PointerAnalysis = null
+        def pa: PointerAnalysis[InstanceKey] = null
         def isThreadStart(cgnode: CGNode): Boolean = false
 
         def entryNode: CGNode = null

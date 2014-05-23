@@ -19,10 +19,11 @@ import org.junit.runners.Parameterized.Parameters
 import org.junit.runners.Parameterized
 import org.junit.runner.RunWith
 import de.wwu.sdpn.core.util.PrintProgressMonitor 
+import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 
 object SimpleAnalysesTest {
 
-    var stuff: Map[Int, (CallGraph, PointerAnalysis, MethodReference)] = Map()
+    var stuff: Map[Int, (CallGraph, PointerAnalysis[InstanceKey], MethodReference)] = Map()
 
     @BeforeClass
     def setUp() {

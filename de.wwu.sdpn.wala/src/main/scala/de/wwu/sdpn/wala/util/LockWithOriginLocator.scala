@@ -17,7 +17,7 @@ import com.ibm.wala.ipa.callgraph.propagation.ConstantKey
  */
 trait LockWithOriginLocator {
 	def cg:CallGraph
-	def pa:PointerAnalysis
+	def pa:PointerAnalysis[InstanceKey]
 	def entryNode: CGNode
 	
 	lazy val locks:Map[InstanceKey,Set[CGNode]] = locateLocks
@@ -60,15 +60,15 @@ trait LockWithOriginLocator {
 }
 
 object LockWithOriginLocator {
-  def instances(cg1:CallGraph, pa1:PointerAnalysis) : Map[InstanceKey,Set[CGNode]] = {
+  def instances(cg1:CallGraph, pa1:PointerAnalysis[InstanceKey]) : Map[InstanceKey,Set[CGNode]] = {
     val ll = new LockWithOriginLocator {def cg = cg1; def pa = pa1; def entryNode = cg1.getFakeRootNode()}
     return ll.locks
   }
   
-  def uniqueLocks(cg1:CallGraph, pa1:PointerAnalysis) : Set[InstanceKey] = {
+  def uniqueLocks(cg1:CallGraph, pa1:PointerAnalysis[InstanceKey]) : Set[InstanceKey] = {
       return uniqueLocksWithOrigin(cg1,pa1).keySet
   }
-  def uniqueLocksWithOrigin(cg1:CallGraph, pa1:PointerAnalysis) : Map[InstanceKey,Set[CGNode]] = {
+  def uniqueLocksWithOrigin(cg1:CallGraph, pa1:PointerAnalysis[InstanceKey]) : Map[InstanceKey,Set[CGNode]] = {
       val ui = UniqueInstanceLocator.instances(cg1, pa1)
       val loi = instances(cg1, pa1)
       return loi.filterKeys(x => ui(x)||x.isInstanceOf[ConstantKey[_]])

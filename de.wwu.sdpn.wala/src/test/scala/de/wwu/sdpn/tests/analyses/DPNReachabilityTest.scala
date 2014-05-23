@@ -26,7 +26,7 @@ import de.wwu.sdpn.wala.dpngen.symbols.DPNAction
 
 object DPNReachabilityTest {
 
-    var stuff: Map[Int, (CallGraph, PointerAnalysis, CGNode)] = Map()
+    var stuff: Map[Int, (CallGraph, PointerAnalysis[InstanceKey], CGNode)] = Map()
 
     @BeforeClass
     def setUp() {

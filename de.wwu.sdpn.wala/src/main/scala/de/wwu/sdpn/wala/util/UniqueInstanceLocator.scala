@@ -17,7 +17,7 @@ import com.ibm.wala.ipa.callgraph.propagation.ConstantKey
  */
 trait UniqueInstanceLocator {
     def cg:CallGraph; 
-    def pa:PointerAnalysis
+    def pa:PointerAnalysis[InstanceKey]
     
     lazy val uniqueInstances = calcUniqueInstances
     	
@@ -50,7 +50,7 @@ trait UniqueInstanceLocator {
 }
 
 object UniqueInstanceLocator {
-  def instances(cg1: CallGraph, pa1: PointerAnalysis):Set[InstanceKey] = {
+  def instances(cg1: CallGraph, pa1: PointerAnalysis[InstanceKey]):Set[InstanceKey] = {
     val uic = new UniqueInstanceLocator {def cg = cg1;def pa=pa1};
     return uic.uniqueInstances    
   }

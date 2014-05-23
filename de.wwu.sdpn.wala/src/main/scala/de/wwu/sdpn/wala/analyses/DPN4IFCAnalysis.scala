@@ -82,7 +82,7 @@ import de.wwu.sdpn.core.util.Logging
  *
  * @author Benedikt Nordhoff
  */
-class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis) extends Logging {
+class DPN4IFCAnalysis(cg: CallGraph, pa: PointerAnalysis[InstanceKey]) extends Logging {
     type MDPN = MonitorDPN[GlobalState, StackSymbol, DPNAction, InstanceKey]
 
     protected var possibleLocks: Set[InstanceKey] = null

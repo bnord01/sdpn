@@ -90,7 +90,7 @@ object SimpleAnalyses {
      * @return true iff no conflict can exist.
      */
     def runSSRCheck(cg: CallGraph,
-                    pa: PointerAnalysis,
+                    pa: PointerAnalysis[InstanceKey],
                     confSet: Set[StackSymbol],
                     sliceSet: Set[CGNode],
                     lockSens: Boolean,
@@ -104,7 +104,7 @@ object SimpleAnalyses {
     }
 
     def runStdLibSSRCheck(cg: CallGraph,
-                          pa: PointerAnalysis,
+                          pa: PointerAnalysis[InstanceKey],
                           confSet: Set[StackSymbol],
                           sliceSet: Set[CGNode],
                           pm: IProgressMonitor = null): Boolean = {
@@ -136,7 +136,7 @@ object SimpleAnalyses {
      * @param lockSens A flag which decides if this analysis should be lock sensitive.
      * @return None iff no conflict can exist Some(witness) iff an conflict exists with the given witness
      */
-    def runWitnessTSRCheck(cg: CallGraph, pa: PointerAnalysis, confSet1: Set[StackSymbol], confSet2: Set[StackSymbol], sliceSet: Set[CGNode], lockSens: Boolean): Option[String] = {
+    def runWitnessTSRCheck(cg: CallGraph, pa: PointerAnalysis[InstanceKey], confSet1: Set[StackSymbol], confSet2: Set[StackSymbol], sliceSet: Set[CGNode], lockSens: Boolean): Option[String] = {
         val dpn = getMDPN(cg, pa, sliceSet, lockSens)
         val ss = dpn.getStackSymbols
         require(confSet1.subsetOf(ss), "Some symbols of confSet1 are not contained in the DPN!")
@@ -178,7 +178,7 @@ object SimpleAnalyses {
      * @param lockSet A set of locks which can be abstracted into the DPN.
      * @return true iff no conflict can exist
      */
-    def runTSRCheck(cg: CallGraph, pa: PointerAnalysis, confSet1: Set[StackSymbol], confSet2: Set[StackSymbol], sliceSet: Set[CGNode], lockSens: Boolean, pm: IProgressMonitor): Boolean = {
+    def runTSRCheck(cg: CallGraph, pa: PointerAnalysis[InstanceKey], confSet1: Set[StackSymbol], confSet2: Set[StackSymbol], sliceSet: Set[CGNode], lockSens: Boolean, pm: IProgressMonitor): Boolean = {
         try {
             beginTask(pm, "Running two set reachability check.", 4)
             subTask(pm, "Generating DPN and tree automata.")
@@ -197,14 +197,14 @@ object SimpleAnalyses {
             done(pm)
         }
     }
-    def runTSRCheck(cg: CallGraph, pa: PointerAnalysis, confSet1: Set[StackSymbol], confSet2: Set[StackSymbol], lockSens: Boolean, pm0: IProgressMonitor = null): Boolean =
+    def runTSRCheck(cg: CallGraph, pa: PointerAnalysis[InstanceKey], confSet1: Set[StackSymbol], confSet2: Set[StackSymbol], lockSens: Boolean, pm0: IProgressMonitor = null): Boolean =
         runTSRCheck(cg, pa, confSet1, confSet2, confSet1.map(_.node) ++ confSet2.map(_.node), lockSens, pm0)
-    def runTSRCheck(cg: CallGraph, pa: PointerAnalysis, confSet1: Set[StackSymbol], confSet2: Set[StackSymbol], sliceSet: Set[CGNode], lockSens: Boolean): Boolean =
+    def runTSRCheck(cg: CallGraph, pa: PointerAnalysis[InstanceKey], confSet1: Set[StackSymbol], confSet2: Set[StackSymbol], sliceSet: Set[CGNode], lockSens: Boolean): Boolean =
         runTSRCheck(cg, pa, confSet1, confSet2, sliceSet, lockSens, null)
 
     def runDetailedTSRCheck(
             cg: CallGraph, 
-            pa: PointerAnalysis, 
+            pa: PointerAnalysis[InstanceKey], 
             confSet1: Set[StackSymbol], 
             confSet2: Set[StackSymbol], 
             lockSens: Boolean, 
@@ -228,7 +228,7 @@ object SimpleAnalyses {
             val pms = new SubProgressMonitor(pm, 3)
             val empty = runCheck(check, pms)
             return new SimpleTSRResult(dpn: SimpleAnalyses.MDPN,
-                cg: CallGraph, pa: PointerAnalysis,
+                cg: CallGraph, pa: PointerAnalysis[InstanceKey],
                 confSet1: Set[StackSymbol], confSet2: Set[StackSymbol],
                 sliceSet: Set[CGNode],
                 lockSens: Boolean,
@@ -272,7 +272,7 @@ object SimpleAnalyses {
      * @param lockSet A set of locks which can be abstracted into the DPN.
      * @return true iff no conflict can exist.
      */
-    def runSSRCheck(cg: CallGraph, pa: PointerAnalysis, confSet: Set[StackSymbol], sliceSet: Set[CGNode], lockSet: Set[InstanceKey]): Boolean = {
+    def runSSRCheck(cg: CallGraph, pa: PointerAnalysis[InstanceKey], confSet: Set[StackSymbol], sliceSet: Set[CGNode], lockSet: Set[InstanceKey]): Boolean = {
         val dpn = getMDPN(cg, pa, sliceSet, lockSet)
         val lockSens = !dpn.locks.isEmpty
         val ss = dpn.getStackSymbols
@@ -302,7 +302,7 @@ object SimpleAnalyses {
      * @param lockSet A set of locks which can be abstracted into the DPN.
      * @return None iff no conflict can exist Some(witness) iff an conflict exists with the given witness
      */
-    def runWitnessTSRCheck(cg: CallGraph, pa: PointerAnalysis, confSet1: Set[StackSymbol], confSet2: Set[StackSymbol], sliceSet: Set[CGNode], lockSet: Set[InstanceKey]): Option[String] = {
+    def runWitnessTSRCheck(cg: CallGraph, pa: PointerAnalysis[InstanceKey], confSet1: Set[StackSymbol], confSet2: Set[StackSymbol], sliceSet: Set[CGNode], lockSet: Set[InstanceKey]): Option[String] = {
         val dpn = getMDPN(cg, pa, sliceSet, lockSet)
         val lockSens = !dpn.locks.isEmpty
         val ss = dpn.getStackSymbols
@@ -333,7 +333,7 @@ object SimpleAnalyses {
      * @param lockSens A flag which decieds if this analysis should be locksensitive.
      * @return true iff no conflict can exist
      */
-    def runTSRCheck(cg: CallGraph, pa: PointerAnalysis, confSet1: Set[StackSymbol], confSet2: Set[StackSymbol], sliceSet: Set[CGNode], lockSet: Set[InstanceKey]): Boolean = {
+    def runTSRCheck(cg: CallGraph, pa: PointerAnalysis[InstanceKey], confSet1: Set[StackSymbol], confSet2: Set[StackSymbol], sliceSet: Set[CGNode], lockSet: Set[InstanceKey]): Boolean = {
         val dpn = getMDPN(cg, pa, sliceSet, lockSet)
         val lockSens = !dpn.locks.isEmpty
         val ss = dpn.getStackSymbols
@@ -353,7 +353,7 @@ object SimpleAnalyses {
      * @param mc the main class to analyze
      * @return the PreAnalysis
      */
-    def getCGandPAfromCP(cp: String, mc: String): (CallGraph, PointerAnalysis) = {
+    def getCGandPAfromCP(cp: String, mc: String): (CallGraph, PointerAnalysis[InstanceKey]) = {
 
         val scope = AnalysisScopeReader.makeJavaBinaryAnalysisScope(
             cp,getDefaultExclusionsFile)
@@ -388,7 +388,7 @@ object SimpleAnalyses {
      * @param lockSens A flag which determines if the DPN should be lock sensitive
      * @return A monitor DPN representing the control flow of cg.
      */
-    def getMDPN(cg: CallGraph, pa: PointerAnalysis, sliceSet: Set[CGNode], lockSens: Boolean): MDPN = {
+    def getMDPN(cg: CallGraph, pa: PointerAnalysis[InstanceKey], sliceSet: Set[CGNode], lockSens: Boolean): MDPN = {
         var analysis = MyPreAnalysis(cg.getClassHierarchy(), cg, pa)
         if (sliceSet != null && !sliceSet.isEmpty) {
             analysis += sliceSet
@@ -417,7 +417,7 @@ object SimpleAnalyses {
      * @param lockSet A set of InstanceKeys which should be treated as locks
      * @return A monitor DPN representing the control flow of cg.
      */
-    def getMDPN(cg: CallGraph, pa: PointerAnalysis, sliceSet: Set[CGNode], lockSet: Set[InstanceKey]): MDPN = {
+    def getMDPN(cg: CallGraph, pa: PointerAnalysis[InstanceKey], sliceSet: Set[CGNode], lockSet: Set[InstanceKey]): MDPN = {
         require(lockSet.size < 9, "Can handle at most 8 Locks but got " + lockSet.size)
         var analysis = MyPreAnalysis(cg.getClassHierarchy(), cg, pa)
         if (sliceSet != null && !sliceSet.isEmpty) {
@@ -456,7 +456,7 @@ object SimpleAnalyses {
      * @param pa The associated pointer analysis of the cg
      * @return A set of instance keys which can be abstracted as locks in a monitor DPN
      */
-    def getPossibleLocks(cg: CallGraph, pa: PointerAnalysis): Set[InstanceKey] = {
+    def getPossibleLocks(cg: CallGraph, pa: PointerAnalysis[InstanceKey]): Set[InstanceKey] = {
         val locks = LockWithOriginLocator.uniqueLocks(cg, pa)
         return locks
     }
@@ -546,7 +546,7 @@ org\/openide\/.*
 }
 
 class SimpleTSRResult(val dpn: SimpleAnalyses.MDPN,
-                           val cg: CallGraph, val pa: PointerAnalysis,
+                           val cg: CallGraph, val pa: PointerAnalysis[InstanceKey],
                            val confSet1: Set[StackSymbol], val confSet2: Set[StackSymbol],
                            val sliceSet: Set[CGNode],
                            val lockSens: Boolean,

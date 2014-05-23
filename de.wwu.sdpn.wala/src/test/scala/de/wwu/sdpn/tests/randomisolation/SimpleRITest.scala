@@ -24,7 +24,7 @@ import de.wwu.sdpn.wala.util.WaitMap
 
 object SimpleRITest {
 
-    var stuff: Map[Int, (CallGraph, PointerAnalysis, MethodReference, InstanceKey)] = Map()
+    var stuff: Map[Int, (CallGraph, PointerAnalysis[InstanceKey], MethodReference, InstanceKey)] = Map()
 
     @BeforeClass
     def setUp() {

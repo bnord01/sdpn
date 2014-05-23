@@ -21,7 +21,7 @@ class RIDPN[GS, SS <% HTR <% CGNode](
     dpn: MonitorDPN[GS, SS, DPNAction, InstanceKey],
     isolationKey: InstanceKey,
     ikTerm: String,
-    pa: PointerAnalysis,
+    pa: PointerAnalysis[InstanceKey],
     wm: WaitMap)
         extends MonitorDPN[GS, RISymbol[InstanceKey, SS], DPNAction, InstanceKey] {
 

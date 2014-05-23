@@ -31,10 +31,11 @@ import java.io.BufferedWriter
 import java.io.FileOutputStream
 import java.io.FileWriter
 import java.io.PrintWriter
+import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 
 object SeidlDatalogTest {
 
-    var stuff: Map[Int, (CallGraph, PointerAnalysis, MethodReference)] = Map()
+    var stuff: Map[Int, (CallGraph, PointerAnalysis[InstanceKey], MethodReference)] = Map()
 
     @BeforeClass
     def setUp() {
@@ -133,7 +134,7 @@ class SeidlDatalogTest {
 
     }
     
-    def printCheck(name: String, input: (CallGraph, PointerAnalysis, MethodReference), slice: Boolean) {
+    def printCheck(name: String, input: (CallGraph, PointerAnalysis[InstanceKey], MethodReference), slice: Boolean) {
         val (cg, pa, mr) = input
         val stackSyms = getStackSymbols(cg, mr)
         val sliceSet: Set[CGNode] = if (slice) stackSyms map { case StackSymbol(n, _, _) => n } else Set()

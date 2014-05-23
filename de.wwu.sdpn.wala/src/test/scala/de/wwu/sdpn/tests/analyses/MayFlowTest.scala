@@ -19,6 +19,7 @@ import junit.framework.JUnit4TestAdapter
 import de.wwu.sdpn.core.ta.xsb.XSBInterRunner
 import de.wwu.sdpn.core.util.PrintProgressMonitor
 import com.ibm.wala.ipa.callgraph.CGNode
+import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 
 /**
  * JUnit tests for DPN4IFCAnalysis.mayFlowFromTo
@@ -27,7 +28,7 @@ import com.ibm.wala.ipa.callgraph.CGNode
  */
 object MayFlowTest {
 
-    var stuff: Map[Int, (CallGraph, PointerAnalysis, CGNode, CGNode)] = Map()
+    var stuff: Map[Int, (CallGraph, PointerAnalysis[InstanceKey], CGNode, CGNode)] = Map()
 
     @BeforeClass
     def setUp() {

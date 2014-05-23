@@ -24,7 +24,7 @@ trait PreAnalysis {
     /**
      * the corresponding pointer analysis
      */
-    def pa: PointerAnalysis
+    def pa: PointerAnalysis[InstanceKey]
 
     /**
      * Does the node represent something like java.lang.Thread.start() ?
@@ -55,7 +55,7 @@ trait PreAnalysis {
 class EmptyPA extends PreAnalysis {
     def cha: IClassHierarchy = null
     def cg: CallGraph = null
-    def pa: PointerAnalysis = null
+    def pa: PointerAnalysis[InstanceKey] = null
     def isThreadStart(cgnode: CGNode): Boolean = false
     def entryNode : CGNode = null
     def isInteresting(n: CGNode):Boolean = false

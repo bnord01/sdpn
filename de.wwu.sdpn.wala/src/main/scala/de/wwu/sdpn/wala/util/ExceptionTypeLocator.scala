@@ -11,7 +11,7 @@ import com.ibm.wala.ssa.SSAMonitorInstruction
 import com.ibm.wala.ipa.callgraph.CallGraph
 import scala.collection.JavaConversions._
 
-class ExceptionTypeLocator (val cg: CallGraph,val pa: PointerAnalysis){
+class ExceptionTypeLocator (val cg: CallGraph,val pa: PointerAnalysis[InstanceKey]){
 	lazy val exceptionTypes = locateETypes
 	
 	//TODO there may be some exceptions missing!

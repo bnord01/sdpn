@@ -12,7 +12,7 @@ import de.wwu.sdpn.core.util.Logging
 
 object FieldUtil extends Logging {
 
-    def getIKS4FieldInstr(pa: PointerAnalysis, cgnode: CGNode, instr: SSAFieldAccessInstruction): Set[InstanceKey] = {
+    def getIKS4FieldInstr(pa: PointerAnalysis[InstanceKey], cgnode: CGNode, instr: SSAFieldAccessInstruction): Set[InstanceKey] = {
         logger.trace("Obtaining possible instance keys for field instruction %s on node %s", instr, cgnode)
         val hm = pa.getHeapModel()
         val field = instr getDeclaredField ()
@@ -30,7 +30,7 @@ object FieldUtil extends Logging {
         }
     }
 
-    def getFieldWrites(cg: CallGraph, pa: PointerAnalysis, fieldObj: InstanceKey, field: IField): Set[(CGNode, SSAPutInstruction)] = {
+    def getFieldWrites(cg: CallGraph, pa: PointerAnalysis[InstanceKey], fieldObj: InstanceKey, field: IField): Set[(CGNode, SSAPutInstruction)] = {
         val cha = cg.getClassHierarchy()
         logger.trace("Locating writes to field %s on object %s", field, fieldObj)
         val s = for (
@@ -49,7 +49,7 @@ object FieldUtil extends Logging {
         return r
     }
         
-    def getFieldWrites(cg: CallGraph, pa: PointerAnalysis, field: IField): Set[(CGNode, SSAPutInstruction)] = {
+    def getFieldWrites(cg: CallGraph, pa: PointerAnalysis[InstanceKey], field: IField): Set[(CGNode, SSAPutInstruction)] = {
         logger.trace("Locating all writes to field %s", field)
         val cha = cg.getClassHierarchy()
         val s = for (

@@ -34,10 +34,11 @@ import com.ibm.wala.ipa.callgraph.CallGraph
 import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
 import de.wwu.sdpn.wala.dpngen.symbols.GlobalState
 import de.wwu.sdpn.wala.dpngen.symbols.DPNAction
+import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 
 object DPNTrimCompareTest {
 
-    var stuff: Map[Int, (CallGraph, PointerAnalysis, MethodReference)] = Map()
+    var stuff: Map[Int, (CallGraph, PointerAnalysis[InstanceKey], MethodReference)] = Map()
 
     @BeforeClass
     def setUp() {

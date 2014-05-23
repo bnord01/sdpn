@@ -17,7 +17,7 @@ import com.ibm.wala.ipa.callgraph.CGNode
  */
 trait LockLocator {
 	def cg:CallGraph
-	def pa:PointerAnalysis
+	def pa:PointerAnalysis[InstanceKey]
 	def entryNode: CGNode
 	
 	lazy val locks = locateLocks
@@ -55,7 +55,7 @@ trait LockLocator {
 }
 
 object LockLocator {
-  def instances(cg1:CallGraph, pa1:PointerAnalysis) : Set[InstanceKey] = {
+  def instances(cg1:CallGraph, pa1:PointerAnalysis[InstanceKey]) : Set[InstanceKey] = {
     val ll = new AnyRef() with LockLocator {def cg = cg1; def pa = pa1; def entryNode = cg1.getFakeRootNode()}
     return ll.locks
   }

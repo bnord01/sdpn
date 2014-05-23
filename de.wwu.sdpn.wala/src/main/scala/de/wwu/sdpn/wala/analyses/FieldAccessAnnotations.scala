@@ -25,7 +25,7 @@ import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
  * @author Benedikt Nordhoff
  */
 trait FieldAccessAnnotations extends DPNAnnotater[GlobalState, StackSymbol, DPNAction] {
-    def pa: PointerAnalysis
+    def pa: PointerAnalysis[InstanceKey]
 
     def fieldOfInterest: (InstanceKey, FieldReference)
     override type RuleAnnotation = String

@@ -19,14 +19,14 @@ import de.wwu.sdpn.wala.analyses.datarace._
 import de.wwu.sdpn.core.result._
 import junit.framework.JUnit4TestAdapter
 import de.wwu.sdpn.core.ta.xsb.XSBInterRunner
-
 import org.junit.runners.Parameterized.Parameters
 import org.junit.runners.Parameterized
 import org.junit.runner.RunWith
+import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 
 object DataraceAnalysisTest {
 
-    var stuff: Map[Int, (CallGraph, PointerAnalysis, IClassHierarchy)] = Map()
+    var stuff: Map[Int, (CallGraph, PointerAnalysis[InstanceKey], IClassHierarchy)] = Map()
 
     @BeforeClass
     def setUp() {

@@ -53,4 +53,8 @@ class SubProgressMonitor(parent: IProgressMonitor, ticksToSend: Int) extends IPr
       sentTicks += newTicks
     }
   }
+
+  def getCancelMessage: String = {
+    "canceled."
+  }
 }

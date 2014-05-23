@@ -34,11 +34,11 @@ object DataraceAnalysis {
 
 }
 
-class DataraceAnalysis(cg: CallGraph, pa: PointerAnalysis, ops: DRAOptions) {
+class DataraceAnalysis(cg: CallGraph, pa: PointerAnalysis[InstanceKey], ops: DRAOptions) {
     type MDPN = MonitorDPN[GlobalState, StackSymbol, DPNAction, InstanceKey]
     type RIMDPN = RIDPN[GlobalState, StackSymbol]
 
-    def this(cg: CallGraph, pa: PointerAnalysis) = this(cg, pa, new DRAOptions)
+    def this(cg: CallGraph, pa: PointerAnalysis[InstanceKey]) = this(cg, pa, new DRAOptions)
     ops.seal
     import ops.applicationOnly
     var fieldMap: Map[(InstanceKey, Atom), (Set[StackSymbol], Set[StackSymbol], Set[(CGNode, SSAFieldAccessInstruction)])] = Map().withDefaultValue((Set(), Set(), Set()))

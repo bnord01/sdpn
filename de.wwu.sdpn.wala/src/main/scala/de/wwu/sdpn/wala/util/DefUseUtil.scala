@@ -8,7 +8,7 @@ import scala.collection.JavaConversions._
 import com.ibm.wala.ssa.SSAPutInstruction
 import com.ibm.wala.ssa.SSAGetInstruction
 
-class DefUseUtil(cg: CallGraph, pa: PointerAnalysis) {
+class DefUseUtil(cg: CallGraph, pa: PointerAnalysis[InstanceKey]) {
 
     lazy val hm = pa getHeapModel ()
 
