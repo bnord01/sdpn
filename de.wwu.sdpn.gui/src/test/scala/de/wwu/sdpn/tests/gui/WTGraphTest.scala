@@ -15,10 +15,11 @@ import de.wwu.sdpn.wala.analyses.SimpleAnalyses
 import de.wwu.sdpn.wala.analyses.SDPNTestProps
 import de.wwu.sdpn.core.ta.xsb.witness.FullWitnessParser
 import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
+import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 
 object WTGraphTest {
 
-  var stuff: Map[Int, (CallGraph, PointerAnalysis, MethodReference)] = Map()
+  var stuff: Map[Int, (CallGraph, PointerAnalysis[InstanceKey], MethodReference)] = Map()
 
   @BeforeClass
   def setUp() {

@@ -21,7 +21,7 @@ import de.wwu.sdpn.gui.dpn.zest.ToStringDecorator
 
 object MDPNGraphTest {
 
-  var stuff: Map[Int, (CallGraph, PointerAnalysis, MethodReference)] = Map()
+  var stuff: Map[Int, (CallGraph, PointerAnalysis[InstanceKey], MethodReference)] = Map()
 
   @BeforeClass
   def setUp() {

@@ -25,6 +25,7 @@ import org.eclipse.core.runtime.IProgressMonitor
 import com.ibm.wala.ipa.callgraph.CGNode
 import org.eclipse.jdt.core.IMethod
 import de.wwu.sdpn.wala.util.ThreadSensContextSelector
+import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 
 object WalaEclipseUtil {
     
@@ -139,7 +140,7 @@ sun/.*"""
     return makeScope(list, loader)
   }
 
-  def makeCGFromScopeAndMainClass(scope: AnalysisScope, mc: String): (CallGraph, PointerAnalysis) = {
+  def makeCGFromScopeAndMainClass(scope: AnalysisScope, mc: String): (CallGraph, PointerAnalysis[InstanceKey]) = {
     val cha = ClassHierarchy.make(scope);
 
     val entrypoints = Util.makeMainEntrypoints(scope, cha, mc);

@@ -31,7 +31,7 @@ import com.ibm.wala.classLoader.IField
  * which defs (represented by BaseEdges (which contain a SSAPutInstruction)) may flow there.
  *
  */
-class DefUse(cg: CallGraph, pa: PointerAnalysis, interpretKill: Boolean = true, subSolver: FixedpointSolver[PFGVar[LMap[(InstanceKey, IField), LMap[BaseEdge, Boolean]]],LGKStatement[LMap[(InstanceKey, IField), LMap[BaseEdge, Boolean]]]] = null, onlyApplication:Boolean=true) {
+class DefUse(cg: CallGraph, pa: PointerAnalysis[InstanceKey], interpretKill: Boolean = true, subSolver: FixedpointSolver[PFGVar[LMap[(InstanceKey, IField), LMap[BaseEdge, Boolean]]],LGKStatement[LMap[(InstanceKey, IField), LMap[BaseEdge, Boolean]]]] = null, onlyApplication:Boolean=true) {
 	type Facts = LMap[(InstanceKey, IField), LMap[BaseEdge, Boolean]]
     type DUVar = PFGVar[Facts]
 	

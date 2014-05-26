@@ -41,7 +41,7 @@ object WalaPFGTest {
 
 class WalaPFGTest {
 
-    def pfgTest01: (WalaPFG, PointerAnalysis, CallGraph) = {
+    def pfgTest01: (WalaPFG, PointerAnalysis[InstanceKey], CallGraph) = {
         import de.wwu.sdpn.wala.analyses.SDPNTestProps
         val cp = SDPNTestProps.get.classPath
         val mc = "Lbnord/unittests/defuse/Test01"
@@ -49,7 +49,7 @@ class WalaPFGTest {
         val pfg = PFGFactory.getPFG(preAnalysis)
         (pfg, preAnalysis.pa, preAnalysis.cg)
     }
-    def pfgTestPrintln01: (WalaPFG, PointerAnalysis, CallGraph) = {
+    def pfgTestPrintln01: (WalaPFG, PointerAnalysis[InstanceKey], CallGraph) = {
         import de.wwu.sdpn.wala.analyses.SDPNTestProps
         val cp = SDPNTestProps.get.classPath
         val mc = "Lbnord/unittests/defuse/TestPrintln01"
@@ -217,7 +217,7 @@ class WalaPFGTest {
 
     }
 
-    def getGenKill(cg: CallGraph, pa: PointerAnalysis)(edge: Edge): GenKill[LMap[(InstanceKey, FieldReference), LMap[CFGPoint, Boolean]]] = {
+    def getGenKill(cg: CallGraph, pa: PointerAnalysis[InstanceKey])(edge: Edge): GenKill[LMap[(InstanceKey, FieldReference), LMap[CFGPoint, Boolean]]] = {
         val lat = implicitly[Lattice[LMap[(InstanceKey, FieldReference), LMap[CFGPoint, Boolean]]]]
         val hm = pa.getHeapModel()
         edge match {
