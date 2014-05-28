@@ -1,31 +1,31 @@
 package de.wwu.sdpn.eclipse.util
-import org.eclipse.jdt.core.IType
-import com.ibm.wala.ipa.callgraph.CallGraph
-import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
-import com.ibm.wala.ipa.callgraph.AnalysisScope
+
 import java.util.StringTokenizer
-import com.ibm.wala.util.strings.Atom
-import com.ibm.wala.util.io.FileProvider
+import java.util.jar.JarFile
+import org.eclipse.core.runtime.IProgressMonitor
+import org.eclipse.jdt.core.IJavaProject
+import org.eclipse.jdt.core.IMethod
+import org.eclipse.jdt.core.IType
+import org.eclipse.jdt.core.Signature
 import com.ibm.wala.classLoader.BinaryDirectoryTreeModule
 import com.ibm.wala.classLoader.SourceDirectoryTreeModule
-import com.ibm.wala.properties.WalaProperties
-import java.util.jar.JarFile
-import com.ibm.wala.ipa.cha.ClassHierarchy
-import com.ibm.wala.ipa.callgraph.impl.Util
-import com.ibm.wala.ipa.callgraph.AnalysisOptions
 import com.ibm.wala.ipa.callgraph.AnalysisCache
+import com.ibm.wala.ipa.callgraph.AnalysisOptions
+import com.ibm.wala.ipa.callgraph.AnalysisScope
+import com.ibm.wala.ipa.callgraph.CGNode
+import com.ibm.wala.ipa.callgraph.CallGraph
+import com.ibm.wala.ipa.callgraph.impl.Util
+import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
+import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis
 import com.ibm.wala.ipa.callgraph.propagation.SSAPropagationCallGraphBuilder
-import java.util.LinkedList
+import com.ibm.wala.ipa.cha.ClassHierarchy
+import com.ibm.wala.properties.WalaProperties
+import com.ibm.wala.types.TypeReference
+import com.ibm.wala.util.io.FileProvider
+import com.ibm.wala.util.strings.Atom
+import de.wwu.sdpn.wala.util.ThreadSensContextSelector
 import java.io.ByteArrayInputStream
 import com.ibm.wala.util.config.FileOfClasses
-import com.ibm.wala.types.TypeReference
-import org.eclipse.jdt.core.IJavaProject
-import org.eclipse.jdt.core.Signature
-import org.eclipse.core.runtime.IProgressMonitor
-import com.ibm.wala.ipa.callgraph.CGNode
-import org.eclipse.jdt.core.IMethod
-import de.wwu.sdpn.wala.util.ThreadSensContextSelector
-import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
 
 object WalaEclipseUtil {
     

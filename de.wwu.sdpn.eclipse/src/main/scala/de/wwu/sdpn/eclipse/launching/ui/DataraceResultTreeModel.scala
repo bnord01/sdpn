@@ -42,7 +42,10 @@ import org.eclipse.core.runtime.IStatus
 import org.eclipse.core.runtime.IProgressMonitor
 import org.eclipse.core.runtime.jobs.Job
 import org.eclipse.core.runtime.Status
-import de.wwu.sdpn.gui.ta.witness.zest.IWTGraph
+import de.wwu.sdpn.gui.jgraphx.IWTGraph
+import org.eclipse.swt.awt.SWT_AWT
+import org.eclipse.swt.widgets.Composite
+import org.eclipse.swt.SWT
 
 class DataraceResultTreeModel(jproj: IJavaProject, result: DataraceAnalysis#DRResult) extends ITreeContentProvider with ILabelProvider with IDoubleClickListener {
 
@@ -276,8 +279,15 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DataraceAnalysis#DRRe
                                     val num = DRStateParser.parseState(t.state.toString).ss.cg
                                     val cgnode = cg.getNode(num)
                                     val imeth = WalaEclipseUtil.cgnode2IMethod(jproj, cgnode)
-                                    if (imeth != null)
-                                        JavaUI.revealInEditor(JavaUI.openInEditor(imeth), imeth: IJavaElement);
+                                    if (imeth != null) {
+                                        val display = PlatformUI.getWorkbench().getDisplay()
+                                        display.asyncExec(new Runnable {
+                                            def run {
+                                                JavaUI.revealInEditor(JavaUI.openInEditor(imeth), imeth: IJavaElement);
+                                            }
+                                        })
+                                    }
+
                                 }
 
                                 val witnessTree = if (doPrune) WitnessTree.pruneBase(wt) else wt
@@ -289,7 +299,11 @@ class DataraceResultTreeModel(jproj: IJavaProject, result: DataraceAnalysis#DRRe
                                         shell.setText("Witness View");
                                         shell.setLayout(new FillLayout());
                                         shell.setSize(800, 400);
-                                        new IWTGraph(witnessTree, shell, decorator = decorator, selectionListener = selectionListener)
+                                        var graph = new IWTGraph(witnessTree, decorator = decorator, selectionListener = selectionListener)
+                                        val comp = new Composite(shell, SWT.EMBEDDED);
+                                        val frame = SWT_AWT.new_Frame(comp)
+                                        frame.add(graph.graphComponent)
+                                        frame.pack()
                                         shell.open();
                                     }
                                 })

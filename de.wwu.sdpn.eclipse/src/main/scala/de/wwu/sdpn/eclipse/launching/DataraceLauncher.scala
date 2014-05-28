@@ -54,6 +54,7 @@ object DataraceLauncher {
             println("Main class: " + mcname)
 
             pm subTask "Setting up WALA scope"
+            
             val scope = WalaEclipseUtil.makeScopeFromCPnJRE(cp, jrelib)
 
             val mainClass = "L" + mcname.replace('.', '/')

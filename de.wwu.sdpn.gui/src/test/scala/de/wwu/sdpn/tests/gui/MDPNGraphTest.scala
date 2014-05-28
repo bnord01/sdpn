@@ -15,9 +15,9 @@ import de.wwu.sdpn.wala.analyses.SDPNTestProps
 import de.wwu.sdpn.wala.dpngen.symbols.StackSymbol
 import de.wwu.sdpn.wala.dpngen.symbols.GlobalState
 import de.wwu.sdpn.wala.dpngen.symbols.DPNAction
-import de.wwu.sdpn.gui.dpn.zest.MDPNGraph
+import de.wwu.sdpn.gui.jgraphx.MDPNGraph
 import com.ibm.wala.ipa.callgraph.propagation.InstanceKey
-import de.wwu.sdpn.gui.dpn.zest.ToStringDecorator
+import de.wwu.sdpn.gui.jgraphx.ToStringDecorator
 
 object MDPNGraphTest {
 
@@ -53,7 +53,7 @@ class MDPNGraphTest {
 
     
     MDPNGraph.showMDPN(mdpn,ToStringDecorator.get[GlobalState,StackSymbol,DPNAction,InstanceKey])
-
+    Thread.sleep(10000)
   }
 
   def getStackSymbols(cg: CallGraph, mr: MethodReference): Set[StackSymbol] = {
