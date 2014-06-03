@@ -4,7 +4,7 @@ version := "1.0-SNAPSHOT"
 
 organization := "de.wwu"
 
-scalaVersion := "2.9.2"
+scalaVersion := "2.10.4"
 
 parallelExecution in Test := false
 

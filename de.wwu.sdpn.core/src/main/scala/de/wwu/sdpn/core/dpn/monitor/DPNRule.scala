@@ -11,6 +11,7 @@ sealed trait DPNRule[ControlSymbol, StackSymbol, Action] {
     val inState: ControlSymbol
     val inSymbol: StackSymbol
     val action: Action
+    def accept(visitor: RuleVisitor[ControlSymbol, StackSymbol, Action])
 }
 
 case class SpawnRule[ControlSymbol, StackSymbol, Action](
@@ -27,6 +28,7 @@ case class SpawnRule[ControlSymbol, StackSymbol, Action](
             outState + ", " + outSymbol + ")\n\t>>>>(" +
             spawnState + "," + spawnSymbol + ")"
     }
+	override def accept(visitor: RuleVisitor[ControlSymbol, StackSymbol, Action]) {visitor.visitSpawnRule(this)}
 }
 
 case class PushRule[ControlSymbol, StackSymbol, Action](
@@ -41,6 +43,7 @@ case class PushRule[ControlSymbol, StackSymbol, Action](
             action + "-->\n\t\t(" +
             outState + ", [" + outSymbol1 + ", " + outSymbol2 + "])"
     }
+	override def accept(visitor: RuleVisitor[ControlSymbol, StackSymbol, Action]) {visitor.visitPushRule(this)}
 }
 
 case class PopRule[ControlSymbol, StackSymbol, Action](
@@ -55,6 +58,7 @@ case class PopRule[ControlSymbol, StackSymbol, Action](
             action + "-->\n\t\t(" +
             outState + ")"
     }
+	override def accept(visitor: RuleVisitor[ControlSymbol, StackSymbol, Action]) {visitor.visitPopRule(this)}
 }
 
 case class BaseRule[ControlSymbol, StackSymbol, Action](
@@ -69,5 +73,13 @@ case class BaseRule[ControlSymbol, StackSymbol, Action](
             action + "-->\n\t\t(" +
             outState + ", " + outSymbol + ")"
     }
+	override def accept(visitor: RuleVisitor[ControlSymbol, StackSymbol, Action]) {visitor.visitBaseRule(this)}
 
+}
+
+trait RuleVisitor[ControlSymbol,StackSymbol,Action] {
+    def visitBaseRule(rule: BaseRule[ControlSymbol,StackSymbol,Action])
+    def visitPopRule(rule: PopRule[ControlSymbol,StackSymbol,Action])
+    def visitPushRule(rule: PushRule[ControlSymbol,StackSymbol,Action])
+    def visitSpawnRule(rule: SpawnRule[ControlSymbol,StackSymbol,Action])
 }

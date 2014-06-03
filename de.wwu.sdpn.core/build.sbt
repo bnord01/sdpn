@@ -4,7 +4,7 @@ version := "1.0-SNAPSHOT"
 
 organization := "de.wwu"
 
-scalaVersion := "2.10.3"
+scalaVersion := "2.10.4"
 
 fork in (Test,run) := true
 
@@ -38,5 +38,5 @@ publishTo := Some(Resolver.file("file",  new File(Path.userHome.absolutePath+"/.
 
 //scalacOptions <+= scalaSource in Compile map { "-P:sxr:base-directory:" + _.getAbsolutePath }
 
-net.virtualvoid.sbt.graph.Plugin.graphSettings
+//net.virtualvoid.sbt.graph.Plugin.graphSettings
 
